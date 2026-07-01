@@ -1,0 +1,27 @@
+# OS / editor cruft
+.DS_Store
+*.swp
+*~
+.idea/
+.vscode/
+
+# node / python build output
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+dist/
+build/
+
+# env / secrets
+.env
+.env.*
+*.local
+
+# local Claude Code settings (personal permissions, not shared)
+.claude/settings.local.json
+
+# kb-ingest scratch (temporary plans and raw-source drop zones)
+_ingest_plan.md
+**/raw/processed/

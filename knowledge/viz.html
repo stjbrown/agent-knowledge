@@ -1,0 +1,2102 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>agent-knowledge — bundle graph</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--border:#30363d;--fg:#e6edf3;--mut:#8b949e}
+*{box-sizing:border-box}html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;background:var(--bg);color:var(--fg)}
+#app{display:flex;height:100vh}
+#graph{flex:1;min-width:0}
+#side{width:420px;border-left:1px solid var(--border);background:var(--panel);display:flex;flex-direction:column}
+#controls{padding:12px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#controls input,#controls select{background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px}
+#search{flex:1;min-width:120px}
+#detail{padding:16px;overflow:auto;flex:1}
+#detail h1{font-size:20px;margin:.2em 0}
+#detail .meta{color:var(--mut);font-size:13px;margin-bottom:12px}
+#detail .tag{display:inline-block;background:#21262d;border:1px solid var(--border);border-radius:10px;padding:1px 8px;margin:2px 4px 2px 0;font-size:12px}
+#detail .body{border-top:1px solid var(--border);margin-top:12px;padding-top:12px;font-size:14px;line-height:1.55}
+#detail .body a{color:#58a6ff;cursor:pointer}#detail .body pre{background:var(--bg);padding:10px;border-radius:6px;overflow:auto}
+#detail .body table{border-collapse:collapse}#detail .body td,#detail .body th{border:1px solid var(--border);padding:4px 8px}
+.backlinks a,.title-link{color:#58a6ff;cursor:pointer;display:block;padding:2px 0;font-size:13px}
+.hint{color:var(--mut);font-size:13px}h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin:16px 0 4px}
+#legend{padding:8px 12px;border-top:1px solid var(--border);font-size:12px;color:var(--mut);display:flex;flex-wrap:wrap;gap:10px}
+#legend span{display:inline-flex;align-items:center;gap:4px}#legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
+</style></head><body>
+<div id="app">
+  <div id="graph"></div>
+  <div id="side">
+    <div id="controls">
+      <input id="search" placeholder="Search title, id, tags…">
+      <select id="typeFilter"><option value="">all types</option></select>
+      <select id="layout">
+        <option value="cose">cose</option><option value="concentric">concentric</option>
+        <option value="breadthfirst">breadth-first</option><option value="circle">circle</option><option value="grid">grid</option>
+      </select>
+    </div>
+    <div id="detail"><p class="hint">Click a node to inspect it. Drag to pan, scroll to zoom.</p></div>
+    <div id="legend"></div>
+  </div>
+</div>
+<script>
+const G={"bundle": "knowledge", "nodes": [{"id": "concepts/compounding_artifact", "path": "concepts/compounding_artifact.md", "type": "Concept", "title": "Compounding Artifact", "description": "The defining property of an LLM Wiki — knowledge is compiled once and kept current, so the wiki gets richer with every source and every query.", "tags": ["pattern", "core"], "resource": "", "status": "active", "body": "# Compounding Artifact
+
+The key difference between an [LLM Wiki](./llm_wiki.md) and query-time retrieval is that
+**the wiki is a persistent, compounding artifact**. The cross-references are already there. The
+contradictions have already been flagged. The synthesis already reflects everything you've read.
+The wiki keeps getting richer with every source you add and every question you ask.
+
+## Two ways knowledge compounds
+
+**Ingested sources compound.** Each new source is not merely indexed for later retrieval; it is
+integrated. A single source might touch 10–15 pages — updating entity pages, revising summaries,
+adding cross-links. See [ingest](../operations/ingest.md).
+
+**Queries compound too.** A good answer — a comparison, a multi-source analysis, a discovered
+connection — should not disappear into chat history. It can be filed back into the wiki as a new
+page. This way explorations accumulate just like sources do. See [query](../operations/query.md).
+
+## Contrast
+
+This is precisely what [RAG](./rag_vs_llm_wiki.md) does *not* do: with retrieval, the
+LLM rediscovers knowledge from scratch on every question and nothing is built up. The compounding
+property is also why the [lint](../operations/lint.md) operation matters — a compounding artifact
+accumulates drift (stale claims, orphans, contradictions) that must be periodically swept.
+
+# Citations
+
+1. [Karpathy — LLM Wiki gist](../references/karpathy_llm_wiki.md)", "links": ["concepts/llm_wiki", "operations/ingest", "operations/query", "concepts/rag_vs_llm_wiki", "operations/lint", "references/karpathy_llm_wiki"], "cited_by": ["concepts/llm_wiki", "concepts/rag_vs_llm_wiki", "ecosystem/omegawiki", "operations/ingest", "operations/lint", "operations/query", "references/karpathy_llm_wiki", "references/okf_vs_rag_infographic"]}, {"id": "concepts/concept_document", "path": "concepts/concept_document.md", "type": "Concept", "title": "Concept Document", "description": "The OKF term for a single unit of knowledge — a UTF-8 markdown file with a YAML frontmatter block and a markdown body.", "tags": ["okf", "vocabulary"], "resource": "", "status": "active", "body": "# Concept Document
+
+A **concept document** (or *concept*) is a single unit of knowledge in a
+[knowledge bundle](./knowledge_bundle.md): a UTF-8 markdown file with a
+[YAML frontmatter block](../spec/frontmatter.md) followed by a [markdown body](../spec/body.md).
+Every `.md` file in a bundle is a concept document *except* the reserved
+[`index.md` and `log.md`](../spec/reserved_filenames.md).
+
+Every file you are reading in this bundle's `concepts/`, `spec/`, `operations/`,
+`implementations/`, and `references/` directories is a concept document.
+
+## Concept ID
+
+A concept's identifier is its file path within the bundle with the `.md` extension removed.
+For example, this file's concept ID is `concepts/concept_document`. Concept IDs are how concepts
+are referenced and how [cross-links](../spec/cross_linking.md) resolve.
+
+## Anatomy
+
+* **Frontmatter** — machine-readable metadata. Only [`type`](../spec/frontmatter.md) is required;
+  `title`, `description`, `resource`, `tags`, and `timestamp` are recommended.
+* **Body** — human- and agent-readable markdown prose, with conventional headings such as
+  `# Schema`, `# Examples`, and `# Citations` when applicable. See [Body](../spec/body.md).
+
+A concept may be **bound to a resource** (e.g. a database table, with a `resource` URI) or
+**abstract** (e.g. a playbook or, as here, an idea) with no `resource`. Every concept in this
+bundle is abstract.
+
+# Citations
+
+1. [OKF Specification (SPEC.md)](../references/okf_spec.md)", "links": ["concepts/knowledge_bundle", "spec/frontmatter", "spec/body", "spec/reserved_filenames", "spec/cross_linking", "references/okf_spec"], "cited_by": ["concepts/knowledge_bundle", "concepts/three_layer_architecture", "operations/ingest", "operations/lint", "references/qmd", "spec/citations", "spec/cross_linking", "spec/frontmatter", "spec/index_files", "spec/motivation", "spec/reserved_filenames", "spec/terminology"]}, {"id": "concepts/knowledge_bundle", "path": "concepts/knowledge_bundle.md", "type": "Concept", "title": "Knowledge Bundle", "description": "The OKF term for a directory tree of concept documents — the unit of production, exchange, and consumption.", "tags": ["okf", "vocabulary"], "resource": "", "status": "active", "body": "# Knowledge Bundle
+
+A **knowledge bundle** (or just *bundle*) is the OKF unit of knowledge: a directory tree of
+markdown [concept documents](./concept_document.md) plus optional reserved
+[index](../spec/index_files.md) and [log](../spec/log_files.md) files. It is the OKF formalization
+of the \"wiki\" layer in the [three-layer architecture](./three_layer_architecture.md).
+
+See [Bundle Structure](../spec/bundle_structure.md) for the normative rules. In short:
+
+* A bundle is just a directory — no manifest or database is required.
+* It can be distributed as a git repository (recommended), an archive (tar/zip), or a
+  subdirectory of a larger repository. This repository uses the last form: the bundle lives in
+  `knowledge/`.
+* Its internal organization is domain-independent; producers arrange concepts as they see fit.
+* It may declare its format version via `okf_version` in the root
+  [index file](../spec/index_files.md) — see [Versioning](../spec/versioning.md).
+
+Because a bundle is plain markdown and YAML, anyone can produce one (people, agents on any
+framework, export pipelines) and anyone can consume one (file servers, Obsidian/Notion, LLMs,
+search indexes, graph viewers). This vendor-neutrality is the whole point of
+[OKF](../spec/index.md).
+
+# Citations
+
+1. [OKF Specification (SPEC.md)](../references/okf_spec.md)", "links": ["concepts/concept_document", "spec/index_files", "spec/log_files", "concepts/three_layer_architecture", "spec/bundle_structure", "spec/versioning", "references/okf_spec"], "cited_by": ["concepts/concept_document", "concepts/llm_wiki", "concepts/progressive_disclosure", "concepts/three_layer_architecture", "ecosystem/kiso", "ecosystem/openknowledge_cli", "implementations/okf_native_agent", "operations/query", "references/okf_readme", "references/qmd", "spec/bundle_structure", "spec/terminology"]}, {"id": "concepts/llm_wiki", "path": "concepts/llm_wiki.md", "type": "Concept", "title": "LLM Wiki", "description": "A persistent, LLM-maintained knowledge base that compiles knowledge once and keeps it current, sitting between you and your raw sources.", "tags": ["pattern", "knowledge-base", "core"], "resource": "", "status": "active", "body": "# LLM Wiki
+
+The **LLM Wiki** is a pattern for building knowledge bases where an LLM agent incrementally
+builds, cross-references, and maintains a structured, interlinked collection of markdown files
+that sits between you and your raw sources. The pattern originates from
+[Andrej Karpathy's idea file](../references/karpathy_llm_wiki.md).
+
+The core move: instead of retrieving from raw documents at query time
+(see [RAG vs. LLM Wiki](./rag_vs_llm_wiki.md)), the LLM reads each new source, extracts
+the key information, and integrates it into the existing wiki — updating entity pages, revising
+summaries, flagging contradictions, strengthening the evolving synthesis. Knowledge is
+**compiled once and then kept current**, not re-derived on every query. This is what makes the
+wiki a [compounding artifact](./compounding_artifact.md).
+
+## Division of labor
+
+You never (or rarely) write the wiki yourself. The LLM owns the writing and maintenance; you
+own sourcing, exploration, and asking good questions. This split is what makes the pattern
+practical — see [why it works](#why-it-works).
+
+The workflow Karpathy describes: the LLM agent open on one side, a markdown editor
+(e.g. Obsidian) on the other. The LLM edits based on the conversation; you browse the results
+in real time. *\"Obsidian is the IDE; the LLM is the programmer; the wiki is the codebase.\"*
+
+## Structure
+
+An LLM Wiki has [three layers](./three_layer_architecture.md): immutable raw sources,
+the LLM-owned wiki, and a schema/config document that tells the LLM how the wiki is organized.
+The wiki itself can be expressed as an OKF [knowledge bundle](./knowledge_bundle.md) —
+that is exactly what this repository does.
+
+## Operations
+
+Three operations keep the wiki alive:
+
+* [Ingest](../operations/ingest.md) — process a new source into the wiki.
+* [Query](../operations/query.md) — answer a question, and file good answers back.
+* [Lint](../operations/lint.md) — periodically health-check the wiki.
+
+## Why it works
+
+The tedious part of maintaining a knowledge base is not the reading or the thinking — it is the
+bookkeeping: updating cross-references, keeping summaries current, noting contradictions,
+maintaining consistency across dozens of pages. Humans abandon wikis because the maintenance
+burden grows faster than the value. LLMs don't get bored, don't forget to update a
+cross-reference, and can touch fifteen files in one pass. The wiki stays maintained because the
+cost of maintenance is near zero. This is the same problem the [Memex](./memex.md) could
+not solve in 1945: who does the maintenance.
+
+# Citations
+
+1. [Karpathy — LLM Wiki gist](../references/karpathy_llm_wiki.md)", "links": ["references/karpathy_llm_wiki", "concepts/rag_vs_llm_wiki", "concepts/compounding_artifact", "concepts/three_layer_architecture", "concepts/knowledge_bundle", "operations/ingest", "operations/query", "operations/lint", "concepts/memex"], "cited_by": ["concepts/compounding_artifact", "concepts/memex", "concepts/rag_vs_llm_wiki", "concepts/three_layer_architecture", "design/sample_bundle_lessons", "ecosystem/critiques", "ecosystem/openwiki_langchain", "implementations/personal_work_wiki", "operations/ingest", "references/karpathy_llm_wiki", "spec/cross_linking", "spec/log_files", "spec/motivation", "spec/versioning"]}, {"id": "concepts/memex", "path": "concepts/memex.md", "type": "Concept", "title": "Memex", "description": "Vannevar Bush's 1945 vision of a personal, curated knowledge store with associative trails — the intellectual antecedent of the LLM Wiki, blocked only by the maintenance problem.", "tags": ["lineage", "history"], "resource": "", "status": "active", "body": "# Memex
+
+The [LLM Wiki](./llm_wiki.md) is related in spirit to Vannevar Bush's **Memex**,
+described in his 1945 essay *As We May Think*. The Memex was a vision of a personal, curated
+knowledge store with **associative trails** between documents — where the connections between
+documents are as valuable as the documents themselves.
+
+Bush's vision was closer to the LLM Wiki than to what the web actually became: private, actively
+curated, with links as first-class value. The web optimized for scale and publication; the Memex
+imagined a private thinking tool.
+
+## The part Bush couldn't solve
+
+The Memex assumed a human would build and maintain the trails. That is exactly the
+[bookkeeping burden](./llm_wiki.md#why-it-works) that causes humans to abandon knowledge
+bases: maintaining associative links by hand doesn't scale, and the value decays as the store
+grows. The LLM handles that maintenance — it doesn't get bored and can update every
+cross-reference in one pass. In this framing, the LLM Wiki is the Memex with the maintenance
+problem finally solved.
+
+# Citations
+
+1. [Karpathy — LLM Wiki gist](../references/karpathy_llm_wiki.md)
+2. Vannevar Bush, \"As We May Think,\" *The Atlantic*, July 1945.", "links": ["concepts/llm_wiki", "references/karpathy_llm_wiki"], "cited_by": ["concepts/llm_wiki", "ecosystem/critiques", "references/karpathy_llm_wiki"]}, {"id": "concepts/progressive_disclosure", "path": "concepts/progressive_disclosure.md", "type": "Concept", "title": "Progressive Disclosure", "description": "Navigating a growing bundle one level at a time through index files, so an agent finds relevant pages without loading everything.", "tags": ["pattern", "navigation"], "resource": "", "status": "active", "body": "# Progressive Disclosure
+
+**Progressive disclosure** is the technique of navigating a [knowledge bundle](./knowledge_bundle.md)
+one directory level at a time, using [index files](../spec/index_files.md) as the map, rather than
+loading the whole bundle into context. It is how both agents and humans stay oriented as a wiki
+grows to hundreds of pages.
+
+## How it works
+
+Each directory can carry an `index.md` that lists its contents — a link and one-line description
+per concept, grouped under headings. An agent answering a [query](../operations/query.md) reads the
+root index first, follows the relevant section index, and only then reads the specific concept
+pages it needs. The [cross-links](../spec/cross_linking.md) between concepts let it fan out from
+there. This works surprisingly well at moderate scale (~100 sources, hundreds of pages) and
+avoids the need for embedding-based retrieval infrastructure.
+
+## Why it scales
+
+Index files are cheap to read and give the agent a content-oriented catalog of what exists.
+Because the bundle is [graph-shaped, not just tree-shaped](../spec/cross_linking.md), the agent can
+also traverse relationships directly once it has a foothold. When a bundle outgrows what index
+files can handle, add a search tool such as [qmd](../references/qmd.md) — but not before.
+
+Progressive disclosure is a primary motivation for keeping [index files](../spec/index_files.md)
+current on every [ingest](../operations/ingest.md); a stale index defeats the mechanism.
+
+# Citations
+
+1. [OKF README & Reference Agent](../references/okf_readme.md)
+2. [Karpathy — LLM Wiki gist](../references/karpathy_llm_wiki.md)", "links": ["concepts/knowledge_bundle", "spec/index_files", "operations/query", "spec/cross_linking", "references/qmd", "operations/ingest", "references/okf_readme", "references/karpathy_llm_wiki"], "cited_by": ["concepts/rag_vs_llm_wiki", "design/skill_design", "ecosystem/critiques", "operations/ingest", "operations/query", "references/okf_vs_rag_infographic", "references/qmd", "spec/bundle_structure", "spec/index_files"]}, {"id": "concepts/rag_vs_llm_wiki", "path": "concepts/rag_vs_llm_wiki.md", "type": "Concept", "title": "RAG vs. LLM Wiki", "description": "Retrieval-augmented generation rediscovers knowledge on every query; an LLM Wiki compiles it once and maintains it.", "tags": ["comparison", "rag"], "resource": "", "status": "active", "body": "# RAG vs. LLM Wiki
+
+Most people's experience with LLMs and documents is **RAG** (retrieval-augmented generation):
+you upload a collection of files, the LLM retrieves relevant chunks at query time, and generates
+an answer. NotebookLM, ChatGPT file uploads, and most RAG systems work this way.
+
+The [LLM Wiki](./llm_wiki.md) pattern is different in one decisive way.
+
+| | RAG | LLM Wiki |
+|---|---|---|
+| When knowledge is synthesized | At query time, from raw chunks | At ingest time, into pages |
+| Persistence | Nothing accumulates between queries | A [compounding artifact](./compounding_artifact.md) |
+| Cross-references | Re-discovered per question | Already written and maintained |
+| Contradictions | Re-encountered each time | Flagged once, during ingest |
+| Answer to a 5-document question | Re-piece the fragments every time | Read the page that already synthesized them |
+| Infrastructure | Embeddings + vector store | Markdown files + [index](../spec/index_files.md) (add search later) |
+
+RAG's weakness is not accuracy but **amnesia**: the LLM is rediscovering knowledge from scratch
+on every question, so nothing is built up. Ask a subtle question that requires synthesizing five
+documents and the LLM has to find and piece together the fragments every single time.
+
+The LLM Wiki front-loads that synthesis into the [ingest](../operations/ingest.md) step, so at
+query time the work is mostly navigation ([progressive disclosure](./progressive_disclosure.md))
+rather than rediscovery. The two are not mutually exclusive — a large wiki can still use search
+such as [qmd](../references/qmd.md) to find pages — but the retrieved unit is a synthesized page,
+not a raw chunk.
+
+For a visual version of this contrast — \"search all 100 PDFs every query\" vs. \"read once, compile
+one concept per file, follow links\" — see the
+[OKF vs. RAG infographic](../references/okf_vs_rag_infographic.md).
+
+# Citations
+
+1. [Karpathy — LLM Wiki gist](../references/karpathy_llm_wiki.md)", "links": ["concepts/llm_wiki", "concepts/compounding_artifact", "spec/index_files", "operations/ingest", "concepts/progressive_disclosure", "references/qmd", "references/okf_vs_rag_infographic", "references/karpathy_llm_wiki"], "cited_by": ["concepts/compounding_artifact", "concepts/llm_wiki", "operations/query", "references/karpathy_llm_wiki", "references/okf_vs_rag_infographic", "references/qmd"]}, {"id": "concepts/three_layer_architecture", "path": "concepts/three_layer_architecture.md", "type": "Concept", "title": "Three-Layer Architecture", "description": "An LLM Wiki has three layers — immutable raw sources, the LLM-owned wiki, and a co-evolved schema/config document.", "tags": ["pattern", "architecture", "core"], "resource": "", "status": "active", "body": "# Three-Layer Architecture
+
+The [LLM Wiki](./llm_wiki.md) pattern separates concerns into three layers. Keeping them
+distinct is what makes the LLM a disciplined maintainer rather than a generic chatbot.
+
+## 1. Raw sources
+
+Your curated collection of source documents: articles, papers, images, transcripts, data files.
+These are **immutable** — the LLM reads from them but never modifies them. This is your source
+of truth and your audit trail. In the [ingest](../operations/ingest.md) operation, a source is
+read once and then moved to a \"processed\" location; it is never rewritten.
+
+## 2. The wiki
+
+A directory of LLM-generated markdown files: summaries, entity pages, concept pages,
+comparisons, overviews, syntheses. **The LLM owns this layer entirely** — it creates pages,
+updates them as new sources arrive, maintains cross-references, and keeps everything consistent.
+You read it; the LLM writes it. Expressed in OKF, this layer is a
+[knowledge bundle](./knowledge_bundle.md) of [concept documents](./concept_document.md).
+
+## 3. The schema
+
+A configuration document — `CLAUDE.md`, `AGENTS.md`, or an in-bundle config — that tells the LLM
+how the wiki is structured, what the conventions are, and what workflows to follow when
+ingesting, querying, or maintaining. Karpathy calls this \"the key configuration file.\" It is
+co-evolved over time as you learn what works for your domain.
+
+This layer is the pivot for **portability**: if the operations are generic and all
+domain knowledge (the section taxonomy, the `type` values, the workflows) lives in the schema,
+then the same skills can drive a work wiki, a book companion, or a research corpus. The portable
+skills we are building read this schema; the schema makes them fit the project.
+
+# Citations
+
+1. [Karpathy — LLM Wiki gist](../references/karpathy_llm_wiki.md)", "links": ["concepts/llm_wiki", "operations/ingest", "concepts/knowledge_bundle", "concepts/concept_document", "references/karpathy_llm_wiki"], "cited_by": ["concepts/knowledge_bundle", "concepts/llm_wiki", "design/skill_design", "design/spec_evolution", "ecosystem/competitor_comparison", "ecosystem/okf_skills_scaccogatto", "ecosystem/openknowledge_cli", "ecosystem/wiki_skills", "implementations/personal_work_wiki", "operations/ingest", "references/karpathy_llm_wiki", "references/okf_spec"]}, {"id": "design/sample_bundle_lessons", "path": "design/sample_bundle_lessons.md", "type": "Concept", "title": "Lessons from the OKF Sample Bundles", "description": "Our analysis of the three reference OKF bundles (ga4, stackoverflow, crypto_bitcoin) — what their structure, frontmatter, and linking conventions teach us about authoring conformant bundles.", "tags": ["okf", "examples", "analysis", "design-input"], "resource": "", "status": "active", "body": "# OKF Sample Bundles
+
+The OKF repo ships three reference bundles produced by the
+[reference agent](../references/okf_readme.md): **ga4** (17 files), **stackoverflow** (53 files), and
+**crypto_bitcoin** (8 files). All three describe BigQuery public datasets. Reading them is the best
+way to see the [spec](../spec/index.md) as *practiced* rather than *stated* — and several of their
+conventions differ from choices we made in this bundle, which is useful design input.
+
+## Shared structure
+
+All three use the same shallow, domain-driven layout:
+
+```
+<bundle>/
+  index.md              # root: a \"# Subdirectories\" list, NO frontmatter, NO okf_version
+  datasets/             # the dataset concept + index.md
+  tables/               # one concept per table + index.md
+  references/           # (ga4, stackoverflow) enums, metrics, joins, licenses + index.md
+  viz.html              # generated visualizer output, checked in
+```
+
+Only two `type` values do the heavy lifting: **`BigQuery Table`** (resource-bound) and
+**`Reference`** (abstract). Consistent with the spec's advice to pick few, descriptive types.
+
+## What they confirm
+
+* **Reserved files carry no frontmatter.** Every `index.md` is just a markdown list; none declare
+  `okf_version` — confirming that declaration is genuinely optional (we chose to include it).
+* **Resource-bound concepts** (`tables/*.md`, `datasets/*.md`) set a real `resource` URI (the
+  BigQuery REST endpoint) and lead with a `# Schema` section — the §4.3 pattern.
+* **Abstract concepts** (`references/*.md` — enums like `post_type_ids`, metrics, joins) omit
+  `resource` and just carry prose + a SQL snippet — the §4.4 pattern.
+* **`# Citations`** appears at the bottom as a bulleted list of URLs (sometimes plain, sometimes
+  markdown links) — looser than a numbered list, still conformant.
+* **`timestamp`** is a full ISO-8601 datetime (`'2026-05-28T22:53:05+00:00'`), quoted — worth
+  matching for machine-friendliness (we used date-only).
+
+## What surprised me (and what it teaches)
+
+1. **Root `index.md` is minimal — a `# Subdirectories` list, not a full catalog.** Progressive
+   disclosure is done by *drilling into each directory's* `index.md`, not by one big root index.
+   Our root index is much richer. Both conform; theirs scales better to large bundles, ours is
+   friendlier to a human reader landing at the top. A portable skill should probably generate the
+   minimal per-directory style by default.
+2. **No bundle has a `log.md`.** The reference agent produces bundles as a *snapshot* from a source
+   of truth (BigQuery), so there's no change history to keep. This confirms `log.md` matters for the
+   *incrementally-maintained* [LLM Wiki](../concepts/llm_wiki.md) use case (our case,
+   [personal work wiki](../implementations/personal_work_wiki.md), [the OKF-native agent](../implementations/okf_native_agent.md)) but is
+   genuinely optional for generated catalogs.
+3. **They use relative links (`../references/metrics/event_count.md`), not the recommended
+   bundle-absolute (`/…`) form.** The [spec](../spec/cross_linking.md) *recommends* absolute; the
+   reference bundles use relative. A reminder that \"recommended\" ≠ \"required,\" and that relative
+   links are what actually renders on GitHub and in the visualizer. (We chose absolute for stability;
+   worth revisiting when we decide what the skills emit.)
+4. **The `events_` table concept is enormous** — one file with the full nested BigQuery schema
+   (hundreds of fields). OKF does not force atomicity; a concept can be as large as its resource. This
+   contrasts with [the OKF-native agent's](../implementations/okf_native_agent.md) \"prefer atomic concepts\"
+   guidance — atomicity is a *maintenance* choice for living wikis, not an OKF rule.
+
+## Implications for our skills
+
+* Default to **per-directory `index.md`** catalogs (progressive disclosure) rather than one giant
+  root index.
+* Make **`log.md` conditional** on the use case: incremental wiki → yes; generated snapshot → no.
+* Decide a **link-form policy** (absolute vs. relative) and apply it consistently; the ecosystem is
+  split, so pick one and document why.
+* Use **full ISO-8601 datetimes** for `timestamp`.
+* Don't over-enforce **atomicity** at the format layer — make it a schema-layer/style preference.
+
+# Citations
+
+1. OKF sample bundles — <https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf/bundles>
+2. [OKF README & Reference Agent](../references/okf_readme.md)", "links": ["references/okf_readme", "concepts/llm_wiki", "implementations/personal_work_wiki", "implementations/okf_native_agent", "spec/cross_linking"], "cited_by": ["design/spec_evolution", "ecosystem/kiso", "references/okf_vs_rag_infographic", "spec/cross_linking"]}, {"id": "design/skill_design", "path": "design/skill_design.md", "type": "Concept", "title": "Skill Design — the kb-* family", "description": "The plan for agent-knowledge's skills — a kb hub (router + single source of truth) plus action skills (ingest, query, init, lint, visualize), designed with the writing-great-skills framework.", "tags": ["design", "skills", "build-plan", "decisions"], "resource": "", "status": "active", "body": "# Skill Design — the `kb-*` family
+
+The build plan for this project's skills, designed against the
+[competitor comparison](../ecosystem/competitor_comparison.md) (what to build vs. reuse) and the
+`writing-great-skills` framework (predictability as the root virtue). Naming is `kb-` — \"knowledge
+bundle\" is OKF's own term ([SPEC §2](../references/okf_spec.md)) for the `knowledge/` package the
+skills operate on, and `kb` reads universally as \"knowledge base.\" Nothing user-facing says \"okf\";
+OKF-conformance is carried *internally*.
+
+## The family
+
+A **hub** skill plus action skills, on the `git`/`kb-<verb>` model:
+
+| Skill | Invocation | Role |
+|---|---|---|
+| **`kb`** | model-invoked | Router + single source of truth. Teaches the system and its terms; routes to the right action skill; holds the shared spec, glossary, trust-model, templates, and example bundle. |
+| **`kb-init`** | user-invoked | Scaffold a bundle from the hub's templates/example. Default `knowledge/`; custom path allowed; multi-bundle aware. |
+| **`kb-ingest`** | model-invoked | Raw source → integrated concepts, applying the trust model. The core differentiator. |
+| **`kb-query`** | model-invoked | Progressive-disclosure discovery → synthesize with citations → file good answers back. |
+| **`kb-lint`** | user-invoked | Drift + health checks; delegates the deterministic §9 conformance pass to an existing validator. |
+| **`kb-visualize`** | user-invoked | LLM-generated graph — native UI where supported, self-contained HTML artifact otherwise. |
+| **`kb-search`** *(later)* | user-invoked | qmd/FTS retrieval when a bundle outgrows [index-style discovery](../concepts/progressive_disclosure.md). |
+
+## Framework decisions
+
+### Invocation split — context load vs. cognitive load
+
+A model-invoked skill's **description** sits in the context window every turn (context load); a
+user-invoked skill costs nothing until typed (but spends the human's cognitive load). Rule: model-
+invoke only what must fire autonomously. So the **daily verbs** [`kb-ingest`](../operations/ingest.md)
+and [`kb-query`](../operations/query.md) — which must fire on \"capture this\" / \"what do we know
+about X\" — are model-invoked, plus the `kb` hub as the front door. The **deliberate** skills
+(`kb-init`, `kb-lint`, `kb-visualize`, `kb-search`) are user-invoked. Net: **three descriptions in
+context, not seven.**
+
+### `kb` as router + single source of truth
+
+Two framework moves converge on the hub. A **router** cures the cognitive load of several user-
+invoked siblings by naming them and when to reach each. A **single source of truth** keeps one
+authoritative copy of shared meaning. So `kb` holds, once, what every action skill needs:
+
+```
+kb/
+  SKILL.md              # teach the system + key terms; route to kb-<verb>
+  reference/
+    SPEC.md             # OKF v0.1, vendored verbatim — the source of truth
+    glossary.md         # bundle, concept, reference, progressive disclosure, compounding…
+    trust-model.md      # append-only / supersede / conflicts_with rules
+  templates/
+    concept.md  index.md  log.md
+  example-bundle/       # tiny canonical bundle: teaching example AND kb-init's seed
+```
+
+Action skills point here rather than restating the spec — avoiding the drift the OKF reference
+implementation hit when the spec was copied into multiple modules (PR #161). A spec bump to 0.2 is
+then a one-file edit.
+
+### Information hierarchy
+
+Each action `SKILL.md` carries ordered **steps** with **completion criteria** that are *checkable*
+and *exhaustive*; shared **reference** (spec, glossary, trust rules) is disclosed to `kb/reference/`
+behind context pointers (progressive disclosure) so each skill stays legible.
+
+### Leading words
+
+Reused across skills, docs, and this bundle's own concept names so the shared language sharpens both
+execution and invocation: **bundle**, **ingest**/**compile**, **supersede** (the trust model's
+verb), **drift** (what [lint](../operations/lint.md) fights), **progressive disclosure**,
+**compounding**.
+
+### Guarded failure mode — premature completion in `kb-ingest`
+
+[Ingest](../operations/ingest.md) is the long sequence (read → extract → integrate across concepts →
+update indexes → append [log](../spec/log_files.md) → move source to processed → commit); the tail
+tempts an early \"done.\" Defense, in order: sharpen the completion criteria first (*\"every extracted
+entity has a concept or is consciously skipped; source moved to processed; log appended\"*); split the
+sequence only if the rush persists.
+
+### Techniques to borrow for `kb-ingest` (from openwiki)
+
+LangChain's [openwiki](../ecosystem/openwiki_langchain.md) is in the adjacent code-docs lane (not
+OKF), but its agent prompt is proven and directly applicable to `kb-ingest`:
+
+- **Ground every claim** in an inspected source / git evidence — never invent. Operationalizes the
+  trust model's \"never lose provenance.\"
+- **Plan-then-write** — draft a temporary plan (intended concepts touched + evidence + open
+  questions) before writing, so discovery precedes synthesis. A natural front-half for the ingest
+  sequence and a guard against the premature-completion failure above.
+- **Read-only research subagents** — 1-2 narrow-brief subagents *inspect and summarize only*; the
+  main agent does all writes. Lets a large source set be processed in parallel without write
+  conflicts, and answers the token-cost critique.
+
+## Build vs. reuse (from the competitor comparison)
+
+**Build** (differentiated): `kb-init` (schema-layer scaffold), `kb-ingest` (trust-modeled raw-source
+loop — nobody has this), `kb-query` (light), `kb-visualize` (adaptive, LLM-generated — not a fixed
+`viz.html`). **Reuse:** the deterministic §9 validator inside `kb-lint` rather than rebuilding it.
+See [competitor comparison](../ecosystem/competitor_comparison.md).
+
+## Decisions (settled 2026-07-01)
+
+1. **Distribution → skills.sh, single-plugin layout** (mattpocock/skills model). Each skill is a
+   folder `skills/<name>/SKILL.md` with supporting files beside it; a `.claude-plugin/plugin.json`
+   lists them; no build step. Installs via skills.sh *and* works as a Claude Code plugin. The whole
+   `kb-*` family **ships as one plugin** so the action skills can reach the [`kb`](#the-family) hub's
+   shared `reference/` (vendoring the spec into each skill would reintroduce drift — rejected).
+2. **Schema-layer location → in-bundle `spec/` concepts.** `kb-init` writes a bundle's domain rules
+   (concept `type` vocabulary, folder taxonomy, ingest conventions) as real OKF concepts under
+   `knowledge/<bundle>/spec/` — the pattern Google's cricket bundle (#144) and *this* bundle already
+   use. Portable, stays [conformant](../spec/conformance.md), travels with the bundle, and the rules
+   are themselves browsable/linkable knowledge. This is the [schema
+   layer](../concepts/three_layer_architecture.md#3-the-schema) made concrete and is what lets the
+   generic skills fit any domain.
+3. **Trust model → full [the OKF-native agent](../implementations/okf_native_agent.md) model, opinionated.**
+   Append-only on meaning, supersede-with-provenance (`status`/`supersedes`/`superseded_by`),
+   `conflicts_with` over silent overwrite, events-additive. An opinionated default *is* the
+   predictability the framework prizes — not a per-run configuration choice. Answers the ecosystem's
+   top [critique](../ecosystem/critiques.md#1-truth-maintenance-and-knowledge-base-poisoning).
+
+## Build order
+
+`kb` (hub + shared reference) → `kb-init` (proves scaffold + schema layer) → `kb-ingest` (the
+differentiator) → `kb-query` → `kb-lint` → `kb-visualize`. `kb-search` deferred until a bundle needs
+it.
+
+# Citations
+
+1. `writing-great-skills` framework (user-invoked skill, consulted 2026-07-01).
+2. [Competitor Comparison](../ecosystem/competitor_comparison.md)
+3. [OKF Spec Evolution](./spec_evolution.md)", "links": ["ecosystem/competitor_comparison", "references/okf_spec", "concepts/progressive_disclosure", "operations/ingest", "operations/query", "operations/lint", "spec/log_files", "ecosystem/openwiki_langchain", "spec/conformance", "concepts/three_layer_architecture", "implementations/okf_native_agent", "ecosystem/critiques", "design/spec_evolution"], "cited_by": ["ecosystem/landscape"]}, {"id": "design/spec_evolution", "path": "design/spec_evolution.md", "type": "Concept", "title": "OKF Spec Evolution (open PRs & proposals)", "description": "Our reading of the open pull requests and proposals on GoogleCloudPlatform/knowledge-catalog — where OKF v0.1 is still in flux (link form, required frontmatter, an emerging trust/provenance axis) and what it means for our build.", "tags": ["okf", "spec", "evolution", "design-input", "analysis"], "resource": "", "status": "active", "body": "# OKF Spec Evolution
+
+Reading the [open PRs](https://github.com/GoogleCloudPlatform/knowledge-catalog/pulls) on the OKF
+repo is the best signal for **what in v0.1 is still moving** — and several threads land directly on
+decisions this project must make. Captured as of 2026-07-01; treat as a snapshot, re-check before
+finalizing skills.
+
+## 1. Link form is being *reversed* (recommend relative, not absolute)
+
+The single most decision-relevant thread. The [spec](../spec/cross_linking.md) currently *recommends*
+absolute bundle-relative (`/…`) links, but the reference agent's prompt **forbids** them (\"never
+start a link with `/` — that breaks GitHub rendering\") and every shipped
+[sample bundle](./sample_bundle_lessons.md) uses **relative** links. PRs **#165**, **#58**,
+**#66**, **#110**, **#161** all converge on fixing the spec to match practice:
+
+* **#165** swaps §5.1/§5.2 so **relative links become \"recommended\"** (they resolve in any renderer —
+  `cat`, browser, GitHub, editor — with no OKF tooling), and reframes absolute as \"requires an
+  OKF-aware resolver.\"
+* The failure mode: a leading `/` resolves to the **repository/host root**, not the bundle root,
+  whenever a bundle ships as a subdirectory (§3 explicitly allows this) — exactly our layout
+  (`knowledge/` inside a larger repo).
+
+**Implication for us — done.** We originally chose *absolute* links throughout this bundle. On
+2026-07-01 we **converted the whole bundle to relative links** (473 links across 51 files) so it
+renders correctly on GitHub and for any non-OKF-aware reader, aligning with the reference agent, the
+sample bundles, and #165's direction. Note the *spec-text* PR is unlikely to merge soon — as of this
+writing #165/#66/#110 are all open with **no maintainer review, only CLA-bot activity** — but the
+decision doesn't depend on it: relative is already the de-facto-correct form for a nested bundle.
+See the [cross-linking spec page](../spec/cross_linking.md).
+
+## 2. Only `type` is required — confirmed and being enforced
+
+PRs **#145**, **#64**, **#161** fix the reference implementation, which wrongly treated `title` /
+`description` / `timestamp` as REQUIRED and would reject spec-minimal bundles. The spec is
+authoritative: **only [`type`](../spec/frontmatter.md) is required**; the four-key check is a
+producer *quality bar*, not conformance. This **validates our
+[conformance](../spec/conformance.md) checker** (type-only) exactly.
+
+## 3. A trust / provenance / reliability axis is emerging
+
+Multiple independent efforts are converging on the very problem we identified as our
+[differentiator](../ecosystem/competitor_comparison.md) and the ecosystem's top
+[critique](../ecosystem/critiques.md). This is the thread to watch most closely:
+
+* **#58 (§12 Trust & safety)** — consumers MUST treat bundle contents as untrusted **data, never
+  instructions** (prompt-injection); OKF gives no built-in authenticity guarantee. Also reconciles
+  the §6↔§11 frontmatter contradiction and adds README/LICENSE/CONTRIBUTING as ignored files.
+* **#159 (`reliability`)** — an optional frontmatter convention for *epistemic* reliability: a
+  maturity ladder (`confidence` + `basis` → corroboration tiers), with honesty rules like
+  \"signed ≠ verified\" and \"`verified` requires ≥2 sources.\"
+* **#50 (`sources`)** — optional machine-readable provenance alongside the human `# Citations`
+  section (which source systems produced this, can it be refreshed/audited, content digest).
+* Related issues #92/#94 (groundedness), #140 (integrity/signing), #99 (policy receipts).
+
+**Implication for us.** Our planned [trust model](../ecosystem/critiques.md) (append-only, supersede,
+`conflicts_with`) is squarely aligned with where OKF itself is heading — good. But the format may
+**standardize the field names** (`reliability`, `sources`, `confidence`). We should adopt *their*
+emerging names as [extension keys](../spec/frontmatter.md#extensions) rather than invent our own, and
+treat ingested source content as untrusted data (a real prompt-injection surface for
+[ingest](../operations/ingest.md)).
+
+## 4. Reserved-file handling is tightening
+
+**#149** fixes the reference impl to exclude `log.md` (not just `index.md`) from concept
+enumeration — it had been showing up as an `Unknown` node. **#58** proposes treating
+`README.md`/`LICENSE.md`/`CONTRIBUTING.md` as ignored non-concepts so a plain README doesn't make a
+bundle non-conformant. Our [checker](../spec/conformance.md) already handles `index.md`/`log.md`; we
+should add the README/LICENSE tolerance when we harden it.
+
+## 5. Domain (hand-authored) bundles are being legitimized
+
+**#144** adds a hand-authored **cricket** bundle (vs. the DB-generated samples), with per-bundle
+`spec/types.md`, `spec/provenance.md`, and `spec/sample-size.md` files, a novel `story` type, and
+additive keys (`source_boundary`, `entity_id`, `same_as`). This directly validates two of our
+bets: (a) **domain-knowledge bundles** are first-class OKF (our case, not just data catalogs), and
+(b) **putting the taxonomy/conventions in per-bundle `spec/` files** is a real pattern — essentially
+the [schema layer](../concepts/three_layer_architecture.md#3-the-schema) we want to formalize, and
+which this very bundle already uses (`/spec`).
+
+## 6. Keeping source material *in* the bundle (§8 + discussion #91)
+
+An easy-to-miss clause of SPEC **§8**: citation links MAY point into a **`references/` subdirectory
+that mirrors external material as first-class OKF concepts** — i.e. the spec explicitly blesses
+storing PDFs, images, transcripts, and `.mov` files *inside* the bundle, wrapped as
+`type: Reference` concepts, rather than only linking out to URLs.
+
+Discussion **#91** (opened by this project's author) resolves the \"where do I keep source docs\"
+question, with the community answer: **separate the canonical source from the derived text** — keep
+a stable pointer to the original asset in the bundle *and* carry extracted text/summary for
+retrieval; keep genuinely incidental material external. See our [citations](../spec/citations.md)
+page, which now documents this, and the [infographic](../references/okf_vs_rag_infographic.md) reference that
+applies it.
+
+## Resolved decisions for this bundle
+
+* **Link form → relative (done 2026-07-01).** Converted all 473 links across 51 files from absolute
+  (`/…`) to relative, per §1 above.
+* **Trust-model field names → adopt upstream (pending build).** When we build the skills, use the
+  emerging OKF names (`reliability`, `sources`, `confidence`, `status`/`supersedes`/`superseded_by`/
+  `conflicts_with`) as [extension keys](../spec/frontmatter.md#extensions) rather than inventing our
+  own, and treat ingested source content as untrusted data.
+* **Reserved/ignored files → widen the checker (pending build).** Add README/LICENSE/CONTRIBUTING
+  tolerance (per #58) alongside the existing `index.md`/`log.md` handling.
+
+# Citations
+
+1. OKF pull requests — <https://github.com/GoogleCloudPlatform/knowledge-catalog/pulls>
+2. PR #165 (relative links), #145/#64/#161 (required frontmatter), #58 (trust/safety), #159 (reliability), #50 (sources), #149 (reserved files), #144 (cricket domain bundle)", "links": ["spec/cross_linking", "design/sample_bundle_lessons", "spec/frontmatter", "spec/conformance", "ecosystem/competitor_comparison", "ecosystem/critiques", "operations/ingest", "concepts/three_layer_architecture", "spec/citations", "references/okf_vs_rag_infographic"], "cited_by": ["design/skill_design", "spec/cross_linking"]}, {"id": "ecosystem/commonplace", "path": "ecosystem/commonplace.md", "type": "Reference", "title": "commonplace (zby)", "description": "A theory-forward, review-gated framework for agent-operated knowledge — typed, linked, review-gated markdown that agents execute — and a maintained list of related systems (~70 stars).", "tags": ["ecosystem", "featured", "review-gated", "theory"], "resource": "https://github.com/zby/commonplace", "status": "active", "body": "# commonplace (zby)
+
+`zby/commonplace` (~70★) describes itself as *\"the theory of LLM wikis, running as one\"* — a
+framework for agent-operated knowledge that is **typed, linked, and review-gated** markdown the
+agents execute. Homepage: <https://zby.github.io/commonplace/>.
+
+## Why it's worth studying
+
+* **Review-gated** is the direct embodiment of the top [critique's](./critiques.md#1-truth-maintenance-and-knowledge-base-poisoning)
+  proposed fix — the agent proposes, a gate approves — rather than \"the LLM owns the layer entirely.\"
+* **Typed + linked** aligns closely with OKF's [`type`](../spec/frontmatter.md) +
+  [cross-link](../spec/cross_linking.md) model; a good reference for how far to push typing.
+* It maintains an **agent-curated index of related systems**
+  (<https://zby.github.io/commonplace/notes/related-systems/related-systems-index/>) — itself a live
+  example of a wiki used to survey its own [ecosystem](./landscape.md), and a useful
+  external map to cross-check ours against.
+
+## Relevance to us
+
+commonplace is the most *theory-forward* project in the thread and the clearest articulation of the
+review-gated stance. When we decide the default autonomy level of our [ingest](../operations/ingest.md)
+skill (fully autonomous vs. propose-and-approve), this is the reference argument for the cautious
+end — complementary to [the OKF-native agent's](../implementations/okf_native_agent.md) provenance-based trust
+model.
+
+# Citations
+
+1. commonplace — <https://github.com/zby/commonplace>
+2. commonplace related-systems index — <https://zby.github.io/commonplace/notes/related-systems/related-systems-index/>", "links": ["ecosystem/critiques", "spec/frontmatter", "spec/cross_linking", "ecosystem/landscape", "operations/ingest", "implementations/okf_native_agent"], "cited_by": []}, {"id": "ecosystem/competitor_comparison", "path": "ecosystem/competitor_comparison.md", "type": "Concept", "title": "Competitor Comparison — okf-skills vs. openknowledge vs. our plan", "description": "A feature-by-feature comparison of the two most direct OKF-native competitors against what this project should build, isolating the differentiated surface.", "tags": ["ecosystem", "competitor", "design-input", "strategy"], "resource": "", "status": "active", "body": "# Competitor Comparison
+
+A feature-by-feature read of the two most direct [OKF](../spec/index.md)-native competitors —
+[okf-skills (scaccogatto)](./okf_skills_scaccogatto.md) and
+[openknowledge (openknowledge-sh)](./openknowledge_cli.md) — against what *we* plan to
+build, based on reading their actual skill files, templates, and validation matrices (not just their
+READMEs). Goal: **build only the differentiated parts.**
+
+## At a glance
+
+| | **okf-skills** | **openknowledge** | **ours (planned)** |
+|---|---|---|---|
+| Form factor | Claude Code plugin + skills.sh skills | Standalone Go CLI (+ Codex skill) | Portable agent skills |
+| Runtime / deps | Agent + `uv`/python for validator | Native Go binary (installer) | Agent-only, no runtime dep |
+| Cross-agent | ✅ 20+ agents via skills.sh | Agent-agnostic (CLI); ships a Codex skill | ✅ (target Claude Code first) |
+| Author/produce | ✅ `produce` mode | ✅ `new` + agent `setup` prompt | ◐ via ingest |
+| **Maintain-in-sync** | ✅ `maintain` mode (code/docs changed) | ◐ maintenance-loop guidance in skill | ✅ **core** |
+| **Ingest from raw sources** | ✗ (authors from code/docs) | ✗ (scaffolds, human edits md) | ✅ **core differentiator** |
+| Consume/query | ✅ `consume` mode | ✅ `use` (prints entrypoint/excerpt) | ✅ |
+| Deterministic validation | ✅ `okf_validate.py` (§9) | ✅ Go validator + compliance matrix + tests | ◐ reuse, don't rebuild |
+| Visualize | ✅ `viz.html` (Cytoscape) | ✅ `to html/json/graph/tar` exporters | ✗ (reuse theirs) |
+| Multi-bundle / registry | ✗ | ✅ **registry** (local/published/archive/Git) | ◐ (OKF-native-agent-style multi-kb) |
+| Publish to web | ✗ | ✅ static site + `llms.txt` + manifest | ✗ (hand off to [kiso](./kiso.md)/openknowledge) |
+| **Trust model** (append-only / supersede / conflicts) | ✗ (`**Deprecation**` note only) | ✗ (changelog page) | ✅ **core differentiator** |
+| **Domain portability seam** (schema layer) | ◐ (pick a layout by domain) | ◐ (`setup` tailors to use case) | ✅ **explicit** |
+| Spec pinning | ✅ vendored verbatim SPEC.md | ✅ embedded, version-selectable | ✅ (vendor verbatim) |
+| Dogfoods itself in OKF | ✅ `.okf/` + CI validation | ✅ `Wiki/` + decisions/workflows | ✅ `knowledge/` (this bundle) |
+
+Legend: ✅ strong / ◐ partial / ✗ absent.
+
+## What both already do well (don't rebuild)
+
+* **Deterministic §9 [conformance](../spec/conformance.md) validation.** okf-skills ships a
+  self-contained `okf_validate.py`; openknowledge has a Go validator with a full hard-rule
+  compliance matrix backed by tests. Reinventing this is pure waste — we should **reuse
+  okf-skills' validator** (MIT, `uv run`, zero-config) as our [lint](../operations/lint.md)'s
+  conformance pass and spend our effort on the *drift* checks it doesn't do.
+* **Visualization / export.** Both render a bundle to a self-contained graph; openknowledge also
+  exports json/tar/graph and a static site. We should **not** build a visualizer — point users at
+  `okf:visualize` or `openknowledge to html`.
+* **Spec-pinning discipline.** Both vendor the spec verbatim as the skill's source of truth. We do
+  this too (`references/okf_spec.md` points at it); worth vendoring the literal file into any skill
+  we ship.
+
+## Where the competitors are thin (our opening)
+
+1. **Ingest from raw, messy sources.** Both are *authoring* tools: okf-skills `produce`s concepts
+   from **code/docs/manual** input; openknowledge `new` scaffolds an empty bundle a human then
+   edits. Neither has the [LLM-Wiki ingest loop](../operations/ingest.md) — drop a transcript / email /
+   PDF / screenshot, extract entities and signals, integrate across many concepts, move the source to
+   processed. This is the [personal work wiki](../implementations/personal_work_wiki.md) workflow and our clearest differentiator.
+2. **A real trust / truth-maintenance model.** okf-skills' maintain mode says \"update the body and
+   `timestamp`, add a `**Deprecation**` note\" — it *edits claims in place*. Neither implements
+   [the OKF-native agent's](../implementations/okf_native_agent.md) append-only-on-meaning, supersede-with-
+   provenance, `conflicts_with`, events-are-additive model — which is exactly the fix the
+   [ecosystem's top critique](./critiques.md#1-truth-maintenance-and-knowledge-base-poisoning)
+   demands. Making that the *default* maintenance behavior is a genuine, defensible difference.
+3. **The [schema-layer](../concepts/three_layer_architecture.md#3-the-schema) portability seam.** Both
+   \"pick a layout by domain,\" but the domain knowledge is improvised per-run. Neither has a
+   first-class, per-project config that declares the taxonomy, `type` vocabulary, and workflow so the
+   *same* generic skills fit a work wiki, a book companion, or a research corpus with no skill edits.
+
+## What to borrow outright
+
+* **Dual distribution** (plugin + skills.sh, scripts via `${CLAUDE_SKILL_DIR}`) — okf-skills' answer
+  to \"ship portable skills.\" Adopt wholesale.
+* **`setup` prints an agent prompt** (openknowledge) — deterministic scaffold + agent judgment for
+  the use-case-specific parts. A great shape for our `init` skill.
+* **`use` prints an entrypoint** (openknowledge) — a path-light way for an agent to load the right
+  knowledge on demand; better than hardcoding `index.md` reads.
+* **Positioning table** (okf-skills) — OKF vs. `CLAUDE.md` vs. auto-memory vs. wiki. Adopt for our docs.
+* **CI-validated self-dogfooding** (both) — add a CI conformance check on `knowledge/`.
+* **Agent-maintenance footer** `<!-- okf-footer: agent-maintenance -->` (openknowledge) — a tidy
+  convention for keeping source-anchors/update-notes out of prominent headings. Worth stealing for
+  our concept template.
+* **Delegate bounded maintenance to focused low-reasoning subagents** (openknowledge) — a concrete
+  answer to the [token-cost critique](./critiques.md#2-token-cost-is-postponed-not-eliminated).
+
+## Recommended scope for our skills
+
+Build **three** skills, thin where the field is saturated and thick where it's empty:
+
+* **`okf-init`** — scaffold `knowledge/` + a per-project [schema-layer](../concepts/three_layer_architecture.md#3-the-schema)
+  config; borrow openknowledge's print-a-prompt setup. Vendor the spec.
+* **`okf-ingest`** — the differentiated core: raw source → integrated concepts, with the
+  [trust model](./critiques.md) (append-only / supersede / conflicts) as default. Wraps the
+  [ingest](../operations/ingest.md) + [query](../operations/query.md) operations.
+* **`okf-lint`** — drift + health checks ([lint](../operations/lint.md)), delegating the deterministic
+  §9 pass to okf-skills' validator rather than reimplementing it.
+
+Do **not** build: a visualizer, an exporter/publisher, or another from-scratch conformance checker —
+reuse okf-skills and openknowledge/[kiso](./kiso.md) for those.
+
+# Citations
+
+1. [okf-skills (scaccogatto)](./okf_skills_scaccogatto.md) — SKILL.md files, templates, validator
+2. [openknowledge (openknowledge-sh)](./openknowledge_cli.md) — skill, tooling-model & spec-compliance docs
+3. [Critiques & Open Problems](./critiques.md)", "links": ["ecosystem/okf_skills_scaccogatto", "ecosystem/openknowledge_cli", "ecosystem/kiso", "spec/conformance", "operations/lint", "operations/ingest", "implementations/personal_work_wiki", "implementations/okf_native_agent", "ecosystem/critiques", "concepts/three_layer_architecture", "operations/query"], "cited_by": ["design/skill_design", "design/spec_evolution"]}, {"id": "ecosystem/critiques", "path": "ecosystem/critiques.md", "type": "Concept", "title": "Critiques & Open Problems", "description": "The substantive objections to the LLM Wiki pattern from the community — truth maintenance / KB poisoning, token cost at scale, and markdown-vs-database — and what they imply for our design.", "tags": ["ecosystem", "critique", "design-input"], "resource": "", "status": "active", "body": "# Critiques & Open Problems
+
+The most useful signal in the [gist](../references/karpathy_llm_wiki.md) thread is not the flood of
+implementations but the recurring, well-argued **objections**. Each maps to a concrete design
+choice for our portable skills.
+
+## 1. Truth maintenance and knowledge-base poisoning
+
+The single most-repeated concern (commenter `laphilosophia`; the \"hidden flaw\" article by
+`foundanand`). The appealing part of the pattern — the LLM owns synthesis — is exactly where models
+fail *quietly*: bad synthesis, stale claims surviving new evidence, page sprawl, and **false
+consistency** accumulate invisibly because every output still looks coherent. The sharpest framing:
+once LLM-authored summaries are indexed alongside sources, later passes retrieve and reason over
+*AI output* rather than ground truth — a self-referential drift away from reality.
+
+The risky sentence is *\"the LLM owns this layer entirely.\"* Fine for low-stakes personal use; too
+aggressive for team or high-accuracy contexts.
+
+**Proposed fixes (from the thread):** source-grounded, citation-first, **review-gated** wikis where
+the LLM proposes patches rather than being the final authority; extract only *verifiable structure*
+(entities, relationships, citations) and keep narrative synthesis lighter or query-time; tie every
+claim to a source, an uncertainty level, and recency.
+
+**Implication for us:** this is the strongest argument for adopting
+[the OKF-native agent's trust model](../implementations/okf_native_agent.md) — append-only on meaning,
+supersede-with-provenance, `conflicts_with` over silent overwrite, and mandatory
+[citations](../spec/citations.md) — as the *default* behavior of our [ingest](../operations/ingest.md)
+and [lint](../operations/lint.md) skills, not an optional extra. It also raises the stakes on
+[lint](../operations/lint.md): drift detection is a core feature, not hygiene.
+
+## 2. Token cost is postponed, not eliminated
+
+(`jgravelle`, \"a radical diet…\"; echoed by `YokoPunk`, `druce`, and others.) The pattern trades
+per-query retrieval cost for per-session **compilation** cost. That holds until the wiki outgrows
+the context window: past roughly 50–100K tokens the [index.md](../spec/index_files.md) becomes a
+bottleneck, [progressive-disclosure](../concepts/progressive_disclosure.md) navigation gets
+unreliable, and answers degrade. *\"You didn't eliminate retrieval. You postponed it.\"*
+
+**Proposed fixes:** treat the wiki as a queryable dataset — `search_sections` / `get_section`
+retrieval of only relevant chunks (claims of ~95% context reduction); add TLDRs at the top of each
+page so an index scan → TLDR → drill-down saves tokens; add a real search engine.
+
+**Implication for us:** [qmd](../references/qmd.md) (or an FTS/section-retrieval tool) is not a
+\"someday\" nicety — it is the answer to the scaling objection, and our [query](../operations/query.md)
+skill should be built to *degrade gracefully* from pure index navigation to search-backed retrieval.
+Consider a `TLDR`/`description`-first read convention.
+
+## 3. Markdown vs. database
+
+A principled minority (`buremba`/owletto in PostgreSQL; `gnusupport`'s \"Hyperscope\" PostgreSQL
+argument) hold that for **deterministic**, strongly-typed knowledge with reliable queries, a
+database with an event log beats a pile of markdown. Entity types get strict schemas; the agent
+gets SQL.
+
+**Implication for us:** this is a genuine trade-off, not a mistake to refute. Markdown wins on
+portability, diffability, human-readability, and zero-infra — the whole [OKF thesis](../spec/motivation.md).
+A database wins on query determinism and typed integrity. OKF's [frontmatter](../spec/frontmatter.md)
+is the hedge: structured, queryable metadata on top of prose. Worth stating explicitly in our docs
+*when* the file-based approach is the wrong tool.
+
+## 4. \"Isn't this just…?\"
+
+Recurring skeptical takes worth answering, not dismissing: *\"just structured context / a good
+`AGENTS.md` hierarchy\"* (`skpalan`), *\"NotebookLM already does this,\"* *\"this is the
+[Zettelkasten](https://zettelkasten.de/introduction/) / second-brain idea again,\"* and the
+[Memex](../concepts/memex.md)/Engelbart lineage. The honest answer: the *novel* part is not the wiki
+but **who maintains it** — the pattern is only interesting because the LLM makes the bookkeeping
+cost near-zero (see [why it works](../concepts/llm_wiki.md#why-it-works)). The lint pass — periodic
+self-audit — is what most \"just structured context\" setups lack and what everyone concedes is
+valuable.
+
+# Citations
+
+1. [Karpathy — LLM Wiki gist](../references/karpathy_llm_wiki.md) (comments: laphilosophia, skpalan, YokoPunk, buremba, gnusupport)
+2. \"The Hidden Flaw in Karpathy's LLM Wiki\" — <https://foundanand.medium.com/the-hidden-flaw-in-karpathys-llm-wiki-e3a86a94b459>
+3. \"A Radical Diet for Karpathy's Token-Eating LLM Wiki\" — <https://dev.to/jgravelle/a-radical-diet-for-karpathys-token-eating-llm-wiki-59ng>", "links": ["references/karpathy_llm_wiki", "implementations/okf_native_agent", "spec/citations", "operations/ingest", "operations/lint", "spec/index_files", "concepts/progressive_disclosure", "references/qmd", "operations/query", "spec/motivation", "spec/frontmatter", "concepts/memex", "concepts/llm_wiki"], "cited_by": ["design/skill_design", "design/spec_evolution", "ecosystem/commonplace", "ecosystem/competitor_comparison", "ecosystem/karpathy_llm_wiki_astro", "ecosystem/landscape", "ecosystem/okf_skills_scaccogatto", "ecosystem/openknowledge_cli", "ecosystem/openwiki_langchain", "ecosystem/synthadoc", "ecosystem/wiki_skills", "references/okf_vs_rag_infographic"]}, {"id": "ecosystem/karpathy_llm_wiki_astro", "path": "ecosystem/karpathy_llm_wiki_astro.md", "type": "Reference", "title": "karpathy-llm-wiki (Astro-Han)", "description": "An Agent-Skills-compatible LLM wiki for Claude Code, Cursor, and Codex — build a Karpathy-style knowledge base from raw sources with citations and linting (~1.3k stars).", "tags": ["ecosystem", "featured", "skills", "multi-agent-tool"], "resource": "https://github.com/Astro-Han/karpathy-llm-wiki", "status": "active", "body": "# karpathy-llm-wiki (Astro-Han)
+
+`Astro-Han/karpathy-llm-wiki` (~1.3k★) is an **Agent-Skills-compatible** LLM wiki that works across
+Claude Code, Cursor, and Codex. It builds a Karpathy-style knowledge base from raw sources with
+first-class **citations and linting**.
+
+## Why it's worth studying
+
+* It is the closest high-traction analogue to **our exact deliverable**: portable *skills* (not a
+  platform) that make an agent maintain a wiki, and explicitly multi-tool rather than Claude-only.
+* Citations and [lint](../operations/lint.md) are built in — an implicit acknowledgment of the
+  [truth-maintenance critique](./critiques.md#1-truth-maintenance-and-knowledge-base-poisoning).
+
+## Relevance to us
+
+The key differentiator remains **format**: like almost all of the [ecosystem](./landscape.md),
+this project uses a bespoke/Obsidian-flavored convention rather than a conformant
+[OKF](../spec/index.md) bundle. It is the strongest prior art for \"how to package the workflow as
+cross-agent skills,\" and the best place to study skill ergonomics before we write our own. Compare
+directly with [wiki-skills](./wiki_skills.md).
+
+# Citations
+
+1. karpathy-llm-wiki — <https://github.com/Astro-Han/karpathy-llm-wiki>", "links": ["operations/lint", "ecosystem/critiques", "ecosystem/landscape", "ecosystem/wiki_skills"], "cited_by": ["ecosystem/landscape", "ecosystem/wiki_skills"]}, {"id": "ecosystem/kiso", "path": "ecosystem/kiso.md", "type": "Reference", "title": "kiso (oak-invest)", "description": "A Java publishing engine that turns OKF bundles into static websites for humans and AI agents, emitting llms.txt and sitemap.xml. An OKF consumer, not a producer.", "tags": ["ecosystem", "featured", "okf-native", "publishing", "consumer"], "resource": "https://github.com/oak-invest/kiso", "status": "active", "body": "# kiso (oak-invest)
+
+`oak-invest/kiso` (~11★) is *\"a publishing engine that turns
+[Open Knowledge Format](../spec/index.md) bundles into static websites for humans and AI agents.\"*
+Written in Java, distributed as a native-image CLI and a GitHub Action.
+
+## What it is (and isn't)
+
+kiso sits on the **consumer** side of OKF, whereas okf-skills, the OKF-native agent, and this project sit
+on the **producer/maintainer** side. It reads a conformant [bundle](../concepts/knowledge_bundle.md)
+and generates a static site:
+
+```bash
+kiso-cli build --source=examples/kb-google-example --destination=public
+```
+
+Notably it emits **`llms.txt` and `sitemap.xml`** alongside the HTML — i.e. it publishes the same
+bundle for *both* human browsers and AI agents. Its example bundle (`kb-google-example`) is a
+near-copy of the official [GA4 sample](../design/sample_bundle_lessons.md), confirming those bundles
+are becoming the ecosystem's de-facto interop test.
+
+## Why it matters to us
+
+* **It validates the \"produce once, consume many\" thesis** at the heart of
+  [OKF](../spec/motivation.md): kiso is proof that a bundle we produce with our skills can be consumed
+  by a completely independent tool (a different language, a different vendor) with no coordination —
+  the whole point of adopting a [spec](../spec/index.md) over a bespoke convention.
+* **`llms.txt` + `sitemap.xml` output** is a concrete idea for making a published bundle
+  agent-consumable on the open web — a possible downstream target for bundles our skills maintain.
+* Because it consumes the [GA4 sample bundle](../design/sample_bundle_lessons.md) directly, kiso is a
+  ready-made **conformance smoke test**: if kiso can build our bundle into a site, we're
+  interoperable.
+
+## Relevance to us
+
+kiso is not a competitor — it is the consumer half of the ecosystem our producer skills feed. It
+strengthens the case for strict [conformance](../spec/conformance.md): the more independent consumers
+like kiso exist, the more valuable it is that our output is genuinely spec-conformant rather than
+\"markdown that mostly works.\" Worth keeping as a downstream target and interop check.
+
+# Citations
+
+1. kiso — <https://github.com/oak-invest/kiso>", "links": ["concepts/knowledge_bundle", "design/sample_bundle_lessons", "spec/motivation", "spec/conformance"], "cited_by": ["ecosystem/competitor_comparison", "ecosystem/landscape", "ecosystem/openknowledge_cli", "ecosystem/openwiki_langchain"]}, {"id": "ecosystem/landscape", "path": "ecosystem/landscape.md", "type": "Concept", "title": "LLM Wiki Ecosystem Landscape", "description": "A survey of the 200+ implementations spawned by Karpathy's gist, grouped by shape — skills/plugins, CLIs, apps/platforms, MCP servers, and databases-not-markdown.", "tags": ["ecosystem", "survey"], "resource": "", "status": "active", "body": "# LLM Wiki Ecosystem Landscape
+
+Within weeks of the [gist](../references/karpathy_llm_wiki.md), its comment thread became a directory
+of 200+ implementations. They cluster into a few recognizable shapes. Understanding the clusters
+tells us where our [OKF-conformant, portable-skills](../implementations/index.md) angle is
+differentiated and where it is crowded.
+
+## 1. Agent skills & plugins
+
+Packages of `SKILL.md` / plugin files that turn Claude Code, Cursor, Codex, etc. into a wiki
+maintainer — the shape closest to **what we are building**.
+
+* [karpathy-llm-wiki (Astro-Han)](./karpathy_llm_wiki_astro.md) — Agent-Skills-compatible, multi-tool.
+* [wiki-skills (kfchou)](./wiki_skills.md) — Claude Code skills, Karpathy-faithful.
+* Others: `doneyli/claude-code-plugins` (llm-wiki), `horiacristescu/claude-playbook-plugin`,
+  `EveryInc/compound-engineering-plugin` (22k★, broader \"compound engineering\"),
+  `pedronauck/skills` (karpathy-kb), `Thrimbda/legion-mind`, `vanillaflava/llm-wiki-claude-skills`,
+  `FBoschman/claude-wiki-research-skills`, `theafh/ai-modules`.
+
+This category is busy but almost entirely **Obsidian-wikilink-flavored**, not
+[OKF](../spec/index.md)-conformant — our differentiator.
+
+## 2. CLIs & compilers
+
+Standalone tools that ingest sources and compile a wiki, often with built-in search.
+
+* [synthadoc](./synthadoc.md) — no-tools, self-managed compiler (534★).
+* `Hosuke/llmbase` — ingest→compile→query→enhance with a React UI (42★).
+* `VihariKanukollu/browzy.ai` — npm CLI, FTS5+BM25, Obsidian-compatible, multi-model.
+* Others: `doum1004/llmwiki-cli`, `olegiv/llm-wiki-go` (Go codebase wiki),
+  `atomicmemory/llm-wiki-compiler`, `iamsashank09/llm-wiki-kit`, `MauricioPerera/llm-wiki-kit`,
+  `yhay81/create-wiki-kit`.
+
+## 3. Apps & platforms
+
+Full products with UIs, hosting, or mobile.
+
+* [OmegaWiki](./omegawiki.md) — the most complete (1.5k★).
+* `Tencent/WeKnora` (17k★) — RAG + agent + self-maintaining wiki (enterprise-scale, RAG-centric).
+* `memex-lab/memex` (568★) — local-first AI journal app for iOS/Android.
+* `basicmachines-co/basic-memory` (3.3k★) — \"conversations that remember,\" MCP-based.
+* `bitsofchris/openaugi` (119★), `sheawinkler/contextlattice` (122★, coordination control-plane).
+
+## 4. MCP servers & memory layers
+
+Expose the wiki/memory to any agent over MCP rather than shipping a workflow.
+
+* `multimail-dev/thinking-mcp`, `Electro-resonance/LLM-WIKI-MCP`, `deepak-bhardwaj-ps/smriti-mcp`,
+  `gowtham0992/link` (link-mcp), `dfalci/mcp-advwiki`, `us/crw` (research/ingest via MCP).
+
+## 5. Coordination & multi-agent
+
+Let several agents build one wiki in parallel.
+
+* [tracecraft (Arrmlet)](./landscape.md) — shared memory/messaging/task-claiming over any
+  S3 bucket (27★); `swarmclawai/swarmvault`, `redmizt/multi-agent-wiki-toolkit`,
+  `AEVYRA/llm-wiki-coordination`.
+
+## 6. Databases, not markdown
+
+The notable dissent from the file-based approach — see [critiques](./critiques.md).
+
+* `buremba` / `lobu-ai/owletto` — entity-typed knowledge in **PostgreSQL** with an event log and SQL
+  access for the agent.
+* `gnusupport`'s \"Hyperscope\" argument for PostgreSQL over markdown for *deterministic* KBs.
+* `zTgx/vectorless` / `vectorlessflow` — \"knowing by reasoning, not vectors.\"
+
+## 7. Codebase-doc generators (adjacent lane)
+
+Auto-document a *codebase* for agents — generated from the repo, not ingested from arbitrary
+sources. Overlaps in spirit (agent-maintained, `AGENTS.md` pointer, scheduled updates) but is a
+different product than an OKF general-knowledge bundle.
+
+* [openwiki (langchain-ai)](./openwiki_langchain.md) — LangChain/DeepAgents CLI; daily-PR updates.
+  Not OKF, no trust model — but a strong category signal and a source of
+  [ingest techniques](../design/skill_design.md). Peers: DeepWiki, `garrytan/gbrain`.
+
+## Where OKF sits
+
+A handful of projects target [OKF](../spec/index.md) explicitly, and the cohort is growing fast:
+
+* [okf-skills (scaccogatto)](./okf_skills_scaccogatto.md) — Claude Code skills to author/validate/visualize bundles (**our closest competitor**).
+* [openknowledge (openknowledge-sh)](./openknowledge_cli.md) — a Go CLI with a registry, viewer, exporters, and agent maintenance loop (the most tooling-complete).
+* [kiso (oak-invest)](./kiso.md) — a Java engine that publishes bundles as static sites (the *consumer* side).
+* [okf-harness (pumblus)](./okf_harness.md) — an agent-first local harness for OKF wikis.
+* `equationalapplications/expo-llm-wiki` — cites the OKF SPEC; SQLite-backed memory.
+* Our sibling [the OKF-native agent](../implementations/okf_native_agent.md) — OKF-native deployable agent.
+
+The vast majority of the ecosystem still reinvents a bespoke on-disk convention. But the OKF-native
+cohort is now real and moving fast — [okf-skills](./okf_skills_scaccogatto.md) (skills),
+[openknowledge](./openknowledge_cli.md) (CLI + registry), and [kiso](./kiso.md)
+(publisher) already bracket authoring, tooling, and consumption. The remaining gap our project aims
+at: **portable skills that incrementally produce and *maintain* a conformant bundle from raw
+sources, with a [trust model](./critiques.md)** — the living-wiki
+[ingest](../operations/ingest.md) loop, which the authoring/validation/publishing tools largely leave
+to the human. A caution worth noting: with several teams shipping OKF tooling in mid-2026, our value
+has to be the *maintenance loop and portability seam*, not another author/validate/visualize trio.
+
+# Citations
+
+1. [Karpathy — LLM Wiki gist](../references/karpathy_llm_wiki.md) (comment thread, ~900 comments)", "links": ["references/karpathy_llm_wiki", "ecosystem/karpathy_llm_wiki_astro", "ecosystem/wiki_skills", "ecosystem/synthadoc", "ecosystem/omegawiki", "ecosystem/critiques", "ecosystem/openwiki_langchain", "design/skill_design", "ecosystem/okf_skills_scaccogatto", "ecosystem/openknowledge_cli", "ecosystem/kiso", "ecosystem/okf_harness", "implementations/okf_native_agent", "operations/ingest"], "cited_by": ["ecosystem/commonplace", "ecosystem/karpathy_llm_wiki_astro", "ecosystem/okf_harness", "ecosystem/okf_skills_scaccogatto"]}, {"id": "ecosystem/okf_harness", "path": "ecosystem/okf_harness.md", "type": "Reference", "title": "okf-harness (pumblus)", "description": "An agent-first local harness for OKF-compatible LLM Wikis — one of the few community projects targeting the OKF format explicitly (~17 stars).", "tags": ["ecosystem", "featured", "okf-native", "harness"], "resource": "https://github.com/pumblus/okf-harness", "status": "active", "body": "# okf-harness (pumblus)
+
+`pumblus/okf-harness` (~17★) is an *\"agent-first local harness for OKF-compatible LLM Wikis.\"* Stars
+aside, it is significant because it is one of the **very few** community projects in the
+[ecosystem](./landscape.md) that targets [OKF](../spec/index.md) by name rather than a
+bespoke convention.
+
+## Why it's worth studying
+
+* It shares our core bet: **OKF-conformant bundles as the substrate**, agent as the operator.
+* \"Local harness\" framing is adjacent to our \"portable skills\" framing — worth comparing how it
+  structures [ingest](../operations/ingest.md)/[query](../operations/query.md) around a conformant
+  bundle, and whether it stays strictly conformant or extends the format.
+* Together with `equationalapplications/expo-llm-wiki` (which cites the OKF SPEC) and our sibling
+  [the OKF-native agent](../implementations/okf_native_agent.md), it marks the small but real OKF-native cohort.
+
+## Relevance to us
+
+This is the most direct \"someone else is doing OKF\" data point. Before we finalize skill design,
+it's worth reading okf-harness to avoid reinventing conventions and to see where a second
+implementer felt the [spec](../spec/index.md) needed extending (a strong signal for where OKF v0.1 is
+thin — e.g. relationship/state vocabulary, which [the OKF-native agent](../implementations/okf_native_agent.md)
+also had to add).
+
+# Citations
+
+1. okf-harness — <https://github.com/pumblus/okf-harness>", "links": ["ecosystem/landscape", "operations/ingest", "operations/query", "implementations/okf_native_agent"], "cited_by": ["ecosystem/landscape"]}, {"id": "ecosystem/okf_skills_scaccogatto", "path": "ecosystem/okf_skills_scaccogatto.md", "type": "Reference", "title": "okf-skills (scaccogatto)", "description": "A Claude Code-native OKF toolchain — okf/validate/visualize skills plus a plugin and skills.sh distribution, driven by the verbatim spec with a deterministic conformance checker. The closest direct competitor to this project.", "tags": ["ecosystem", "featured", "okf-native", "competitor", "claude-code", "skills"], "resource": "https://github.com/scaccogatto/okf-skills", "status": "active", "body": "# okf-skills (scaccogatto)
+
+`scaccogatto/okf-skills` (~21★) is *\"the OKF toolkit for Claude Code — author, maintain, validate &
+visualize Open Knowledge Format bundles.\"* It is the **closest direct competitor** to what this
+project set out to build: portable, OKF-conformant agent skills. Studying it carefully is worth
+more than any other entry in the [ecosystem](./landscape.md).
+
+## What it ships
+
+Three skills, distributed both as a **Claude Code plugin** (`.claude-plugin/marketplace.json`) and
+via **skills.sh** (`skills/<name>/SKILL.md`) so it works across Cursor, Codex, and 20+ agents:
+
+* **`okf`** — produce / maintain / consume bundles, applying the spec and templates. Auto-triggers
+  when a repo already contains an OKF bundle.
+* **`validate`** — a *deterministic* §9 [conformance](../spec/conformance.md) check, not an
+  eyeball pass. Backed by a standalone `okf_validate.py` (zero-config via `uv` / PEP 723 + PyYAML).
+* **`visualize`** — renders a bundle to a self-contained interactive `viz.html` (Cytoscape + marked
+  via CDN), mirroring the [reference agent's](../references/okf_readme.md) visualizer.
+
+It vendors the **OKF v0.1 [spec](../spec/index.md) verbatim** (`skills/okf/reference/SPEC.md`) as the
+skill's source of truth, ships `templates/` (concept, index, log) and a `CLAUDE-okf.md` snippet that
+turns on automatic consume/maintain in a host project.
+
+## Ideas worth stealing
+
+* **Dogfooding via a self-graph.** The repo documents *itself* in OKF under `.okf/` (with an
+  `.okf/decisions/` directory of architecture-decision concepts) and CI validates that bundle on
+  every push. This is exactly our [dogfooding](../index.md) instinct, taken further with a decisions
+  log and CI enforcement — we should add both.
+* **Deterministic validation as a first-class skill.** Rather than trust the model to self-check,
+  a real script enforces §9. Our [lint](../operations/lint.md) design should include a deterministic
+  conformance pass distinct from the fuzzy drift checks.
+* **Dual distribution (plugin + skills.sh).** One repo, two install layouts, scripts referenced via
+  `${CLAUDE_SKILL_DIR}` so they work in either path. A concrete answer to the \"how do we distribute
+  portable skills\" question.
+* **Positioning table** — it frames OKF as *complementary* to `CLAUDE.md` (how to behave),
+  auto-memory (what the agent picked up), and wikis (human docs): OKF is *what the team knows*.
+  A clean articulation we should adopt.
+
+## Relevance to us
+
+This project overlaps heavily with okf-skills. Rather than duplicate it, our differentiators should
+be deliberate: the [three-layer schema seam](../concepts/three_layer_architecture.md#3-the-schema) for
+domain portability, the [LLM-Wiki trust model](./critiques.md) (append-only / supersede /
+`conflicts_with`) as default maintenance behavior, and the incremental
+[ingest](../operations/ingest.md)-from-raw-sources workflow (okf-skills leans toward *authoring* and
+*validating* bundles; the living-wiki ingest loop is where we can add value). We should read its
+`okf` SKILL.md closely before finalizing ours.
+
+# Citations
+
+1. okf-skills — <https://github.com/scaccogatto/okf-skills>", "links": ["ecosystem/landscape", "spec/conformance", "references/okf_readme", "operations/lint", "concepts/three_layer_architecture", "ecosystem/critiques", "operations/ingest"], "cited_by": ["ecosystem/competitor_comparison", "ecosystem/landscape", "ecosystem/openknowledge_cli", "ecosystem/openwiki_langchain"]}, {"id": "ecosystem/omegawiki", "path": "ecosystem/omegawiki.md", "type": "Reference", "title": "OmegaWiki", "description": "The most complete realization of the LLM Wiki vision from the gist thread — a wiki-centric, full-lifecycle AI research platform powered by Claude Code (~1.5k stars).", "tags": ["ecosystem", "featured", "platform", "claude-code"], "resource": "https://github.com/skyllwt/OmegaWiki", "status": "active", "body": "# OmegaWiki
+
+`skyllwt/OmegaWiki` (~1.5k★) bills itself as *\"Karpathy's LLM-Wiki vision, fully realized\"* — a
+wiki-centric, full-lifecycle AI research platform built on Claude Code. It is the highest-profile
+faithful implementation to emerge directly from the [gist](../references/karpathy_llm_wiki.md) thread.
+
+## Why it's worth studying
+
+* It treats the wiki as the **center of gravity** of a research workflow, not a side artifact —
+  the fullest expression of the [compounding-artifact](../concepts/compounding_artifact.md) idea.
+* It spans the whole lifecycle ([ingest](../operations/ingest.md) → [query](../operations/query.md) →
+  maintenance), which is the scope we want our skills to cover.
+* The same author later shipped `AutoSci` (an autonomous science agent) and a paper — a signal that
+  the wiki pattern is being pushed toward autonomous research.
+
+## Relevance to us
+
+OmegaWiki is a monolithic platform; our bet is smaller and more portable — generic
+[OKF](../spec/index.md) skills that drop into *any* project's `knowledge/` directory. OmegaWiki is the
+benchmark for \"what a maximal implementation looks like\"; the open question it lets us frame is how
+much of that value survives when you strip it down to portable, format-first skills.
+
+# Citations
+
+1. OmegaWiki — <https://github.com/skyllwt/OmegaWiki>", "links": ["references/karpathy_llm_wiki", "concepts/compounding_artifact", "operations/ingest", "operations/query"], "cited_by": ["ecosystem/landscape", "ecosystem/wiki_skills"]}, {"id": "ecosystem/openknowledge_cli", "path": "ecosystem/openknowledge_cli.md", "type": "Reference", "title": "openknowledge (openknowledge-sh)", "description": "A Go CLI for creating, connecting, inspecting, and publishing OKF bundles, with a local registry, a browser viewer, multiple exporters, and an agent maintenance loop. The most tooling-complete OKF project.", "tags": ["ecosystem", "featured", "okf-native", "competitor", "cli", "registry"], "resource": "https://github.com/openknowledge-sh/openknowledge", "status": "active", "body": "# openknowledge (openknowledge-sh)
+
+`openknowledge-sh/openknowledge` (~5★, Go) is a *\"CLI tool for managing Open Knowledge Format
+bundles\"* — create, connect, inspect, and publish local LLM wikis, and keep them current with a
+maintenance loop. It has its own domain (`openknowledge.sh`) and installer. Of the OKF-native
+cohort, it is the **most tooling-complete** and the most direct competitor alongside
+[okf-skills](./okf_skills_scaccogatto.md).
+
+## What it ships
+
+A layered command surface around a [bundle](../concepts/knowledge_bundle.md):
+
+* **Authoring / hygiene** — `setup`, `new`, `validate`, `list`, `spec` (scaffold a bundle, seed
+  agent maintenance rules, keep the markdown [conformant](../spec/conformance.md)).
+* **Local registry** — `connect`, `disconnect`, `registry`: give local, published, archive, or
+  **Git-remote** bundles stable names that humans, agents, and the viewer resolve. This is a genuinely
+  new idea in the ecosystem — a *naming/resolution layer* across many bundles.
+* **Agent entrypoint** — `use`: prints a bundle-declared instruction file (or a bundle-relative
+  path, falling back to the root [`index.md`](../spec/index_files.md)) so an agent loads the right
+  knowledge on demand.
+* **Viewer** — `open`: a registry-backed local browser UI with search and inline validation issues.
+* **Export/publish** — `to html` / `--plain` / `to json` / `to graph`: static viewer, plain
+  semantic HTML, a normalized bundle model, or link-graph JSON. Published exports include an
+  `openknowledge.json` manifest + a `.tar.gz` archive so `connect <url>` can materialize a remote
+  bundle into a local cache.
+
+## Ideas worth stealing
+
+* **Agent-run setup via a printed prompt.** `openknowledge setup` *prints an agent prompt* rather
+  than scaffolding directly; you paste it into Claude/Codex/Cursor (or `claude \"$(openknowledge
+  setup)\"`). The agent inspects the workspace + memories, asks only missing questions, then builds a
+  use-case-tailored bundle. A clever division of labor: deterministic CLI for structure, agent for
+  judgment — directly relevant to how our [ingest](../operations/ingest.md)/init skills should behave.
+* **Registry / named bundles across sources** (local, published, archive, Git) — a
+  multi-bundle-workspace idea like [the OKF-native agent's](../implementations/okf_native_agent.md) multi-kb
+  model, but generalized to remote resolution.
+* **Pins a copy of the [spec](../spec/index.md) into every new bundle**, and keeps its own docs
+  (`Wiki/`) as an OKF bundle with `decisions/`, `changelog/`, `workflows/` — more
+  [dogfooding](../index.md) with an explicit decisions/workflows split worth imitating.
+* **\"Focused lower-reasoning subagents on bounded wiki-maintenance tasks\"** — its setup guidance
+  tells the host agent to delegate narrow maintenance to cheaper subagents. A concrete cost pattern
+  for the [token-cost critique](./critiques.md#2-token-cost-is-postponed-not-eliminated).
+
+## Relevance to us
+
+openknowledge and [okf-skills](./okf_skills_scaccogatto.md) bracket our space: okf-skills is
+Claude-Code-native skills; openknowledge is a language-agnostic **CLI + registry + viewer** driven by
+agent prompts. Both lean toward *authoring/validating/publishing*. Our distinct value remains the
+**incremental, trust-modeled [ingest](../operations/ingest.md) loop from raw sources** and the
+[schema-layer](../concepts/three_layer_architecture.md#3-the-schema) portability seam. Its
+`use`-prints-an-entrypoint and `setup`-prints-a-prompt patterns are strong, concrete ideas to borrow
+for our skills' ergonomics. It is also a second independent **consumer/validator** (like
+[kiso](./kiso.md)) to interop-test our output against.
+
+# Citations
+
+1. openknowledge — <https://github.com/openknowledge-sh/openknowledge>", "links": ["ecosystem/okf_skills_scaccogatto", "concepts/knowledge_bundle", "spec/conformance", "spec/index_files", "operations/ingest", "implementations/okf_native_agent", "ecosystem/critiques", "concepts/three_layer_architecture", "ecosystem/kiso"], "cited_by": ["ecosystem/competitor_comparison", "ecosystem/landscape", "ecosystem/openwiki_langchain"]}, {"id": "ecosystem/openwiki_langchain", "path": "ecosystem/openwiki_langchain.md", "type": "Reference", "title": "openwiki (langchain-ai)", "description": "LangChain's CLI that writes and maintains agent-facing documentation for a codebase (DeepAgents-based, auto-updated via a daily GitHub Action). A code-documentation generator — not OKF, not general-knowledge — but a strong brand signal and a source of ingest techniques.", "tags": ["ecosystem", "competitor", "langchain", "code-docs", "not-okf"], "resource": "https://github.com/langchain-ai/openwiki", "status": "active", "body": "# openwiki (langchain-ai)
+
+`langchain-ai/openwiki` (~67★, MIT, TypeScript, created 2026-06-22) is a CLI that *\"writes and
+maintains documentation for your codebase, built specifically for agents.\"* Built on LangChain's
+DeepAgents. Notable primarily because **LangChain entering this space** hardens the \"agent-maintained
+wiki\" category — but it sits in a **different lane** from this project.
+
+## What it is
+
+* `openwiki --init` generates docs into an **`openwiki/`** directory; `--update` refreshes them from
+  repo changes. A daily **GitHub Action** opens a PR keeping docs current.
+* Appends a pointer to the repo's `AGENTS.md`/`CLAUDE.md` so coding agents consult the docs for
+  context (the same ambient-consult idea our [kb-init](../implementations/personal_work_wiki.md) installs).
+* Multi-provider (OpenRouter/Anthropic/OpenAI/Baseten/Fireworks), config in `~/.openwiki/.env`,
+  optional LangSmith tracing.
+
+## Why it is NOT a format competitor
+
+Unlike [okf-skills](./okf_skills_scaccogatto.md), [openknowledge](./openknowledge_cli.md), and
+[kiso](./kiso.md), openwiki is not in our niche:
+
+* **Not [OKF](../spec/index.md).** Output is plain markdown with **no frontmatter / no `type`**, in
+  `openwiki/` not `knowledge/`. No conformance target, not a portable bundle.
+* **Codebase docs only**, generated *from the repository* — architecture/CLI/agent-workflow pages.
+  Not general knowledge [ingested](../operations/ingest.md) from arbitrary sources (transcripts,
+  PDFs, notes, images). It is in the \"auto-document your code\" lane (DeepWiki, gbrain), not the
+  [LLM-Wiki](../concepts/llm_wiki.md) knowledge-base lane.
+* **No [trust model](./critiques.md#1-truth-maintenance-and-knowledge-base-poisoning).** It
+  regenerates from source each run rather than append-only/supersede — fine for code docs (the code
+  *is* the source of truth), wrong for accumulated knowledge where provenance and history matter.
+
+## Techniques worth borrowing for kb-ingest
+
+Its agent system prompt is well-built and directly informs [kb-ingest](../operations/ingest.md):
+
+* **Git-evidence grounding** — *\"Do not invent files, modules, APIs, or behavior. Ground every
+  important claim in source files, existing docs, or git evidence.\"* Our trust model's \"never invent
+  a source\" rule, operationalized; on update it diffs against the last run's recorded `gitHead`.
+* **Plan-then-write** — writes a temporary `_plan.md` (intended pages + evidence + open questions)
+  before writing final docs, then deletes it. A cheap way to force discovery before synthesis.
+* **Subagent discipline** — 1-2 (up to 3-4 for small repos) **read-only** research subagents with
+  narrow briefs; **only the main agent writes**. A concrete answer to the
+  [token-cost critique](./critiques.md#2-token-cost-is-postponed-not-eliminated) and a pattern for
+  ingesting a large source set in parallel without write conflicts.
+* **Existing-docs discipline** — treat existing READMEs/SKILL.md/runbooks as primary source; link
+  rather than duplicate; flag stale docs that conflict with current source.
+
+## Relevance to us
+
+openwiki is a **peer in the adjacent code-docs lane**, not a competitor for OKF general-knowledge
+bundles. It sharpens our positioning (we are the OKF-conformant, general-source, trust-modeled
+option) and its prompt is a proven reference for `kb-ingest`'s grounding, planning, and subagent
+patterns. Not an interop target (its output isn't a conformant bundle), unlike
+[kiso](./kiso.md)/[openknowledge](./openknowledge_cli.md).
+
+# Citations
+
+1. openwiki — <https://github.com/langchain-ai/openwiki> (README + `src/agent/prompt.ts`, inspected 2026-07-01)", "links": ["implementations/personal_work_wiki", "ecosystem/okf_skills_scaccogatto", "ecosystem/openknowledge_cli", "ecosystem/kiso", "operations/ingest", "concepts/llm_wiki", "ecosystem/critiques"], "cited_by": ["design/skill_design", "ecosystem/landscape"]}, {"id": "ecosystem/synthadoc", "path": "ecosystem/synthadoc.md", "type": "Reference", "title": "synthadoc", "description": "An open-source LLM knowledge-compilation engine that turns raw documents into structured, local-first wikis with no tools — a transparent, self-managed alternative to RAG (~534 stars).", "tags": ["ecosystem", "featured", "compiler", "no-tools"], "resource": "https://github.com/axoviq-ai/synthadoc", "status": "active", "body": "# synthadoc
+
+`axoviq-ai/synthadoc` (~534★) is an open-source **knowledge-compilation engine**: it turns raw
+documents into structured, local-first wikis and pitches itself as a transparent, human-readable
+alternative to RAG that is *self-managed and self-improving without using any tools*.
+
+## Why it's worth studying
+
+* Actively engaged with the hard problems from the [critiques](./critiques.md): its docs
+  cover **adversarial review**, **claim provenance**, **page lifecycle** management, and **query
+  caching** — i.e. exactly the truth-maintenance and token-cost objections.
+* \"No tools\" self-management is a useful contrast to the search-tool-backed scaling answer — it bets
+  that disciplined compilation plus caching is enough.
+* One of the more mature efforts (multiple releases, quick-start + design docs, web + CLI + Obsidian
+  query paths).
+
+## Relevance to us
+
+synthadoc is the best worked example of *engineering answers* to the
+[critiques](./critiques.md): adversarial review and claim-provenance features are concrete
+versions of the [review-gated, citation-first](./critiques.md#1-truth-maintenance-and-knowledge-base-poisoning)
+fix, and query caching addresses the [token-cost](./critiques.md#2-token-cost-is-postponed-not-eliminated)
+objection. Strong prior art to mine when we decide how much of the trust model our
+[lint](../operations/lint.md) and [ingest](../operations/ingest.md) skills enforce.
+
+# Citations
+
+1. synthadoc — <https://github.com/axoviq-ai/synthadoc>", "links": ["ecosystem/critiques", "operations/lint", "operations/ingest"], "cited_by": ["ecosystem/landscape"]}, {"id": "ecosystem/wiki_skills", "path": "ecosystem/wiki_skills.md", "type": "Reference", "title": "wiki-skills (kfchou)", "description": "LLM-maintained personal wiki skills for Claude Code that implement Karpathy's pattern — the closest in shape to what this project is building (~160 stars).", "tags": ["ecosystem", "featured", "skills", "claude-code"], "resource": "https://github.com/kfchou/wiki-skills", "status": "active", "body": "# wiki-skills (kfchou)
+
+`kfchou/wiki-skills` (~160★) is a set of **LLM-maintained personal wiki skills for Claude Code**
+that directly implements the [gist](../references/karpathy_llm_wiki.md) pattern.
+
+## Why it's worth studying
+
+* It is **the closest in shape** to our plan: Claude Code skills that carry the
+  [operations](../operations/index.md), scoped to personal wikis — the same runtime and packaging we
+  intend, minus the [OKF](../spec/index.md) format commitment.
+* Smaller and more focused than [OmegaWiki](./omegawiki.md) or
+  [Astro-Han's](./karpathy_llm_wiki_astro.md) multi-tool build — a good reference for a
+  minimal, readable skill set.
+
+## Relevance to us
+
+Between this and [karpathy-llm-wiki](./karpathy_llm_wiki_astro.md) we have two concrete
+\"skills that maintain a wiki\" precedents to learn ergonomics from. Our contribution on top:
+conformance to the OKF [spec](../spec/index.md), the portable [schema-layer](../concepts/three_layer_architecture.md#3-the-schema)
+seam so one skill set fits many domains, and the [trust model](./critiques.md) as default.
+
+# Citations
+
+1. wiki-skills — <https://github.com/kfchou/wiki-skills>", "links": ["references/karpathy_llm_wiki", "ecosystem/omegawiki", "ecosystem/karpathy_llm_wiki_astro", "concepts/three_layer_architecture", "ecosystem/critiques"], "cited_by": ["ecosystem/karpathy_llm_wiki_astro", "ecosystem/landscape"]}, {"id": "implementations/okf_native_agent", "path": "implementations/okf_native_agent.md", "type": "Implementation", "title": "OKF-Native Agent", "description": "A deployable, OKF-native agent (built on Mastra) that reads and maintains a customer's knowledge as OKF bundles, with product-level read/write skills that encode a trust model.", "tags": ["implementation", "okf-native", "mastra", "deployable", "prior-art"], "resource": "", "status": "active", "body": "# OKF-Native Agent
+
+A private, deployable agent (built on [Mastra](https://mastra.ai)) that reads and maintains a
+customer's knowledge as [OKF bundles](../concepts/knowledge_bundle.md). Unlike the
+[personal work wiki](./personal_work_wiki.md), it is **OKF-native from the ground up** and is the
+closest existing model for the format-first, portable direction this project is taking.
+
+## Deployment model
+
+* **One customer = one storage bucket = one deployment.** The bucket root is the agent's workspace.
+* The workspace contains a `knowledge/` directory holding one or more OKF bundles (\"kb\"s) — each a
+  self-contained, independently portable bundle with its own [`index.md`](../spec/index_files.md)
+  and [`log.md`](../spec/log_files.md). A top-level `knowledge/index.md` catalogs the kbs. Multiple
+  kbs coexist so one prompt can span them.
+* `AGENTS.md` holds customer-specific system-prompt additions; `skills/` holds customer skills that
+  merge on top of the product-level ones.
+* Storage is an R2/S3 bucket via Mastra's `S3Filesystem`; memory is a local LibSQL database.
+
+This is the same `knowledge/`-directory-of-bundles shape this repository uses — worth mirroring.
+
+## The management skill and its trust model
+
+It ships a product-level OKF skill that carries the spec plus a **management philosophy** aimed at
+knowledge the owner can *trust* and that *compounds*. Its rules go meaningfully beyond bare OKF and
+are the strongest input to our [operations](../operations/index.md) design:
+
+* **Append-only on meaning.** OK to fix typos/links/metadata; never change what a document *asserts*.
+  If a claim changes, write a new concept and **supersede** the old (`supersedes:` / `superseded_by:` /
+  `status: superseded`), remove it from the index but keep it on disk. Removal from an index is a
+  *tombstone, not a delete*.
+* **Never lose provenance.** Every concept cites a source or is explicitly marked user-originated
+  (`type: Note`, no `resource`). Sources are stored **once** as `type: Reference` and cited many
+  times (N:1) — one source can spawn many concepts.
+* **Conflict vs. supersede.** Mere disagreement → link with `conflicts_with` and keep **both active**;
+  supersede only on a high-confidence, provenance-based change signal. Confidence comes from the
+  *source's* authority, never the agent's own sense of truth.
+* **Events are additive.** Releases, news, dated reports accumulate as a timeline and never supersede
+  each other; a separate \"latest\" pointer concept is updated instead.
+* **Entity-first synthesis.** Prefer durable entity/topic concepts that incoming sources feed, over
+  dated snapshots; a stored synthesis is itself append-only (refreshed by superseding).
+* **Make every change visible.** Append a dated `log.md` entry for every create/supersede/relink.
+
+## Relevance to this project
+
+It answers questions the [personal work wiki](./personal_work_wiki.md) doesn't: how to stay
+OKF-conformant while adding the relationship vocabulary a living wiki needs (`status`, `supersedes`,
+`conflicts_with`) as tolerated [extension keys](../spec/frontmatter.md#extensions); how to handle
+contradiction and currency at [query](../operations/query.md) time; and how a portable skill can
+carry the spec itself. Its append-only, supersede-don't-rewrite trust model is the basis for the
+default in our portable [ingest](../operations/ingest.md) and [lint](../operations/lint.md) skills.
+
+# Citations
+
+1. A private, OKF-native deployable agent (Mastra-based); details from its `okf` management skill.", "links": ["concepts/knowledge_bundle", "implementations/personal_work_wiki", "spec/index_files", "spec/log_files", "spec/frontmatter", "operations/query", "operations/ingest", "operations/lint"], "cited_by": ["design/sample_bundle_lessons", "design/skill_design", "ecosystem/commonplace", "ecosystem/competitor_comparison", "ecosystem/critiques", "ecosystem/landscape", "ecosystem/okf_harness", "ecosystem/openknowledge_cli"]}, {"id": "implementations/personal_work_wiki", "path": "implementations/personal_work_wiki.md", "type": "Implementation", "title": "Personal Work Wiki", "description": "A working personal work wiki on the LLM Wiki pattern — an Obsidian-compatible vault maintained by Claude Code skills (ingest, query, lint, status). Predates OKF conventions.", "tags": ["implementation", "obsidian", "claude-code", "skills", "prior-art"], "resource": "", "status": "active", "body": "# Personal Work Wiki
+
+A working, single-user instantiation of the [LLM Wiki](../concepts/llm_wiki.md) pattern (the
+author's private project): an Obsidian-compatible markdown vault maintained by Claude Code skills. It
+is the most direct prior art for the portable skills we are building — the
+[operations](../operations/index.md) pages are distilled largely from it.
+
+## Structure
+
+* `raw_ingests/` — the immutable [raw sources](../concepts/three_layer_architecture.md#1-raw-sources)
+  drop zone, with a `processed/` subdir sources move to after ingest.
+* `wiki/` — the LLM-owned bundle: `00_index.md`, `01_log.md`, and domain sections (e.g.
+  `people/`, `deals/`, `product/`, `themes/`), each with an `_overview.md` roll-up.
+* `CLAUDE.md` — the [schema layer](../concepts/three_layer_architecture.md#3-the-schema): structure,
+  conventions, metadata schema, and constraints.
+* `.skills/` — the operations as skills: `ingest`, `query`, `lint`, `status`, plus domain-specific
+  ones.
+
+## Conventions (and how they differ from OKF)
+
+It predates and diverges from strict [OKF](../spec/index.md); mapping the gaps is the point of
+studying it:
+
+| this wiki | OKF v0.1 |
+|---|---|
+| Obsidian `[[wikilinks]]` with path + alias | standard [markdown links](../spec/cross_linking.md) |
+| `00_index.md`, `01_log.md` (numbered) | reserved [`index.md`](../spec/index_files.md), [`log.md`](../spec/log_files.md) |
+| required `title`, `type`, `created` | required [`type`](../spec/frontmatter.md) only |
+| `created` / `updated` dates | recommended `timestamp` |
+| closed `type` enum (person/deal/…) | open, producer-chosen `type` |
+
+The lessons carry over cleanly even though the surface conventions don't: extract-don't-restate,
+immutable sources, append-only log, re-synthesized overviews, both-directions cross-links, index as
+navigation entry point.
+
+## Relevance to the portable skills
+
+It proves the pattern works day-to-day but bakes its taxonomy into both `CLAUDE.md` *and* the skill
+bodies (its `ingest` skill hard-codes sections like `people/` and `deals/`). The portability goal is
+to lift that domain knowledge entirely into the
+[schema layer](../concepts/three_layer_architecture.md#3-the-schema) so the
+[ingest](../operations/ingest.md)/[query](../operations/query.md)/[lint](../operations/lint.md)
+skills carry none of it — and to target the OKF surface conventions instead of Obsidian's.
+
+# Citations
+
+1. A private personal-work-wiki project (not public).", "links": ["concepts/llm_wiki", "concepts/three_layer_architecture", "spec/cross_linking", "spec/index_files", "spec/log_files", "spec/frontmatter", "operations/ingest", "operations/query", "operations/lint"], "cited_by": ["design/sample_bundle_lessons", "ecosystem/competitor_comparison", "ecosystem/openwiki_langchain", "implementations/okf_native_agent", "operations/ingest", "operations/lint", "operations/query"]}, {"id": "operations/ingest", "path": "operations/ingest.md", "type": "Operation", "title": "Ingest", "description": "Read a new raw source, extract entities and signals, and integrate them across the bundle — creating and updating concepts, cross-links, indexes, and the log.", "tags": ["operation", "workflow", "core"], "resource": "", "status": "active", "body": "# Ingest
+
+**Ingest** is the primary [LLM Wiki](../concepts/llm_wiki.md) operation: process a new raw source
+into the bundle so knowledge [compounds](../concepts/compounding_artifact.md) rather than being
+re-derived per query. The defining principle: **the wiki is the compiled artifact, not a
+cleaned-up copy of the source.** You extract entities, themes, and signals — you do not restate
+the note.
+
+## Flow
+
+A typical ingest, distilled from the [the personal work wiki](../implementations/personal_work_wiki.md):
+
+1. **Read & classify** the source (transcript, email, note, document, image). Sources may be any
+   format the agent can read.
+2. **Extract entities and signals.** For each meaningful entity, create or update the appropriate
+   [concept document](../concepts/concept_document.md) in the right section of the bundle.
+3. **Write valid frontmatter** on every new or touched concept — at minimum a non-empty
+   [`type`](../spec/frontmatter.md); set `timestamp` on meaningful change.
+4. **Add [cross-links](../spec/cross_linking.md)** in both directions between related concepts —
+   a person named in a deal links to their page and back.
+5. **Re-synthesize overviews.** Any section that changed gets its roll-up/overview rewritten to
+   reflect the new state — an overview is a synthesis, not a file listing.
+6. **Update [index files](../spec/index_files.md)** so [progressive disclosure](../concepts/progressive_disclosure.md)
+   stays reliable.
+7. **Append to the [log](../spec/log_files.md)** — one dated entry recording source, concepts
+   created/updated, and themes found. Append-only; never edit past entries.
+8. **Retire the source.** Move the raw source to a processed location. Raw sources are
+   [immutable](../concepts/three_layer_architecture.md#1-raw-sources) — move, never modify.
+9. **Commit** (when the bundle is a git repo) with a message summarizing what was ingested.
+
+## Supervision
+
+Ingest one source at a time with a human in the loop (read the summaries, guide emphasis) or
+batch-ingest many with less supervision. A single rich source can touch 10–15 concepts. The right
+cadence is a per-project choice and belongs in the [schema layer](../concepts/three_layer_architecture.md#3-the-schema).
+
+# Citations
+
+1. [Karpathy — LLM Wiki gist](../references/karpathy_llm_wiki.md)
+2. [personal work wiki](../implementations/personal_work_wiki.md)", "links": ["concepts/llm_wiki", "concepts/compounding_artifact", "implementations/personal_work_wiki", "concepts/concept_document", "spec/frontmatter", "spec/cross_linking", "spec/index_files", "concepts/progressive_disclosure", "spec/log_files", "concepts/three_layer_architecture", "references/karpathy_llm_wiki"], "cited_by": ["concepts/compounding_artifact", "concepts/llm_wiki", "concepts/progressive_disclosure", "concepts/rag_vs_llm_wiki", "concepts/three_layer_architecture", "design/skill_design", "design/spec_evolution", "ecosystem/commonplace", "ecosystem/competitor_comparison", "ecosystem/critiques", "ecosystem/landscape", "ecosystem/okf_harness", "ecosystem/okf_skills_scaccogatto", "ecosystem/omegawiki", "ecosystem/openknowledge_cli", "ecosystem/openwiki_langchain", "ecosystem/synthadoc", "implementations/okf_native_agent", "implementations/personal_work_wiki", "operations/lint", "operations/query", "references/karpathy_llm_wiki", "references/okf_readme", "spec/index_files", "spec/log_files"]}, {"id": "operations/lint", "path": "operations/lint.md", "type": "Operation", "title": "Lint", "description": "Periodically health-check the bundle for contradictions, stale claims, orphans, missing cross-references, coverage gaps, broken links, and schema violations.", "tags": ["operation", "workflow", "maintenance"], "resource": "", "status": "active", "body": "# Lint
+
+**Lint** is the periodic health-check that keeps a [compounding artifact](../concepts/compounding_artifact.md)
+from drifting. Karpathy is emphatic that the lint pass is *not* optional — drift (stale claims,
+orphans, silent contradictions) is the main way an LLM Wiki degrades over time.
+
+## Checks
+
+Drawn from the pattern and the [the personal work wiki's lint skill](../implementations/personal_work_wiki.md):
+
+* **Schema compliance** — every [concept](../concepts/concept_document.md) has parseable
+  [frontmatter](../spec/frontmatter.md) with a non-empty `type`. (This is the
+  [conformance](../spec/conformance.md) bar.)
+* **Contradictions** — concepts that assert conflicting facts.
+* **Stale claims** — statements a newer source has superseded; stale overviews behind their
+  children.
+* **Orphan concepts** — pages with zero inbound [links](../spec/cross_linking.md).
+* **Missing cross-references** — concepts that discuss the same entity/theme but don't link.
+* **Coverage gaps** — entities mentioned repeatedly across concepts but lacking their own page;
+  data gaps worth a web search.
+* **Broken links** — link targets that don't exist. Per §5.3/§9 these are a *health signal only*
+  and never invalidate the bundle — a broken link may just mark unwritten knowledge.
+
+## Output
+
+Report findings grouped by check, with severity (error / warning / info). Optionally
+auto-fix what is safe (stale overviews, missing cross-links) and flag the rest. Append a summary
+to the [log](../spec/log_files.md). A good lint pass also *suggests* new questions to investigate
+and new sources to seek — turning maintenance into a source of new [ingest](./ingest.md)
+and [query](./query.md) work.
+
+# Citations
+
+1. [Karpathy — LLM Wiki gist](../references/karpathy_llm_wiki.md)
+2. [personal work wiki](../implementations/personal_work_wiki.md)", "links": ["concepts/compounding_artifact", "implementations/personal_work_wiki", "concepts/concept_document", "spec/frontmatter", "spec/conformance", "spec/cross_linking", "spec/log_files", "operations/ingest", "operations/query", "references/karpathy_llm_wiki"], "cited_by": ["concepts/compounding_artifact", "concepts/llm_wiki", "design/skill_design", "ecosystem/competitor_comparison", "ecosystem/critiques", "ecosystem/karpathy_llm_wiki_astro", "ecosystem/okf_skills_scaccogatto", "ecosystem/synthadoc", "implementations/okf_native_agent", "implementations/personal_work_wiki", "references/karpathy_llm_wiki", "references/okf_readme", "spec/conformance", "spec/cross_linking", "spec/log_files"]}, {"id": "operations/query", "path": "operations/query.md", "type": "Operation", "title": "Query", "description": "Navigate the bundle via its indexes and links, synthesize an answer with citations, and file valuable answers back as new concepts so explorations compound.", "tags": ["operation", "workflow", "core"], "resource": "", "status": "active", "body": "# Query
+
+**Query** answers a question against the [bundle](../concepts/knowledge_bundle.md). Because the
+synthesis was front-loaded at [ingest](./ingest.md) time, query is mostly navigation and
+assembly rather than rediscovery — the key contrast with [RAG](../concepts/rag_vs_llm_wiki.md).
+
+## Flow
+
+1. **Navigate** via [progressive disclosure](../concepts/progressive_disclosure.md): read the root
+   [index](../spec/index_files.md) first, then the relevant section index, to locate candidate
+   concepts. At larger scale, add a search tool such as [qmd](../references/qmd.md).
+2. **Read relevant concepts,** following [cross-links](../spec/cross_linking.md) to gather the
+   pieces. Good answers often span several concepts across sections — this is where the bundle's
+   maintained cross-references pay off.
+3. **Synthesize** a direct answer, **citing** the specific concepts used, and surface non-obvious
+   connections.
+4. **File valuable answers back.** This is the compounding move: a comparison, a multi-source
+   analysis, a discovered pattern, or a strategic insight should be written as a new concept —
+   with frontmatter, cross-links, updated overview/index, and a [log](../spec/log_files.md) entry —
+   rather than left to evaporate in chat history. A simple factual lookup does not need to become
+   a page.
+
+## Answer forms
+
+An answer can take whatever form fits the question — prose, a comparison table, a slide deck, a
+chart. The form is a delivery detail; what matters for [compounding](../concepts/compounding_artifact.md)
+is whether the underlying synthesis gets filed back into the bundle.
+
+# Citations
+
+1. [Karpathy — LLM Wiki gist](../references/karpathy_llm_wiki.md)
+2. [personal work wiki](../implementations/personal_work_wiki.md)", "links": ["concepts/knowledge_bundle", "operations/ingest", "concepts/rag_vs_llm_wiki", "concepts/progressive_disclosure", "spec/index_files", "references/qmd", "spec/cross_linking", "spec/log_files", "concepts/compounding_artifact", "references/karpathy_llm_wiki", "implementations/personal_work_wiki"], "cited_by": ["concepts/compounding_artifact", "concepts/llm_wiki", "concepts/progressive_disclosure", "design/skill_design", "ecosystem/competitor_comparison", "ecosystem/critiques", "ecosystem/okf_harness", "ecosystem/omegawiki", "implementations/okf_native_agent", "implementations/personal_work_wiki", "operations/lint", "references/karpathy_llm_wiki", "references/okf_readme", "references/qmd", "spec/log_files"]}, {"id": "references/karpathy_llm_wiki", "path": "references/karpathy_llm_wiki.md", "type": "Reference", "title": "Karpathy — LLM Wiki gist", "description": "Andrej Karpathy's idea file describing the LLM Wiki pattern — a persistent, LLM-maintained knowledge base — meant to be handed to your own agent to instantiate.", "tags": ["llm-wiki", "source", "external", "origin"], "resource": "https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f", "status": "active", "body": "# Karpathy — LLM Wiki gist
+
+The origin of the [LLM Wiki](../concepts/llm_wiki.md) pattern. It is deliberately an **idea file**:
+abstract by design, meant to be copy-pasted to your own LLM agent so you and the agent instantiate
+a concrete version for your domain. It describes the pattern, not an implementation. A local copy
+lives in the repo as `LLM_Wiki_Abstract.md`.
+
+## What it establishes
+
+* **The core idea** — compile knowledge once into a persistent, interlinked wiki and keep it
+  current, instead of re-deriving it per query. See [RAG vs. LLM Wiki](../concepts/rag_vs_llm_wiki.md)
+  and [Compounding Artifact](../concepts/compounding_artifact.md).
+* **[Three-layer architecture](../concepts/three_layer_architecture.md)** — immutable raw sources,
+  the LLM-owned wiki, and the schema/config file (the most important config).
+* **[Operations](../operations/index.md)** — [ingest](../operations/ingest.md),
+  [query](../operations/query.md), [lint](../operations/lint.md).
+* **[index.md and log.md](../spec/reserved_filenames.md)** — content catalog and chronological
+  ledger (OKF later reserves these exact names).
+* **Optional tooling** — [qmd](./qmd.md) for search; Obsidian, Marp, Dataview, git.
+* **Lineage** — Vannevar Bush's [Memex](../concepts/memex.md).
+
+## Notable community signal
+
+The gist's comments include many implementations, plus recurring lessons: keep raw sources
+immutable; the lint pass is not optional (drift is the main failure mode); the schema file is the
+most important config; focused retrieval (search → expand → read only relevant sections) beats
+dumping whole notes. One production user reported ~4000+ interlinked concepts.
+
+# Citations
+
+1. Karpathy, LLM Wiki gist — <https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f>", "links": ["concepts/llm_wiki", "concepts/rag_vs_llm_wiki", "concepts/compounding_artifact", "concepts/three_layer_architecture", "operations/ingest", "operations/query", "operations/lint", "spec/reserved_filenames", "references/qmd", "concepts/memex"], "cited_by": ["concepts/compounding_artifact", "concepts/llm_wiki", "concepts/memex", "concepts/progressive_disclosure", "concepts/rag_vs_llm_wiki", "concepts/three_layer_architecture", "ecosystem/critiques", "ecosystem/landscape", "ecosystem/omegawiki", "ecosystem/wiki_skills", "operations/ingest", "operations/lint", "operations/query", "references/qmd", "spec/log_files"]}, {"id": "references/okf_readme", "path": "references/okf_readme.md", "type": "Reference", "title": "OKF README & Reference Agent", "description": "The OKF README and the reference agent that produces bundles (enrich) and renders them as a self-contained interactive graph (visualize).", "tags": ["okf", "reference-agent", "source", "external"], "resource": "https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf", "status": "active", "body": "# OKF README & Reference Agent
+
+The `okf/` directory of [GoogleCloudPlatform/knowledge-catalog](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf)
+contains the [spec](./okf_spec.md), a **reference agent**, sample recipes, and example
+bundles (GA4, Stack Overflow, Bitcoin).
+
+## The reference agent
+
+Produces an OKF [bundle](../concepts/knowledge_bundle.md) in two passes:
+
+* **BQ pass** — one concept per object from BigQuery metadata alone.
+* **Web pass** — the LLM acts as a crawler: it fetches seed URLs via a `fetch_url` tool and
+  follows outbound links that look like authoritative docs, then either enriches an existing
+  concept, mints a `references/<slug>` concept, or skips. Safety rails: `--web-max-pages` cap and
+  a same-domain `--web-allowed-host` filter; `--no-web` skips crawling.
+
+### `enrich`
+
+```
+python -m reference_agent enrich \
+    --source bq --dataset <project>.<dataset> \
+    --web-seed-file <seeds.txt> --out ./bundles/<name>
+```
+
+`--concept <type>/<name>` (repeatable) iterates on a single concept.
+
+### `visualize`
+
+```
+python -m reference_agent visualize --bundle ./bundles/<name>
+```
+
+Writes a **self-contained interactive `viz.html`** (Cytoscape.js graph + marked for markdown,
+both from CDN, no backend, no data leaves the page): force-directed graph colored by
+[`type`](../spec/frontmatter.md), edges from [cross-links](../spec/cross_linking.md), a detail panel
+with frontmatter + rendered body, a \"Cited by\" backlinks list, plus search, type filter, and
+switchable layouts.
+
+## Relevance to this project
+
+The reference agent shows the *producer* and *consumer* ends of OKF working end-to-end. It is
+domain-coupled (BigQuery + web crawl). Our contribution is a **portable** producer/maintainer: the
+generic [ingest](../operations/ingest.md) / [query](../operations/query.md) / [lint](../operations/lint.md)
+skills, usable in any project, over the same format. The `visualize` command is directly reusable
+on any conformant bundle — including this one.
+
+# Citations
+
+1. OKF README — <https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf>", "links": ["references/okf_spec", "concepts/knowledge_bundle", "spec/frontmatter", "spec/cross_linking", "operations/ingest", "operations/query", "operations/lint"], "cited_by": ["concepts/progressive_disclosure", "design/sample_bundle_lessons", "ecosystem/okf_skills_scaccogatto", "references/okf_spec"]}, {"id": "references/okf_spec", "path": "references/okf_spec.md", "type": "Reference", "title": "OKF Specification (SPEC.md)", "description": "The authoritative Open Knowledge Format v0.1 specification, in the GoogleCloudPlatform/knowledge-catalog repository.", "tags": ["okf", "spec", "source", "external"], "resource": "https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md", "status": "active", "body": "# OKF Specification (SPEC.md)
+
+The authoritative **Open Knowledge Format v0.1** specification. Our [spec section](../spec/index.md)
+concepts restate it, one page per section; this reference points at the source of truth.
+
+**Location:** `okf/SPEC.md` in [GoogleCloudPlatform/knowledge-catalog](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf).
+Raw: <https://raw.githubusercontent.com/GoogleCloudPlatform/knowledge-catalog/main/okf/SPEC.md>
+
+## Section map
+
+The spec is organized as: 1. Motivation (Goals / Non-goals) · 2. Terminology · 3. Bundle
+Structure (3.1 Reserved filenames) · 4. Concept Documents (4.1 Frontmatter, 4.2 Body, 4.3/4.4
+examples) · 5. Cross-linking (5.1 Absolute, 5.2 Relative, 5.3 Semantics) · 6. Index Files ·
+7. Log Files · 8. Citations · 9. Conformance · 10. Relationship to other formats ·
+11. Versioning · Appendix A (minimal example bundle).
+
+Each maps to a concept under [`/spec`](../spec/index.md).
+
+## Key takeaways
+
+* Only [`type`](../spec/frontmatter.md) is a required field.
+* [`index.md` and `log.md`](../spec/reserved_filenames.md) are reserved.
+* [Links are untyped directed edges](../spec/cross_linking.md); consumers must tolerate broken ones.
+* [Conformance](../spec/conformance.md) is deliberately minimal; consumers must be tolerant.
+* OKF's differentiator (§10) is that it is a *specified* format, not a convention or product.
+
+## Notes for the skills work
+
+The spec ships with a **reference agent** (see [OKF README](./okf_readme.md)) that
+`enrich`es bundles from BigQuery + web crawl and `visualize`s them as a self-contained HTML graph.
+That reference agent is Python/BigQuery-specific; our portable skills target the same *format* but
+a general (any-project) workflow driven by the [schema layer](../concepts/three_layer_architecture.md#3-the-schema).
+
+# Citations
+
+1. OKF SPEC.md — <https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md>", "links": ["spec/frontmatter", "spec/reserved_filenames", "spec/cross_linking", "spec/conformance", "references/okf_readme", "concepts/three_layer_architecture"], "cited_by": ["concepts/concept_document", "concepts/knowledge_bundle", "design/skill_design", "references/okf_readme", "spec/body", "spec/bundle_structure", "spec/citations", "spec/conformance", "spec/cross_linking", "spec/frontmatter", "spec/index_files", "spec/log_files", "spec/motivation", "spec/reserved_filenames", "spec/terminology", "spec/versioning"]}, {"id": "references/okf_vs_rag_infographic", "path": "references/okf_vs_rag_infographic.md", "type": "Reference", "title": "OKF vs. RAG — infographic", "description": "A two-panel infographic contrasting traditional RAG (search all PDFs every query) with OKF (read once, compile one markdown concept per file, answer by following links). Useful as marketing/explainer art.", "tags": ["okf", "rag", "infographic", "marketing", "visual", "explainer"], "resource": "", "status": "active", "body": "# OKF vs. RAG — infographic
+
+A two-panel infographic that visualizes the [RAG vs. LLM Wiki](../concepts/rag_vs_llm_wiki.md)
+contrast this bundle argues in prose. Captured from social media; provenance is unverified (see
+[below](#provenance)). Kept here as an explainer/marketing asset for the published repository, and
+because it is a crisp, self-contained statement of the core value proposition.
+
+This is exactly the pattern SPEC §8 sanctions: external material (the images) is mirrored **inside**
+the bundle under [`assets/`](../spec/citations.md#where-a-citation-may-point) and wrapped as a
+first-class `Reference` concept, with the canonical asset kept alongside derived text (the
+descriptive alt text and prose below) — see [citations](../spec/citations.md#canonical-source-vs-derived-text).
+
+## Panel 1 — Without OKF (traditional RAG)
+
+![Without OKF: a company has 100 PDFs; to answer \"How is revenue calculated?\" the AI searches all
+100 PDFs, retrieves chunks from several (Revenue Calculation.pdf, Payment Service.pdf, Database
+Schema.pdf, Finance Dashboard.pdf), combines and reasons over them, and generates an answer — then
+must search all 100 PDFs again the next time the same question is asked.](../assets/images/okf-vs-rag-without-okf.png)
+
+The setup: a company has 100 PDFs (Employee Handbook, Database Schema, Payment Service, Revenue
+Calculation, …). A user asks *\"How is revenue calculated?\"* **Without OKF (traditional RAG)** the AI
+(1) searches all 100 PDFs, (2) retrieves relevant chunks from many of them, (3) combines and reasons
+over the chunks, (4) generates an answer — and, critically, **\"next time the same question is asked,
+it has to search all 100 PDFs again.\"** Nothing is retained; the work is redone every query. This is
+the [amnesia problem](../concepts/rag_vs_llm_wiki.md).
+
+## Panel 2 — With OKF
+
+![With OKF: the AI reads all 100 PDFs once and understands the content, then creates one markdown
+file per concept (Revenue.md, Payments.md, Orders.md, Users.md, Incident_Response.md, …). Each file
+has YAML frontmatter (type, title) and body prose with \"Depends on\" / \"Related\" cross-links. To
+answer \"How is revenue calculated?\" the AI opens Revenue.md and follows its links to Payments.md and
+Orders.md.](../assets/images/okf-vs-rag-with-okf.png)
+
+**With OKF** the AI (1) reads all 100 PDFs **once** and understands them, (2) creates **one markdown
+file per concept** — `Revenue.md`, `Payments.md`, `Orders.md`, `Users.md`, `Incident_Response.md`.
+Each concept has [frontmatter](../spec/frontmatter.md) (`type`, `title`) and a body with `Depends on`
+/ `Related` [cross-links](../spec/cross_linking.md) — e.g. `Revenue.md` (`type: metric`) says
+\"Revenue is the sum of all successful payments,\" depends on Payments, related to Orders. (4) To
+answer the question, the AI **opens `Revenue.md` and follows links** to `Payments.md` → `Orders.md`
+only as needed — [progressive disclosure](../concepts/progressive_disclosure.md) over a
+[compounding artifact](../concepts/compounding_artifact.md) instead of re-searching raw sources.
+
+## Why it's a good explainer
+
+* It reduces the whole pitch to one image pair: **compile once and follow links** vs. **re-search
+  every time** — the same point as [RAG vs. LLM Wiki](../concepts/rag_vs_llm_wiki.md).
+* It uses concrete, business-legible concepts (revenue, payments, orders) rather than abstract nouns.
+* It shows real OKF mechanics — one file per concept, `type`/`title` frontmatter, `Related`/`Depends
+  on` links — matching what the [sample bundles](../design/sample_bundle_lessons.md) actually look like.
+
+Candidate use: repository `README`, a landing page, or slides. Note the \"one file per concept\"
+framing leans toward atomic concepts — a maintenance/style choice, not an OKF rule (see
+[sample bundles](../design/sample_bundle_lessons.md)).
+
+## Provenance
+
+Both panels were captured as screenshots (2026-07-01). The second image includes a partially-visible
+social-media sidebar (handles such as `@TheAI…`), indicating the pair circulated on social media, but
+the **original author/source is unverified**. Per the bundle's trust convention
+([never invent a source](../ecosystem/critiques.md#1-truth-maintenance-and-knowledge-base-poisoning)),
+this is recorded as *unknown / third-party social infographic* rather than attributed to a fabricated
+URL. **Confirm rights/attribution before using publicly.** If the original post is located, add it
+to the citations below.
+
+# Citations
+
+1. Two-panel \"OKF vs. RAG\" infographic — source unverified (social media, captured 2026-07-01).", "links": ["concepts/rag_vs_llm_wiki", "spec/citations", "spec/frontmatter", "spec/cross_linking", "concepts/progressive_disclosure", "concepts/compounding_artifact", "design/sample_bundle_lessons", "ecosystem/critiques"], "cited_by": ["concepts/rag_vs_llm_wiki", "design/spec_evolution", "spec/citations"]}, {"id": "references/qmd", "path": "references/qmd.md", "type": "Reference", "title": "qmd", "description": "A local, on-device markdown search engine with hybrid BM25 + vector search and LLM re-ranking, exposed as both a CLI and an MCP server.", "tags": ["tool", "search", "external", "optional"], "resource": "https://github.com/tobi/qmd", "status": "active", "body": "# qmd
+
+**qmd** is a local search engine for markdown files, recommended in the
+[Karpathy gist](./karpathy_llm_wiki.md) as the tool to reach for when a
+[bundle](../concepts/knowledge_bundle.md) outgrows what [index files](../spec/index_files.md) can
+handle for navigation.
+
+## What it is
+
+* **Hybrid retrieval** — BM25 keyword search plus vector similarity, with **LLM re-ranking**.
+* **On-device** — runs locally; no data leaves the machine.
+* **Two interfaces** — a **CLI** (an agent can shell out to it) and an **MCP server** (an agent
+  can call it as a native tool).
+
+## When to use it in the LLM Wiki pattern
+
+At small-to-moderate scale, the [index file](../spec/index_files.md) plus
+[progressive disclosure](../concepts/progressive_disclosure.md) is enough — do not add search
+prematurely. As the bundle grows to many hundreds or thousands of concepts, a search tool becomes
+the efficient way for the [query](../operations/query.md) operation to find candidate pages before
+reading them. Note the retrieved unit is still a synthesized [concept](../concepts/concept_document.md),
+not a raw chunk — this is search *over the wiki*, not [RAG](../concepts/rag_vs_llm_wiki.md) over raw
+sources.
+
+# Citations
+
+1. qmd — <https://github.com/tobi/qmd>
+2. [Karpathy — LLM Wiki gist](./karpathy_llm_wiki.md)", "links": ["references/karpathy_llm_wiki", "concepts/knowledge_bundle", "spec/index_files", "concepts/progressive_disclosure", "operations/query", "concepts/concept_document", "concepts/rag_vs_llm_wiki"], "cited_by": ["concepts/progressive_disclosure", "concepts/rag_vs_llm_wiki", "ecosystem/critiques", "operations/query", "references/karpathy_llm_wiki"]}, {"id": "spec/body", "path": "spec/body.md", "type": "Spec Section", "title": "OKF §4.2 — Body", "description": "The markdown content after the frontmatter — standard markdown, no required sections, with conventional headings used when applicable.", "tags": ["okf", "spec", "body"], "resource": "", "status": "active", "body": "# Body
+
+OKF (§4.2) defines the **body** as the standard markdown content following the
+[frontmatter](./frontmatter.md). The body is where prose, schemas, and examples live —
+content for humans and LLMs to read. There are **no required sections**.
+
+## Conventional headings
+
+When applicable, OKF recommends these headings so consumers can find common content
+predictably:
+
+* **`# Schema`** — for a resource-bound concept, the asset's columns/fields (§4.3).
+* **`# Examples`** — usage examples.
+* **`# Citations`** — external sources; see [Citations](./citations.md) (§8).
+
+These are conventions, not requirements. A concept with nothing to schematize simply omits
+`# Schema`.
+
+## Resource-bound vs. abstract concepts
+
+* **Bound to a resource** (§4.3) — the concept describes a concrete asset, carries a `resource`
+  URI in frontmatter, and typically has a `# Schema` section. Example from the spec: a BigQuery
+  Table with a schema table, join notes, and citations.
+* **Not bound to a resource** (§4.4) — the concept is abstract (a playbook, a theme, an idea),
+  has no `resource`, and structures its body however suits it. Example from the spec: a Playbook
+  with trigger and steps sections. Every concept in *this* bundle is abstract.
+
+# Citations
+
+1. [OKF Specification (SPEC.md)](../references/okf_spec.md)", "links": ["spec/frontmatter", "spec/citations", "references/okf_spec"], "cited_by": ["concepts/concept_document", "spec/citations", "spec/frontmatter", "spec/terminology"]}, {"id": "spec/bundle_structure", "path": "spec/bundle_structure.md", "type": "Spec Section", "title": "OKF §3 — Bundle Structure", "description": "A bundle is a directory tree of markdown files, distributable as a git repo, an archive, or a subdirectory; its internal organization is domain-independent.", "tags": ["okf", "spec", "structure"], "resource": "", "status": "active", "body": "# Bundle Structure
+
+OKF (§3) defines a [bundle](../concepts/knowledge_bundle.md) as a **directory tree of markdown
+files**. There is no manifest, index database, or required tooling — the filesystem *is* the
+structure.
+
+## Distribution
+
+A bundle MAY be distributed as:
+
+* a **git repository** (recommended — you get diffs, blame, and PR review for free);
+* an **archive** (tar/zip); or
+* a **subdirectory** of a larger repository.
+
+This repository uses the subdirectory form: the bundle is `knowledge/` inside a repo that will
+also hold the portable skills.
+
+## Organization
+
+The internal organization is **domain-independent**. Producers arrange concepts into whatever
+directory hierarchy suits the domain; OKF does not mandate any particular folders. Directories
+can carry [index files](./index_files.md) to support
+[progressive disclosure](../concepts/progressive_disclosure.md), and concepts link freely across
+directories via [cross-links](./cross_linking.md), making the bundle graph-shaped rather than
+strictly tree-shaped.
+
+The only filename constraints are the two [reserved filenames](./reserved_filenames.md).
+
+# Citations
+
+1. [OKF Specification (SPEC.md)](../references/okf_spec.md)", "links": ["concepts/knowledge_bundle", "spec/index_files", "concepts/progressive_disclosure", "spec/cross_linking", "spec/reserved_filenames", "references/okf_spec"], "cited_by": ["concepts/knowledge_bundle", "spec/terminology"]}, {"id": "spec/citations", "path": "spec/citations.md", "type": "Spec Section", "title": "OKF §8 — Citations", "description": "External sources should be listed under a numbered # Citations heading at the bottom of a concept document.", "tags": ["okf", "spec", "citations"], "resource": "", "status": "active", "body": "# Citations
+
+OKF (§8) recommends that external sources be listed under a numbered **`# Citations`** heading at
+the **bottom** of a [concept document](../concepts/concept_document.md). This distinguishes
+*external* provenance (where the knowledge came from) from *internal*
+[cross-links](./cross_linking.md) (how concepts relate to each other).
+
+## Format
+
+```markdown
+# Citations
+
+1. [OKF Specification (SPEC.md)](../references/okf_spec.md)
+2. Vannevar Bush, \"As We May Think,\" The Atlantic, July 1945.
+```
+
+Entries may be markdown links (to external URLs or to [reference](../references/index.md) concepts
+within the bundle) or plain prose for offline sources. Citations are a `# Citations`
+[body](./body.md) convention — they are recommended when applicable, not required. In this
+bundle, concept pages cite the [references](../references/index.md) they were compiled from, so the
+bundle records its own provenance.
+
+## Where a citation may point
+
+§8 explicitly allows three citation targets:
+
+1. an **absolute URL** to the external source;
+2. a **bundle-relative path** to another concept; or
+3. a path into a **`references/` subdirectory that mirrors external material as first-class OKF
+   concepts.**
+
+That third option is the spec's blessing for keeping source material *inside* the bundle:
+PDFs, images, transcripts, `.mov` files, captured web pages. Store the asset under `references/`
+and wrap it in a `type: Reference` concept that points at it — the source becomes a citable,
+linkable node in the graph rather than an external URL that may rot.
+
+## Canonical source vs. derived text
+
+A useful discipline (from OKF discussion #91): **separate the canonical source from the derived
+text.** The `references/` concept holds a *stable pointer* to the original asset (via `resource` or
+an embedded/linked file) **and** carries extracted text, a summary, or a description — so the source
+is preserved for provenance while the derived text stays useful for retrieval (agents can read it
+without opening a binary). The practical rule: if a document is part of the knowledge base, keep a
+stable pointer to it *in* the bundle; if it is merely incidental supporting material, cite it
+externally and leave it out. This bundle applies the pattern in
+[OKF vs. RAG infographic](../references/okf_vs_rag_infographic.md) (images stored under
+[`assets/`](../references/okf_vs_rag_infographic.md), wrapped in a Reference concept with descriptive
+alt text).
+
+# Citations
+
+1. [OKF Specification (SPEC.md)](../references/okf_spec.md)", "links": ["concepts/concept_document", "spec/cross_linking", "references/okf_spec", "spec/body", "references/okf_vs_rag_infographic"], "cited_by": ["design/spec_evolution", "ecosystem/critiques", "references/okf_vs_rag_infographic", "spec/body", "spec/terminology"]}, {"id": "spec/conformance", "path": "spec/conformance.md", "type": "Spec Section", "title": "OKF §9 — Conformance", "description": "The minimal bar a bundle must clear — parseable frontmatter with a non-empty type on every concept, well-formed reserved files — and the things consumers must not reject over.", "tags": ["okf", "spec", "conformance"], "resource": "", "status": "active", "body": "# Conformance
+
+OKF (§9) sets a deliberately low bar. A bundle **conforms** if:
+
+1. Every non-reserved `.md` file has **parseable YAML frontmatter**;
+2. That frontmatter has a **non-empty [`type`](./frontmatter.md)**; and
+3. Any [reserved files](./reserved_filenames.md) present follow their structures
+   ([index](./index_files.md), [log](./log_files.md)).
+
+That is the entire producer obligation.
+
+## What consumers MUST NOT reject over
+
+To keep OKF tolerant and forward-compatible, consumers **MUST NOT** reject a bundle for any of:
+
+* missing **optional** fields (`title`, `description`, `resource`, `tags`, `timestamp`);
+* **unknown `type`** values;
+* **unknown frontmatter keys**;
+* **broken [links](./cross_linking.md)**; or
+* **missing [index files](./index_files.md)**.
+
+## Checklist for this bundle
+
+The [lint](../operations/lint.md) operation and the repo's conformance check verify:
+
+* [x] every concept document has frontmatter with a non-empty `type`;
+* [x] reserved `index.md`/`log.md` carry no frontmatter (except the root index's `okf_version`);
+* [x] the root [index](../index.md) declares `okf_version: \"0.1\"`;
+* [x] log date headings use `YYYY-MM-DD`.
+
+Broken links are reported by lint as a health signal but, per §5.3 and §9, never affect
+conformance.
+
+# Citations
+
+1. [OKF Specification (SPEC.md)](../references/okf_spec.md)", "links": ["spec/frontmatter", "spec/reserved_filenames", "spec/index_files", "spec/log_files", "spec/cross_linking", "operations/lint", "references/okf_spec"], "cited_by": ["design/skill_design", "design/spec_evolution", "ecosystem/competitor_comparison", "ecosystem/kiso", "ecosystem/okf_skills_scaccogatto", "ecosystem/openknowledge_cli", "operations/lint", "references/okf_spec", "spec/frontmatter"]}, {"id": "spec/cross_linking", "path": "spec/cross_linking.md", "type": "Spec Section", "title": "OKF §5 — Cross-linking", "description": "Concepts link via standard markdown links in two forms; a link asserts an untyped relationship conveyed by prose, and consumers MUST tolerate broken links.", "tags": ["okf", "spec", "links", "graph"], "resource": "", "status": "active", "body": "# Cross-linking
+
+OKF (§5) uses **standard markdown links** to express relationships between
+[concepts](../concepts/concept_document.md). This is what makes a bundle graph-shaped, not just
+tree-shaped: concepts form directed edges regardless of the directory hierarchy. It is the OKF
+equivalent of Obsidian `[[wikilinks]]`, but using portable markdown link syntax.
+
+OKF defines two link forms. The spec text of v0.1 labels the absolute form \"recommended,\" but the
+reference implementation, every shipped sample bundle, and open PR #165 all point the other way —
+see the note below. **This bundle uses relative links** throughout, and we recommend them for any
+bundle that may ship as a subdirectory.
+
+## §5.1 Relative links (recommended in practice)
+
+Standard relative markdown paths, e.g. `[Frontmatter](./frontmatter.md)` or
+`[up](../concepts/llm_wiki.md)`. They resolve in **any** renderer — `cat`, a browser, GitHub, an
+editor preview — with no OKF-aware tooling, which is why the reference agent mandates them and this
+bundle uses them. Drawback: a link breaks if the target file moves to a different directory depth.
+
+## §5.2 Absolute (bundle-relative) links
+
+A link whose target begins with `/` is interpreted **from the bundle root** (e.g.
+`/spec/frontmatter.md`). It survives a file moving between directories, but it **requires an
+OKF-aware resolver**: a standard renderer resolves the leading `/` against the *host/repository*
+root, not the bundle root, so absolute links mislink or 404 whenever the bundle is nested as a
+subdirectory (§3 allows this — and it is exactly this bundle's `knowledge/` layout).
+
+## §5.3 Link semantics
+
+* A link asserts an **untyped relationship**; the *kind* of relationship is conveyed by the
+  surrounding **prose**, not by the link itself. There is no `rel=` or edge-type vocabulary.
+* Consumers treat links as **directed edges** and MAY compute backlinks (\"cited by\").
+* Consumers **MUST tolerate broken links**. A link to a not-yet-written concept is not an error —
+  it may simply mark knowledge that has not been captured yet. (The [lint](../operations/lint.md)
+  operation surfaces broken links as a health signal, but they never invalidate a bundle.)
+
+Whether to include the `.md` extension in link targets is a producer choice; this bundle includes
+it so the links resolve when the files are browsed directly on disk or on GitHub.
+
+> **Note (spec in flux):** v0.1's *written* guidance still labels the absolute form \"recommended,\"
+> but that is being **reversed** to match practice. The reference agent forbids leading `/` (\"breaks
+> GitHub rendering\"), every shipped [sample bundle](../design/sample_bundle_lessons.md) uses
+> relative links, and open PR #165 swaps §5.1/§5.2 to recommend **relative** links. We converted
+> this bundle from absolute to relative links (473 links across 51 files) on 2026-07-01 for exactly
+> this reason — it renders correctly on GitHub and for any non-OKF-aware reader. See
+> [OKF Spec Evolution](../design/spec_evolution.md#1-link-form-is-being-reversed-recommend-relative-not-absolute).
+
+# Citations
+
+1. [OKF Specification (SPEC.md)](../references/okf_spec.md)", "links": ["concepts/concept_document", "spec/frontmatter", "concepts/llm_wiki", "operations/lint", "design/sample_bundle_lessons", "design/spec_evolution", "references/okf_spec"], "cited_by": ["concepts/concept_document", "concepts/progressive_disclosure", "design/sample_bundle_lessons", "design/spec_evolution", "ecosystem/commonplace", "implementations/personal_work_wiki", "operations/ingest", "operations/lint", "operations/query", "references/okf_readme", "references/okf_spec", "references/okf_vs_rag_infographic", "spec/bundle_structure", "spec/citations", "spec/conformance", "spec/terminology"]}, {"id": "spec/frontmatter", "path": "spec/frontmatter.md", "type": "Spec Section", "title": "OKF §4.1 — Frontmatter", "description": "The YAML metadata block on every concept — type is the only required key; title, description, resource, tags, and timestamp are recommended; unknown keys are allowed.", "tags": ["okf", "spec", "frontmatter"], "resource": "", "status": "active", "body": "# Frontmatter
+
+OKF (§4, §4.1) requires every [concept document](../concepts/concept_document.md) to begin with a
+YAML frontmatter block. The frontmatter is machine-readable metadata; everything else is
+[body](./body.md).
+
+## Required
+
+* **`type`** *(string, non-empty)* — a short string naming the kind of concept, used for
+  routing, filtering, and presentation. It is **not** centrally registered — producers pick
+  descriptive, self-explanatory values (e.g. `BigQuery Table`, `API Endpoint`, `Playbook`, or,
+  in this bundle, `Concept`, `Spec Section`, `Operation`, `Reference`, `Implementation`).
+  Consumers MUST handle unknown types gracefully, treating them as generic concepts.
+
+`type` is the **only** required key. This is the crux of [conformance](./conformance.md).
+
+## Recommended (in priority order)
+
+* **`title`** — human-readable display name (consumers MAY derive one from the filename if absent).
+* **`description`** — a single summarizing sentence.
+* **`resource`** — a URI identifying the underlying asset the concept describes; omitted for
+  abstract concepts.
+* **`tags`** — a YAML list of short categorization strings.
+* **`timestamp`** — ISO 8601 datetime of the last meaningful change.
+
+## Extensions
+
+Producers MAY add arbitrary additional keys. Consumers **SHOULD NOT reject** documents with
+unrecognized fields, and SHOULD preserve them. This is what makes OKF forward-compatible and lets
+domain tools layer their own metadata (e.g. Obsidian, Dataview) on top without breaking OKF
+consumers.
+
+## Example
+
+The frontmatter of the file you are reading:
+
+```yaml
+---
+type: Spec Section
+title: \"OKF §4.1 — Frontmatter\"
+description: The YAML metadata block on every concept — ...
+tags: [okf, spec, frontmatter]
+timestamp: 2026-07-01
+---
+```
+
+# Citations
+
+1. [OKF Specification (SPEC.md)](../references/okf_spec.md)", "links": ["concepts/concept_document", "spec/body", "spec/conformance", "references/okf_spec"], "cited_by": ["concepts/concept_document", "design/spec_evolution", "ecosystem/commonplace", "ecosystem/critiques", "implementations/okf_native_agent", "implementations/personal_work_wiki", "operations/ingest", "operations/lint", "references/okf_readme", "references/okf_spec", "references/okf_vs_rag_infographic", "spec/body", "spec/conformance", "spec/cross_linking", "spec/motivation", "spec/reserved_filenames", "spec/terminology"]}, {"id": "spec/index_files", "path": "spec/index_files.md", "type": "Spec Section", "title": "OKF §6 — Index Files", "description": "Optional index.md files enumerate a directory's contents for progressive disclosure; they contain no frontmatter and group concept links under headings.", "tags": ["okf", "spec", "index", "reserved"], "resource": "", "status": "active", "body": "# Index Files
+
+OKF (§6) defines `index.md` as an **optional** directory listing that enumerates the directory's
+contents, enabling [progressive disclosure](../concepts/progressive_disclosure.md). It is one of the
+two [reserved filenames](./reserved_filenames.md).
+
+## Rules
+
+* An `index.md` MAY appear in **any** directory.
+* It contains **no frontmatter** — with the single exception that the **root** `index.md` MAY
+  carry frontmatter to declare [`okf_version`](./versioning.md).
+* It groups [concept](../concepts/concept_document.md) links under **section headings**, each link
+  followed by the concept's short description.
+
+## Format
+
+```markdown
+# Section / Group Heading
+
+* [Title 1](relative-or-absolute-url) - short description of item 1
+* [Title 2](another-url) - short description of item 2
+```
+
+The [root index](../index.md) of this bundle and each section index (e.g.
+[concepts](../concepts/index.md), this `spec/index.md`) follow exactly this shape. Index files are
+maintained on every [ingest](../operations/ingest.md); keeping them current is what makes
+progressive-disclosure navigation reliable. Because index files are optional, consumers
+**MUST NOT** reject a bundle that lacks them.
+
+# Citations
+
+1. [OKF Specification (SPEC.md)](../references/okf_spec.md)", "links": ["concepts/progressive_disclosure", "spec/reserved_filenames", "spec/versioning", "concepts/concept_document", "operations/ingest", "references/okf_spec"], "cited_by": ["concepts/knowledge_bundle", "concepts/progressive_disclosure", "concepts/rag_vs_llm_wiki", "ecosystem/critiques", "ecosystem/openknowledge_cli", "implementations/okf_native_agent", "implementations/personal_work_wiki", "operations/ingest", "operations/query", "references/qmd", "spec/bundle_structure", "spec/conformance", "spec/reserved_filenames", "spec/versioning"]}, {"id": "spec/log_files", "path": "spec/log_files.md", "type": "Spec Section", "title": "OKF §7 — Log Files", "description": "Optional log.md files record date-grouped change history, newest first, with ISO 8601 date headings and conventional leading bold words.", "tags": ["okf", "spec", "log", "reserved"], "resource": "", "status": "active", "body": "# Log Files
+
+OKF (§7) defines `log.md` as an **optional** record of a bundle's (or directory's) change
+history. It is the second [reserved filename](./reserved_filenames.md) and, like index files,
+carries **no frontmatter**.
+
+## Rules
+
+* A `log.md` MAY appear at any level.
+* It is a flat list of **date-grouped** entries, **newest first**.
+* Date headings **MUST** use the ISO 8601 `YYYY-MM-DD` form.
+* Leading bold words such as `**Creation**`, `**Update**`, `**Deprecation**` are **conventional,
+  not required** — they make entries scannable and greppable.
+
+## Format
+
+```markdown
+# Log
+
+## 2026-07-01
+
+**Creation** — Wrote the spec section.
+**Update** — Revised the frontmatter page after re-reading §4.1.
+
+## 2026-06-30
+
+**Creation** — Bootstrapped the bundle.
+```
+
+## Relation to the LLM Wiki log
+
+In the [LLM Wiki](../concepts/llm_wiki.md) pattern the log is the append-only, chronological ledger
+of every agent action — [ingests](../operations/ingest.md), [queries](../operations/query.md) filed
+back, and [lint](../operations/lint.md) passes. Consistent entry prefixes make it parseable with
+plain unix tools (e.g. `grep \"^## \" log.md | head`). This bundle's [log](../log.md) follows the OKF
+form. The rule of thumb inherited from the pattern: **the log is append-only — never edit or
+delete existing entries.**
+
+# Citations
+
+1. [OKF Specification (SPEC.md)](../references/okf_spec.md)
+2. [Karpathy — LLM Wiki gist](../references/karpathy_llm_wiki.md)", "links": ["spec/reserved_filenames", "concepts/llm_wiki", "operations/ingest", "operations/query", "operations/lint", "references/okf_spec", "references/karpathy_llm_wiki"], "cited_by": ["concepts/knowledge_bundle", "design/skill_design", "implementations/okf_native_agent", "implementations/personal_work_wiki", "operations/ingest", "operations/lint", "operations/query", "spec/conformance", "spec/reserved_filenames"]}, {"id": "spec/motivation", "path": "spec/motivation.md", "type": "Spec Section", "title": "OKF §1 — Motivation", "description": "Why OKF standardizes on markdown + YAML frontmatter, and what it explicitly declines to do.", "tags": ["okf", "spec"], "resource": "", "status": "active", "body": "# Motivation
+
+OKF (§1) argues that knowledge should be stored in established formats that are already
+**readable, parseable, diffable, and portable** — markdown for prose, YAML for metadata, a
+directory for structure, git for history. Rather than invent a new container, OKF standardizes
+only the minimum needed to make a corpus **self-describing**: a required
+[`type`](./frontmatter.md) on every [concept](../concepts/concept_document.md) and a couple of
+[reserved filenames](./reserved_filenames.md).
+
+## Goals
+
+1. Define a **universal format** that knowledge-enrichment agents can produce.
+2. **Inform consumption agents** how to read a corpus without bespoke integration.
+3. **Facilitate exchange** of knowledge between tools, teams, and models.
+4. **Standardize the few required fields** that make a bundle self-describing.
+
+## Non-goals
+
+OKF deliberately does *not*:
+
+* Define a fixed **taxonomy** of concept types — see [Frontmatter](./frontmatter.md); `type`
+  values are producer-chosen and open.
+* Prescribe **infrastructure** — no required database, server, embedding store, or SDK.
+* **Replace domain schemas** — OKF references them (via `resource` and prose) rather than
+  subsuming them.
+
+This minimalism is what lets OKF describe knowledge bases as different as a BigQuery catalog and
+this LLM-Wiki-about-LLM-Wikis. It is also why OKF is a good fit for the
+[LLM Wiki](../concepts/llm_wiki.md) pattern, which is likewise deliberately unopinionated about
+domain structure.
+
+# Citations
+
+1. [OKF Specification (SPEC.md)](../references/okf_spec.md)", "links": ["spec/frontmatter", "concepts/concept_document", "spec/reserved_filenames", "concepts/llm_wiki", "references/okf_spec"], "cited_by": ["ecosystem/critiques", "ecosystem/kiso"]}, {"id": "spec/reserved_filenames", "path": "spec/reserved_filenames.md", "type": "Spec Section", "title": "OKF §3.1 — Reserved Filenames", "description": "index.md and log.md have defined meanings and MUST NOT be used for concept documents; every other .md file is a concept.", "tags": ["okf", "spec", "structure"], "resource": "", "status": "active", "body": "# Reserved Filenames
+
+OKF (§3.1) reserves exactly two filenames, which may appear in any directory:
+
+* **`index.md`** — a directory listing. See [Index Files](./index_files.md).
+* **`log.md`** — a change history. See [Log Files](./log_files.md).
+
+These names **MUST NOT** be used for [concept documents](../concepts/concept_document.md). Every
+other `.md` file in a bundle **is** a concept document and is therefore subject to the
+[frontmatter](./frontmatter.md) rules.
+
+The practical consequence: reserved files are *not* concepts, so they are exempt from the
+`type` requirement. In fact they carry **no frontmatter at all**, with a single exception — the
+**root `index.md`** MAY carry frontmatter solely to declare
+[`okf_version`](./versioning.md). This bundle's [root index](../index.md) does exactly that;
+all other index files (and this `log.md`) have no frontmatter.
+
+# Citations
+
+1. [OKF Specification (SPEC.md)](../references/okf_spec.md)", "links": ["spec/index_files", "spec/log_files", "concepts/concept_document", "spec/frontmatter", "spec/versioning", "references/okf_spec"], "cited_by": ["concepts/concept_document", "references/karpathy_llm_wiki", "references/okf_spec", "spec/bundle_structure", "spec/conformance", "spec/index_files", "spec/log_files", "spec/motivation", "spec/versioning"]}, {"id": "spec/terminology", "path": "spec/terminology.md", "type": "Spec Section", "title": "OKF §2 — Terminology", "description": "The core OKF vocabulary — bundle, concept, concept ID, frontmatter, body, link, citation.", "tags": ["okf", "spec", "vocabulary"], "resource": "", "status": "active", "body": "# Terminology
+
+OKF (§2) defines the following core terms.
+
+* **Knowledge Bundle** — a directory tree of markdown files that together form a corpus of
+  knowledge. See [Knowledge Bundle](../concepts/knowledge_bundle.md) and
+  [Bundle Structure](./bundle_structure.md).
+* **Concept** — a single unit of knowledge, stored as one markdown file. See
+  [Concept Document](../concepts/concept_document.md).
+* **Concept ID** — a concept's file path within the bundle with the `.md` extension removed
+  (e.g. `spec/terminology.md` → `spec/terminology`).
+* **Frontmatter** — the YAML metadata block at the top of a concept document. See
+  [Frontmatter](./frontmatter.md).
+* **Body** — the markdown content following the frontmatter. See [Body](./body.md).
+* **Link** — a standard markdown link from one concept to another, treated as a directed edge.
+  See [Cross-linking](./cross_linking.md).
+* **Citation** — a reference to an external source, listed under a `# Citations` heading. See
+  [Citations](./citations.md).
+
+# Citations
+
+1. [OKF Specification (SPEC.md)](../references/okf_spec.md)", "links": ["concepts/knowledge_bundle", "spec/bundle_structure", "concepts/concept_document", "spec/frontmatter", "spec/body", "spec/cross_linking", "spec/citations", "references/okf_spec"], "cited_by": []}, {"id": "spec/versioning", "path": "spec/versioning.md", "type": "Spec Section", "title": "OKF §11 — Versioning", "description": "OKF uses <major>.<minor> versioning; minor bumps are backward-compatible, major bumps may break; a bundle declares okf_version in its root index.md.", "tags": ["okf", "spec", "versioning"], "resource": "", "status": "active", "body": "# Versioning
+
+OKF (§11) versions the format as **`<major>.<minor>`**:
+
+* **Minor** bumps add backward-compatible features. A consumer written for `0.1` should keep
+  working against a `0.2` bundle.
+* **Major** bumps may introduce breaking changes.
+
+The current specification is **v0.1**.
+
+## Declaring a version
+
+A bundle MAY declare the format version via an **`okf_version`** key in the **root
+[`index.md`](./index_files.md)** frontmatter. This is the *only* place frontmatter is
+permitted in an index file (see [Reserved Filenames](./reserved_filenames.md)). This bundle's
+[root index](../index.md) declares:
+
+```yaml
+---
+okf_version: \"0.1\"
+---
+```
+
+The declaration is optional; a bundle without it is still a bundle, and consumers infer a
+best-effort version.
+
+## Relationship to other formats (§10)
+
+The spec also notes (§10) that OKF resembles [LLM Wiki](../concepts/llm_wiki.md) repositories, tools
+like Obsidian and Notion, and \"metadata-as-code\" approaches — but differs by being an actual
+**specification** with a conformance bar, rather than a convention or a product. That is the whole
+reason to adopt it here even while the spec is young: a written spec is portable in a way that a
+per-project convention is not.
+
+# Citations
+
+1. [OKF Specification (SPEC.md)](../references/okf_spec.md)", "links": ["spec/index_files", "spec/reserved_filenames", "concepts/llm_wiki", "references/okf_spec"], "cited_by": ["concepts/knowledge_bundle", "spec/index_files", "spec/reserved_filenames"]}], "types": ["Concept", "Implementation", "Operation", "Reference", "Spec Section"], "edges": [{"source": "concepts/compounding_artifact", "target": "concepts/llm_wiki"}, {"source": "concepts/compounding_artifact", "target": "operations/ingest"}, {"source": "concepts/compounding_artifact", "target": "operations/query"}, {"source": "concepts/compounding_artifact", "target": "concepts/rag_vs_llm_wiki"}, {"source": "concepts/compounding_artifact", "target": "operations/lint"}, {"source": "concepts/compounding_artifact", "target": "references/karpathy_llm_wiki"}, {"source": "concepts/concept_document", "target": "concepts/knowledge_bundle"}, {"source": "concepts/concept_document", "target": "spec/frontmatter"}, {"source": "concepts/concept_document", "target": "spec/body"}, {"source": "concepts/concept_document", "target": "spec/reserved_filenames"}, {"source": "concepts/concept_document", "target": "spec/cross_linking"}, {"source": "concepts/concept_document", "target": "references/okf_spec"}, {"source": "concepts/knowledge_bundle", "target": "concepts/concept_document"}, {"source": "concepts/knowledge_bundle", "target": "spec/index_files"}, {"source": "concepts/knowledge_bundle", "target": "spec/log_files"}, {"source": "concepts/knowledge_bundle", "target": "concepts/three_layer_architecture"}, {"source": "concepts/knowledge_bundle", "target": "spec/bundle_structure"}, {"source": "concepts/knowledge_bundle", "target": "spec/versioning"}, {"source": "concepts/knowledge_bundle", "target": "references/okf_spec"}, {"source": "concepts/llm_wiki", "target": "references/karpathy_llm_wiki"}, {"source": "concepts/llm_wiki", "target": "concepts/rag_vs_llm_wiki"}, {"source": "concepts/llm_wiki", "target": "concepts/compounding_artifact"}, {"source": "concepts/llm_wiki", "target": "concepts/three_layer_architecture"}, {"source": "concepts/llm_wiki", "target": "concepts/knowledge_bundle"}, {"source": "concepts/llm_wiki", "target": "operations/ingest"}, {"source": "concepts/llm_wiki", "target": "operations/query"}, {"source": "concepts/llm_wiki", "target": "operations/lint"}, {"source": "concepts/llm_wiki", "target": "concepts/memex"}, {"source": "concepts/memex", "target": "concepts/llm_wiki"}, {"source": "concepts/memex", "target": "references/karpathy_llm_wiki"}, {"source": "concepts/progressive_disclosure", "target": "concepts/knowledge_bundle"}, {"source": "concepts/progressive_disclosure", "target": "spec/index_files"}, {"source": "concepts/progressive_disclosure", "target": "operations/query"}, {"source": "concepts/progressive_disclosure", "target": "spec/cross_linking"}, {"source": "concepts/progressive_disclosure", "target": "references/qmd"}, {"source": "concepts/progressive_disclosure", "target": "operations/ingest"}, {"source": "concepts/progressive_disclosure", "target": "references/okf_readme"}, {"source": "concepts/progressive_disclosure", "target": "references/karpathy_llm_wiki"}, {"source": "concepts/rag_vs_llm_wiki", "target": "concepts/llm_wiki"}, {"source": "concepts/rag_vs_llm_wiki", "target": "concepts/compounding_artifact"}, {"source": "concepts/rag_vs_llm_wiki", "target": "spec/index_files"}, {"source": "concepts/rag_vs_llm_wiki", "target": "operations/ingest"}, {"source": "concepts/rag_vs_llm_wiki", "target": "concepts/progressive_disclosure"}, {"source": "concepts/rag_vs_llm_wiki", "target": "references/qmd"}, {"source": "concepts/rag_vs_llm_wiki", "target": "references/okf_vs_rag_infographic"}, {"source": "concepts/rag_vs_llm_wiki", "target": "references/karpathy_llm_wiki"}, {"source": "concepts/three_layer_architecture", "target": "concepts/llm_wiki"}, {"source": "concepts/three_layer_architecture", "target": "operations/ingest"}, {"source": "concepts/three_layer_architecture", "target": "concepts/knowledge_bundle"}, {"source": "concepts/three_layer_architecture", "target": "concepts/concept_document"}, {"source": "concepts/three_layer_architecture", "target": "references/karpathy_llm_wiki"}, {"source": "design/sample_bundle_lessons", "target": "references/okf_readme"}, {"source": "design/sample_bundle_lessons", "target": "concepts/llm_wiki"}, {"source": "design/sample_bundle_lessons", "target": "implementations/personal_work_wiki"}, {"source": "design/sample_bundle_lessons", "target": "implementations/okf_native_agent"}, {"source": "design/sample_bundle_lessons", "target": "spec/cross_linking"}, {"source": "design/skill_design", "target": "ecosystem/competitor_comparison"}, {"source": "design/skill_design", "target": "references/okf_spec"}, {"source": "design/skill_design", "target": "concepts/progressive_disclosure"}, {"source": "design/skill_design", "target": "operations/ingest"}, {"source": "design/skill_design", "target": "operations/query"}, {"source": "design/skill_design", "target": "operations/lint"}, {"source": "design/skill_design", "target": "spec/log_files"}, {"source": "design/skill_design", "target": "ecosystem/openwiki_langchain"}, {"source": "design/skill_design", "target": "spec/conformance"}, {"source": "design/skill_design", "target": "concepts/three_layer_architecture"}, {"source": "design/skill_design", "target": "implementations/okf_native_agent"}, {"source": "design/skill_design", "target": "ecosystem/critiques"}, {"source": "design/skill_design", "target": "design/spec_evolution"}, {"source": "design/spec_evolution", "target": "spec/cross_linking"}, {"source": "design/spec_evolution", "target": "design/sample_bundle_lessons"}, {"source": "design/spec_evolution", "target": "spec/frontmatter"}, {"source": "design/spec_evolution", "target": "spec/conformance"}, {"source": "design/spec_evolution", "target": "ecosystem/competitor_comparison"}, {"source": "design/spec_evolution", "target": "ecosystem/critiques"}, {"source": "design/spec_evolution", "target": "operations/ingest"}, {"source": "design/spec_evolution", "target": "concepts/three_layer_architecture"}, {"source": "design/spec_evolution", "target": "spec/citations"}, {"source": "design/spec_evolution", "target": "references/okf_vs_rag_infographic"}, {"source": "ecosystem/commonplace", "target": "ecosystem/critiques"}, {"source": "ecosystem/commonplace", "target": "spec/frontmatter"}, {"source": "ecosystem/commonplace", "target": "spec/cross_linking"}, {"source": "ecosystem/commonplace", "target": "ecosystem/landscape"}, {"source": "ecosystem/commonplace", "target": "operations/ingest"}, {"source": "ecosystem/commonplace", "target": "implementations/okf_native_agent"}, {"source": "ecosystem/competitor_comparison", "target": "ecosystem/okf_skills_scaccogatto"}, {"source": "ecosystem/competitor_comparison", "target": "ecosystem/openknowledge_cli"}, {"source": "ecosystem/competitor_comparison", "target": "ecosystem/kiso"}, {"source": "ecosystem/competitor_comparison", "target": "spec/conformance"}, {"source": "ecosystem/competitor_comparison", "target": "operations/lint"}, {"source": "ecosystem/competitor_comparison", "target": "operations/ingest"}, {"source": "ecosystem/competitor_comparison", "target": "implementations/personal_work_wiki"}, {"source": "ecosystem/competitor_comparison", "target": "implementations/okf_native_agent"}, {"source": "ecosystem/competitor_comparison", "target": "ecosystem/critiques"}, {"source": "ecosystem/competitor_comparison", "target": "concepts/three_layer_architecture"}, {"source": "ecosystem/competitor_comparison", "target": "operations/query"}, {"source": "ecosystem/critiques", "target": "references/karpathy_llm_wiki"}, {"source": "ecosystem/critiques", "target": "implementations/okf_native_agent"}, {"source": "ecosystem/critiques", "target": "spec/citations"}, {"source": "ecosystem/critiques", "target": "operations/ingest"}, {"source": "ecosystem/critiques", "target": "operations/lint"}, {"source": "ecosystem/critiques", "target": "spec/index_files"}, {"source": "ecosystem/critiques", "target": "concepts/progressive_disclosure"}, {"source": "ecosystem/critiques", "target": "references/qmd"}, {"source": "ecosystem/critiques", "target": "operations/query"}, {"source": "ecosystem/critiques", "target": "spec/motivation"}, {"source": "ecosystem/critiques", "target": "spec/frontmatter"}, {"source": "ecosystem/critiques", "target": "concepts/memex"}, {"source": "ecosystem/critiques", "target": "concepts/llm_wiki"}, {"source": "ecosystem/karpathy_llm_wiki_astro", "target": "operations/lint"}, {"source": "ecosystem/karpathy_llm_wiki_astro", "target": "ecosystem/critiques"}, {"source": "ecosystem/karpathy_llm_wiki_astro", "target": "ecosystem/landscape"}, {"source": "ecosystem/karpathy_llm_wiki_astro", "target": "ecosystem/wiki_skills"}, {"source": "ecosystem/kiso", "target": "concepts/knowledge_bundle"}, {"source": "ecosystem/kiso", "target": "design/sample_bundle_lessons"}, {"source": "ecosystem/kiso", "target": "spec/motivation"}, {"source": "ecosystem/kiso", "target": "spec/conformance"}, {"source": "ecosystem/landscape", "target": "references/karpathy_llm_wiki"}, {"source": "ecosystem/landscape", "target": "ecosystem/karpathy_llm_wiki_astro"}, {"source": "ecosystem/landscape", "target": "ecosystem/wiki_skills"}, {"source": "ecosystem/landscape", "target": "ecosystem/synthadoc"}, {"source": "ecosystem/landscape", "target": "ecosystem/omegawiki"}, {"source": "ecosystem/landscape", "target": "ecosystem/critiques"}, {"source": "ecosystem/landscape", "target": "ecosystem/openwiki_langchain"}, {"source": "ecosystem/landscape", "target": "design/skill_design"}, {"source": "ecosystem/landscape", "target": "ecosystem/okf_skills_scaccogatto"}, {"source": "ecosystem/landscape", "target": "ecosystem/openknowledge_cli"}, {"source": "ecosystem/landscape", "target": "ecosystem/kiso"}, {"source": "ecosystem/landscape", "target": "ecosystem/okf_harness"}, {"source": "ecosystem/landscape", "target": "implementations/okf_native_agent"}, {"source": "ecosystem/landscape", "target": "operations/ingest"}, {"source": "ecosystem/okf_harness", "target": "ecosystem/landscape"}, {"source": "ecosystem/okf_harness", "target": "operations/ingest"}, {"source": "ecosystem/okf_harness", "target": "operations/query"}, {"source": "ecosystem/okf_harness", "target": "implementations/okf_native_agent"}, {"source": "ecosystem/okf_skills_scaccogatto", "target": "ecosystem/landscape"}, {"source": "ecosystem/okf_skills_scaccogatto", "target": "spec/conformance"}, {"source": "ecosystem/okf_skills_scaccogatto", "target": "references/okf_readme"}, {"source": "ecosystem/okf_skills_scaccogatto", "target": "operations/lint"}, {"source": "ecosystem/okf_skills_scaccogatto", "target": "concepts/three_layer_architecture"}, {"source": "ecosystem/okf_skills_scaccogatto", "target": "ecosystem/critiques"}, {"source": "ecosystem/okf_skills_scaccogatto", "target": "operations/ingest"}, {"source": "ecosystem/omegawiki", "target": "references/karpathy_llm_wiki"}, {"source": "ecosystem/omegawiki", "target": "concepts/compounding_artifact"}, {"source": "ecosystem/omegawiki", "target": "operations/ingest"}, {"source": "ecosystem/omegawiki", "target": "operations/query"}, {"source": "ecosystem/openknowledge_cli", "target": "ecosystem/okf_skills_scaccogatto"}, {"source": "ecosystem/openknowledge_cli", "target": "concepts/knowledge_bundle"}, {"source": "ecosystem/openknowledge_cli", "target": "spec/conformance"}, {"source": "ecosystem/openknowledge_cli", "target": "spec/index_files"}, {"source": "ecosystem/openknowledge_cli", "target": "operations/ingest"}, {"source": "ecosystem/openknowledge_cli", "target": "implementations/okf_native_agent"}, {"source": "ecosystem/openknowledge_cli", "target": "ecosystem/critiques"}, {"source": "ecosystem/openknowledge_cli", "target": "concepts/three_layer_architecture"}, {"source": "ecosystem/openknowledge_cli", "target": "ecosystem/kiso"}, {"source": "ecosystem/openwiki_langchain", "target": "implementations/personal_work_wiki"}, {"source": "ecosystem/openwiki_langchain", "target": "ecosystem/okf_skills_scaccogatto"}, {"source": "ecosystem/openwiki_langchain", "target": "ecosystem/openknowledge_cli"}, {"source": "ecosystem/openwiki_langchain", "target": "ecosystem/kiso"}, {"source": "ecosystem/openwiki_langchain", "target": "operations/ingest"}, {"source": "ecosystem/openwiki_langchain", "target": "concepts/llm_wiki"}, {"source": "ecosystem/openwiki_langchain", "target": "ecosystem/critiques"}, {"source": "ecosystem/synthadoc", "target": "ecosystem/critiques"}, {"source": "ecosystem/synthadoc", "target": "operations/lint"}, {"source": "ecosystem/synthadoc", "target": "operations/ingest"}, {"source": "ecosystem/wiki_skills", "target": "references/karpathy_llm_wiki"}, {"source": "ecosystem/wiki_skills", "target": "ecosystem/omegawiki"}, {"source": "ecosystem/wiki_skills", "target": "ecosystem/karpathy_llm_wiki_astro"}, {"source": "ecosystem/wiki_skills", "target": "concepts/three_layer_architecture"}, {"source": "ecosystem/wiki_skills", "target": "ecosystem/critiques"}, {"source": "implementations/okf_native_agent", "target": "concepts/knowledge_bundle"}, {"source": "implementations/okf_native_agent", "target": "implementations/personal_work_wiki"}, {"source": "implementations/okf_native_agent", "target": "spec/index_files"}, {"source": "implementations/okf_native_agent", "target": "spec/log_files"}, {"source": "implementations/okf_native_agent", "target": "spec/frontmatter"}, {"source": "implementations/okf_native_agent", "target": "operations/query"}, {"source": "implementations/okf_native_agent", "target": "operations/ingest"}, {"source": "implementations/okf_native_agent", "target": "operations/lint"}, {"source": "implementations/personal_work_wiki", "target": "concepts/llm_wiki"}, {"source": "implementations/personal_work_wiki", "target": "concepts/three_layer_architecture"}, {"source": "implementations/personal_work_wiki", "target": "spec/cross_linking"}, {"source": "implementations/personal_work_wiki", "target": "spec/index_files"}, {"source": "implementations/personal_work_wiki", "target": "spec/log_files"}, {"source": "implementations/personal_work_wiki", "target": "spec/frontmatter"}, {"source": "implementations/personal_work_wiki", "target": "operations/ingest"}, {"source": "implementations/personal_work_wiki", "target": "operations/query"}, {"source": "implementations/personal_work_wiki", "target": "operations/lint"}, {"source": "operations/ingest", "target": "concepts/llm_wiki"}, {"source": "operations/ingest", "target": "concepts/compounding_artifact"}, {"source": "operations/ingest", "target": "implementations/personal_work_wiki"}, {"source": "operations/ingest", "target": "concepts/concept_document"}, {"source": "operations/ingest", "target": "spec/frontmatter"}, {"source": "operations/ingest", "target": "spec/cross_linking"}, {"source": "operations/ingest", "target": "spec/index_files"}, {"source": "operations/ingest", "target": "concepts/progressive_disclosure"}, {"source": "operations/ingest", "target": "spec/log_files"}, {"source": "operations/ingest", "target": "concepts/three_layer_architecture"}, {"source": "operations/ingest", "target": "references/karpathy_llm_wiki"}, {"source": "operations/lint", "target": "concepts/compounding_artifact"}, {"source": "operations/lint", "target": "implementations/personal_work_wiki"}, {"source": "operations/lint", "target": "concepts/concept_document"}, {"source": "operations/lint", "target": "spec/frontmatter"}, {"source": "operations/lint", "target": "spec/conformance"}, {"source": "operations/lint", "target": "spec/cross_linking"}, {"source": "operations/lint", "target": "spec/log_files"}, {"source": "operations/lint", "target": "operations/ingest"}, {"source": "operations/lint", "target": "operations/query"}, {"source": "operations/lint", "target": "references/karpathy_llm_wiki"}, {"source": "operations/query", "target": "concepts/knowledge_bundle"}, {"source": "operations/query", "target": "operations/ingest"}, {"source": "operations/query", "target": "concepts/rag_vs_llm_wiki"}, {"source": "operations/query", "target": "concepts/progressive_disclosure"}, {"source": "operations/query", "target": "spec/index_files"}, {"source": "operations/query", "target": "references/qmd"}, {"source": "operations/query", "target": "spec/cross_linking"}, {"source": "operations/query", "target": "spec/log_files"}, {"source": "operations/query", "target": "concepts/compounding_artifact"}, {"source": "operations/query", "target": "references/karpathy_llm_wiki"}, {"source": "operations/query", "target": "implementations/personal_work_wiki"}, {"source": "references/karpathy_llm_wiki", "target": "concepts/llm_wiki"}, {"source": "references/karpathy_llm_wiki", "target": "concepts/rag_vs_llm_wiki"}, {"source": "references/karpathy_llm_wiki", "target": "concepts/compounding_artifact"}, {"source": "references/karpathy_llm_wiki", "target": "concepts/three_layer_architecture"}, {"source": "references/karpathy_llm_wiki", "target": "operations/ingest"}, {"source": "references/karpathy_llm_wiki", "target": "operations/query"}, {"source": "references/karpathy_llm_wiki", "target": "operations/lint"}, {"source": "references/karpathy_llm_wiki", "target": "spec/reserved_filenames"}, {"source": "references/karpathy_llm_wiki", "target": "references/qmd"}, {"source": "references/karpathy_llm_wiki", "target": "concepts/memex"}, {"source": "references/okf_readme", "target": "references/okf_spec"}, {"source": "references/okf_readme", "target": "concepts/knowledge_bundle"}, {"source": "references/okf_readme", "target": "spec/frontmatter"}, {"source": "references/okf_readme", "target": "spec/cross_linking"}, {"source": "references/okf_readme", "target": "operations/ingest"}, {"source": "references/okf_readme", "target": "operations/query"}, {"source": "references/okf_readme", "target": "operations/lint"}, {"source": "references/okf_spec", "target": "spec/frontmatter"}, {"source": "references/okf_spec", "target": "spec/reserved_filenames"}, {"source": "references/okf_spec", "target": "spec/cross_linking"}, {"source": "references/okf_spec", "target": "spec/conformance"}, {"source": "references/okf_spec", "target": "references/okf_readme"}, {"source": "references/okf_spec", "target": "concepts/three_layer_architecture"}, {"source": "references/okf_vs_rag_infographic", "target": "concepts/rag_vs_llm_wiki"}, {"source": "references/okf_vs_rag_infographic", "target": "spec/citations"}, {"source": "references/okf_vs_rag_infographic", "target": "spec/frontmatter"}, {"source": "references/okf_vs_rag_infographic", "target": "spec/cross_linking"}, {"source": "references/okf_vs_rag_infographic", "target": "concepts/progressive_disclosure"}, {"source": "references/okf_vs_rag_infographic", "target": "concepts/compounding_artifact"}, {"source": "references/okf_vs_rag_infographic", "target": "design/sample_bundle_lessons"}, {"source": "references/okf_vs_rag_infographic", "target": "ecosystem/critiques"}, {"source": "references/qmd", "target": "references/karpathy_llm_wiki"}, {"source": "references/qmd", "target": "concepts/knowledge_bundle"}, {"source": "references/qmd", "target": "spec/index_files"}, {"source": "references/qmd", "target": "concepts/progressive_disclosure"}, {"source": "references/qmd", "target": "operations/query"}, {"source": "references/qmd", "target": "concepts/concept_document"}, {"source": "references/qmd", "target": "concepts/rag_vs_llm_wiki"}, {"source": "spec/body", "target": "spec/frontmatter"}, {"source": "spec/body", "target": "spec/citations"}, {"source": "spec/body", "target": "references/okf_spec"}, {"source": "spec/bundle_structure", "target": "concepts/knowledge_bundle"}, {"source": "spec/bundle_structure", "target": "spec/index_files"}, {"source": "spec/bundle_structure", "target": "concepts/progressive_disclosure"}, {"source": "spec/bundle_structure", "target": "spec/cross_linking"}, {"source": "spec/bundle_structure", "target": "spec/reserved_filenames"}, {"source": "spec/bundle_structure", "target": "references/okf_spec"}, {"source": "spec/citations", "target": "concepts/concept_document"}, {"source": "spec/citations", "target": "spec/cross_linking"}, {"source": "spec/citations", "target": "references/okf_spec"}, {"source": "spec/citations", "target": "spec/body"}, {"source": "spec/citations", "target": "references/okf_vs_rag_infographic"}, {"source": "spec/conformance", "target": "spec/frontmatter"}, {"source": "spec/conformance", "target": "spec/reserved_filenames"}, {"source": "spec/conformance", "target": "spec/index_files"}, {"source": "spec/conformance", "target": "spec/log_files"}, {"source": "spec/conformance", "target": "spec/cross_linking"}, {"source": "spec/conformance", "target": "operations/lint"}, {"source": "spec/conformance", "target": "references/okf_spec"}, {"source": "spec/cross_linking", "target": "concepts/concept_document"}, {"source": "spec/cross_linking", "target": "spec/frontmatter"}, {"source": "spec/cross_linking", "target": "concepts/llm_wiki"}, {"source": "spec/cross_linking", "target": "operations/lint"}, {"source": "spec/cross_linking", "target": "design/sample_bundle_lessons"}, {"source": "spec/cross_linking", "target": "design/spec_evolution"}, {"source": "spec/cross_linking", "target": "references/okf_spec"}, {"source": "spec/frontmatter", "target": "concepts/concept_document"}, {"source": "spec/frontmatter", "target": "spec/body"}, {"source": "spec/frontmatter", "target": "spec/conformance"}, {"source": "spec/frontmatter", "target": "references/okf_spec"}, {"source": "spec/index_files", "target": "concepts/progressive_disclosure"}, {"source": "spec/index_files", "target": "spec/reserved_filenames"}, {"source": "spec/index_files", "target": "spec/versioning"}, {"source": "spec/index_files", "target": "concepts/concept_document"}, {"source": "spec/index_files", "target": "operations/ingest"}, {"source": "spec/index_files", "target": "references/okf_spec"}, {"source": "spec/log_files", "target": "spec/reserved_filenames"}, {"source": "spec/log_files", "target": "concepts/llm_wiki"}, {"source": "spec/log_files", "target": "operations/ingest"}, {"source": "spec/log_files", "target": "operations/query"}, {"source": "spec/log_files", "target": "operations/lint"}, {"source": "spec/log_files", "target": "references/okf_spec"}, {"source": "spec/log_files", "target": "references/karpathy_llm_wiki"}, {"source": "spec/motivation", "target": "spec/frontmatter"}, {"source": "spec/motivation", "target": "concepts/concept_document"}, {"source": "spec/motivation", "target": "spec/reserved_filenames"}, {"source": "spec/motivation", "target": "concepts/llm_wiki"}, {"source": "spec/motivation", "target": "references/okf_spec"}, {"source": "spec/reserved_filenames", "target": "spec/index_files"}, {"source": "spec/reserved_filenames", "target": "spec/log_files"}, {"source": "spec/reserved_filenames", "target": "concepts/concept_document"}, {"source": "spec/reserved_filenames", "target": "spec/frontmatter"}, {"source": "spec/reserved_filenames", "target": "spec/versioning"}, {"source": "spec/reserved_filenames", "target": "references/okf_spec"}, {"source": "spec/terminology", "target": "concepts/knowledge_bundle"}, {"source": "spec/terminology", "target": "spec/bundle_structure"}, {"source": "spec/terminology", "target": "concepts/concept_document"}, {"source": "spec/terminology", "target": "spec/frontmatter"}, {"source": "spec/terminology", "target": "spec/body"}, {"source": "spec/terminology", "target": "spec/cross_linking"}, {"source": "spec/terminology", "target": "spec/citations"}, {"source": "spec/terminology", "target": "references/okf_spec"}, {"source": "spec/versioning", "target": "spec/index_files"}, {"source": "spec/versioning", "target": "spec/reserved_filenames"}, {"source": "spec/versioning", "target": "concepts/llm_wiki"}, {"source": "spec/versioning", "target": "references/okf_spec"}]}, TCOLORS={"Concept": "#6E56CF", "Implementation": "#2EA043", "Operation": "#D97757", "Reference": "#3B82F6", "Spec Section": "#EAB308"};
+const byId=Object.fromEntries(G.nodes.map(n=>[n.id,n]));
+const els=[...G.nodes.map(n=>({data:{id:n.id,label:n.title,type:n.type}})),
+           ...G.edges.map(e=>({data:{source:e.source,target:e.target}}))];
+const cy=cytoscape({container:document.getElementById('graph'),elements:els,
+  style:[{selector:'node',style:{'background-color':e=>TCOLORS[e.data('type')]||'#888','label':'data(label)','font-size':8,'color':'#c9d1d9','text-outline-color':'#0d1117','text-outline-width':2,'width':16,'height':16}},
+    {selector:'edge',style:{'width':1,'line-color':'#30363d','target-arrow-color':'#30363d','target-arrow-shape':'triangle','curve-style':'bezier','arrow-scale':.7,'opacity':.6}},
+    {selector:'node:selected',style:{'width':26,'height':26,'border-width':2,'border-color':'#fff'}},
+    {selector:'.dim',style:{'opacity':.12}}],
+  layout:{name:'cose',animate:false}});
+function runLayout(n){cy.layout({name:n,animate:false}).run()}
+document.getElementById('layout').onchange=e=>runLayout(e.target.value);
+const tf=document.getElementById('typeFilter');
+G.types.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;tf.appendChild(o)});
+const legend=document.getElementById('legend');
+G.types.forEach(t=>{const s=document.createElement('span');s.innerHTML=`<i style="background:${TCOLORS[t]}"></i>${t}`;legend.appendChild(s)});
+function select(id){const n=byId[id];if(!n)return;const el=cy.$id(id);cy.$(':selected').unselect();el.select();cy.animate({center:{eles:el},zoom:1.2},{duration:250});render(n)}
+function render(n){
+  const d=document.getElementById('detail');
+  const res=n.resource?`<a href="${n.resource}" target="_blank" rel="noopener">${n.resource}</a>`:'';
+  const tags=(n.tags||[]).filter(Boolean).map(t=>`<span class="tag">${t}</span>`).join('');
+  const status=n.status&&n.status!=='active'?` · <b style="color:#eab308">${n.status}</b>`:'';
+  const bl=(n.cited_by||[]).map(id=>`<a data-nav="${id}">${(byId[id]||{}).title||id}</a>`).join('')||'<span class="hint">none</span>';
+  let body=marked.parse(n.body||'');
+  d.innerHTML=`<h1>${n.title}</h1><div class="meta">${n.type}${status} · <code>${n.id}</code></div>
+    ${n.description?`<div>${n.description}</div>`:''}${tags?`<div style="margin-top:8px">${tags}</div>`:''}
+    ${res?`<h3 class="sec">Resource</h3>${res}`:''}
+    <h3 class="sec">Cited by (${(n.cited_by||[]).length})</h3><div class="backlinks">${bl}</div>
+    <h3 class="sec">Body</h3><div class="body">${body}</div>`;
+  d.querySelectorAll('.body a').forEach(a=>{const href=a.getAttribute('href')||'';
+    if(/^https?:/.test(href))return;let id=href.replace(/[#?].*$/,'').replace(/\.md$/,'');
+    const parts=(n.id.split('/').slice(0,-1));href.split('/').forEach(p=>{if(p==='..')parts.pop();else if(p!=='.'&&p!=='')parts.push(p)});
+    let cand=parts.join('/').replace(/\.md$/,'');if(byId[cand]){a.dataset.nav=cand;a.removeAttribute('href')}else if(byId[id]){a.dataset.nav=id;a.removeAttribute('href')}});
+  d.querySelectorAll('[data-nav]').forEach(a=>a.onclick=ev=>{ev.preventDefault();select(a.dataset.nav)});
+}
+cy.on('tap','node',e=>render(byId[e.target.id()]));
+document.getElementById('search').addEventListener('input',e=>{const q=e.target.value.toLowerCase().trim();
+  cy.nodes().forEach(nd=>{const n=byId[nd.id()];const hit=!q||n.title.toLowerCase().includes(q)||n.id.toLowerCase().includes(q)||(n.tags||[]).join(' ').toLowerCase().includes(q);nd.toggleClass('dim',!hit)})});
+tf.addEventListener('change',e=>{const t=e.target.value;cy.nodes().forEach(nd=>nd.toggleClass('dim',t&&byId[nd.id()].type!==t))});
+</script></body></html>
