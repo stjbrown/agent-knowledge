@@ -103,4 +103,4 @@ knowledge/            # this project's own OKF bundle (self-documenting) + viz.h
 ## License
 
 [MIT](./LICENSE). The vendored OKF specification (`skills/kb/reference/SPEC.md`) is from
-GoogleCloudPlatform/knowledge-catalog under Apache-2.0; see the LICENSE file.
+GoogleCloudPlatform/knowledge-catalog under Apache-2.0; see [NOTICE](./NOTICE).

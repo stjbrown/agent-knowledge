@@ -1,0 +1,17 @@
+agent-knowledge
+Copyright (c) 2026 stjbrown
+
+This project is licensed under the MIT License (see LICENSE).
+
+------------------------------------------------------------------------
+Third-party material
+------------------------------------------------------------------------
+
+skills/kb/reference/SPEC.md is a verbatim copy of the Open Knowledge Format
+(OKF) v0.1 specification from:
+
+    https://github.com/GoogleCloudPlatform/knowledge-catalog  (okf/SPEC.md)
+
+That file is licensed under the Apache License, Version 2.0, and is included
+and used under those terms. All other files in this repository are MIT-licensed
+as described in LICENSE.
