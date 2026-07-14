@@ -1,23 +1,68 @@
 # agent-knowledge
 
-**Build and maintain a portable knowledge base that your coding agent actually keeps up to date.**
+**Give your coding agent a knowledge base that gets better over time.**
 
-`agent-knowledge` is a family of agent skills (`kb-*`) for creating and maintaining a **knowledge
-bundle** — a directory of markdown files with YAML frontmatter in the
-[Open Knowledge Format (OKF)](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf).
-Knowledge is **compiled once and kept current**, not re-derived from raw sources on every question.
-It's plain markdown + git: readable without tooling, diffable in review, portable across any agent.
+`agent-knowledge` turns project documents, decisions, notes, and conversations into a portable
+Markdown wiki that your agent maintains for you. Ask a question and get a cited answer. Add a source
+and the agent integrates it with what the project already knows. Run a health check and it finds
+stale claims, contradictions, and orphaned pages before the wiki quietly rots.
 
-Based on Andrej Karpathy's [LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)
-pattern, made conformant to OKF and shipped as skills you can drop into any project.
+Everything stays in your repository as plain Markdown + Git: readable without special tooling,
+diffable in code review, and portable across agents.
+
+## Install
+
+Via [skills.sh](https://skills.sh) for Claude Code, Cursor, Codex, and 20+ other agents:
+
+```bash
+npx skills@latest add stjbrown/agent-knowledge
+```
+
+Or install it as a Claude Code plugin:
+
+```text
+/plugin marketplace add stjbrown/agent-knowledge
+/plugin install agent-knowledge
+```
+
+## See it work
+
+Start a knowledge base in any project:
+
+```text
+/kb-init
+```
+
+Then use ordinary prompts:
+
+```text
+Ingest this architecture decision: we chose Postgres because...
+
+What do we know about authentication, and which sources support it?
+
+What conflicts with our current deployment strategy?
+```
+
+The agent extracts durable knowledge, connects it to existing concepts, answers with citations, and
+files valuable new conclusions back into the bundle. Two explicit commands handle maintenance:
+
+```text
+/kb-lint       # find broken links, stale claims, contradictions, and gaps
+/kb-visualize  # explore the bundle as an interactive graph
+```
+
+The [`knowledge/`](./knowledge/) directory is a complete working example. It documents this project
+using the same format and skills the project provides.
 
 ## Why this exists
 
-Most agent "memory" is either RAG (the model re-reads your raw docs and re-derives the answer every
-single query — nothing accumulates) or a pile of notes that goes stale because keeping it current is
-nobody's job. The tedious part of a knowledge base isn't the reading or the thinking — it's the
-**bookkeeping**: updating cross-references, flagging contradictions, keeping summaries current. That
-is exactly what an agent is good at and never gets bored doing.
+Most agent "memory" is either retrieval over raw documents or a pile of notes that nobody maintains.
+The first repeatedly re-derives answers; the second gradually becomes untrustworthy. Neither makes
+knowledge stewardship an explicit job.
+
+The hard part of a useful knowledge base is the bookkeeping: integrating new information, updating
+cross-references, preserving provenance, flagging contradictions, and keeping summaries current.
+That is exactly the work an agent can perform consistently.
 
 `agent-knowledge` makes the agent a disciplined **wiki maintainer**:
 
@@ -25,35 +70,17 @@ is exactly what an agent is good at and never gets bored doing.
 - **Query** the bundle → it navigates by links, answers with citations, and files good answers back.
 - **Lint** it → it catches drift (contradictions, stale claims, orphans) before the base rots.
 
-Two things set it apart from other agent-wiki tools: it targets a **real, specified format (OKF)** so
-your knowledge is portable and never locked in, and it applies an opinionated **trust model** —
-append-only on meaning, supersede-with-provenance, never a silent rewrite — so the base stays
-trustworthy as it grows.
+Two design choices keep the result portable and trustworthy:
 
-## Install
+- **A real, open format.** Bundles follow Google's
+  [Open Knowledge Format (OKF)](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf)
+  rather than a tool-specific database or hidden memory store.
+- **An explicit trust model.** Meaning is append-only: the agent supersedes claims with provenance
+  instead of silently rewriting history.
 
-Via [skills.sh](https://skills.sh) (works with Claude Code, Cursor, Codex, and 20+ agents):
-
-```bash
-npx skills@latest add stjbrown/agent-knowledge
-```
-
-Or as a Claude Code plugin:
-
-```bash
-/plugin marketplace add stjbrown/agent-knowledge
-/plugin install agent-knowledge
-```
-
-## Quickstart
-
-```
-1. /kb-init          → scaffold a knowledge/ bundle, tailored to your domain
-2. "ingest this…"    → drop a note, transcript, PDF, or URL; the agent files it
-3. "what do we know about X?"  → ask; the agent answers from the bundle, with citations
-4. /kb-lint          → periodically health-check the bundle
-5. /kb-visualize     → see it as an interactive graph
-```
+The workflow is based on Andrej Karpathy's
+[LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) pattern, made conformant
+to OKF and packaged as skills you can drop into any project.
 
 ## The skills
 
