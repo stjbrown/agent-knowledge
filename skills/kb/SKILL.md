@@ -1,10 +1,10 @@
 ---
 name: kb
 description: >-
-  Bundle — portable OKF knowledge base (markdown + frontmatter). Use when the user wants to
-  start a wiki, ingest a source, query the bundle, lint or visualize it; or when the repo has a
-  knowledge/ bundle that should inform the task. Other kb-* skills reach here for SPEC, glossary,
-  and trust model.
+  Portable OKF knowledge bundle for coding-agent memory and LLM wikis. Use when the user wants to
+  start a wiki, ingest a source, query project knowledge with citations, lint for drift, or
+  visualize connections; whenever a repo has a knowledge/ bundle that should inform the task; and
+  when another kb-* skill needs the shared spec, glossary, templates, or trust model.
 ---
 
 # kb — bundles
