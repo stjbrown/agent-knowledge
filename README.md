@@ -51,6 +51,8 @@ files valuable new conclusions back into the bundle. Two explicit commands handl
 /kb-visualize  # explore the bundle as an interactive graph
 ```
 
+![Interactive knowledge graph showing concepts, implementations, operations, references, and OKF spec sections](./assets/knowledge-graph.png)
+
 The [`knowledge/`](./knowledge/) directory is a complete working example. It documents this project
 using the same format and skills the project provides.
 
