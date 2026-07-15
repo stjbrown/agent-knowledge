@@ -1,10 +1,11 @@
 ---
 name: kb
 description: >-
-  Bundle — portable OKF knowledge base (markdown + frontmatter). Use when the user wants to
-  start a wiki, ingest a source, query the bundle, lint or visualize it; or when the repo has a
-  knowledge/ bundle that should inform the task. Other kb-* skills reach here for SPEC, glossary,
-  and trust model.
+  Create and maintain a portable, Git-backed knowledge base for coding agents. Use for agent
+  memory, LLM wikis, ingesting sources, answering cited queries, detecting stale or contradictory
+  knowledge, and graph visualization. Bundles use plain Markdown with Open Knowledge Format (OKF)
+  frontmatter, so knowledge stays reviewable and portable across Claude Code, Codex, Cursor, and
+  other agents.
 ---
 
 # kb — bundles
