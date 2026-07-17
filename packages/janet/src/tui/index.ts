@@ -278,6 +278,7 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
   );
   updateStatus();
   ui.start();
+  ui.setFocus(editor);
   ui.requestRender();
 
   // The TUI owns the process from here; exit happens via shutdown().
