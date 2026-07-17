@@ -7,11 +7,19 @@ This project is licensed under the MIT License (see LICENSE).
 Third-party material
 ------------------------------------------------------------------------
 
-skills/kb/reference/SPEC.md is a verbatim copy of the Open Knowledge Format
+skills/kb/references/SPEC.md is a verbatim copy of the Open Knowledge Format
 (OKF) v0.1 specification from:
 
     https://github.com/GoogleCloudPlatform/knowledge-catalog  (okf/SPEC.md)
 
 That file is licensed under the Apache License, Version 2.0, and is included
-and used under those terms. All other files in this repository are MIT-licensed
-as described in LICENSE.
+and used under those terms.
+
+------------------------------------------------------------------------
+
+Portions of packages/janet/src (the Amazon Bedrock gateway, and — when added —
+the OAuth auth subsystem under src/auth) are adapted from MastraCode
+(https://github.com/mastra-ai/mastra, the mastracode package), licensed under
+the Apache License, Version 2.0. Adapted and used under those terms.
+
+All other files in this repository are MIT-licensed as described in LICENSE.

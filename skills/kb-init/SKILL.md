@@ -2,6 +2,8 @@
 name: kb-init
 description: Scaffold a new OKF knowledge bundle in this project — run when starting a wiki or adding a bundle under knowledge/.
 disable-model-invocation: true
+version: 0.1.0
+tags: [knowledge, okf, init, scaffold]
 ---
 
 # kb-init — scaffold a knowledge bundle
@@ -9,7 +11,7 @@ disable-model-invocation: true
 Scaffold a conformant **bundle** per [kb](../kb/SKILL.md). Your unique work is the **schema layer**
 (step 2) and adapting the seed (step 3).
 
-Read [../kb/reference/glossary.md](../kb/reference/glossary.md) if the terms below are unfamiliar.
+Read [../kb/references/glossary.md](../kb/references/glossary.md) if the terms below are unfamiliar.
 
 ## 1. Resolve location and bundle name
 

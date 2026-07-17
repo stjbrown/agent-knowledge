@@ -25,3 +25,15 @@ build/
 # kb-ingest scratch (temporary plans and raw-source drop zones)
 _ingest_plan.md
 **/raw/processed/
+
+# firecrawl scrape scratch (fetched docs / working cache)
+.firecrawl/
+
+# prepack copy of repo-root skills/ into the publishable package (build artifact)
+packages/janet/skills/
+
+# janet project-local config (thread scope, skill symlinks)
+.agent-knowledge/
+
+# vitest snapshots scratch
+*.tsbuildinfo

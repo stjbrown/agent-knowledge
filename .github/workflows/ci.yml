@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.13.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm -r build
+
+      - name: Typecheck janet
+        run: pnpm --filter agent-knowledge typecheck
+
+      - name: Parity + unit tests
+        run: pnpm -r test
+
+      - name: Committed skill .mjs are in sync with source
+        run: |
+          pnpm build:skill-scripts
+          if ! git diff --quiet -- skills/kb-lint/scripts/conformance.mjs skills/kb-visualize/scripts/graph.mjs; then
+            echo "::error::Committed skill .mjs differ from a fresh build. Run 'pnpm build:skill-scripts' and commit the result."
+            git --no-pager diff -- skills/kb-lint/scripts/conformance.mjs skills/kb-visualize/scripts/graph.mjs
+            exit 1
+          fi
+
+      - name: Deterministic lint on the in-repo bundle
+        run: node skills/kb-lint/scripts/conformance.mjs knowledge
+
+      - name: Package smoke (tarball ships dist + skills, both bins)
+        run: |
+          cd packages/janet
+          npm pack --silent
+          tar tzf agent-knowledge-*.tgz | grep -q 'package/dist/main.js'
+          tar tzf agent-knowledge-*.tgz | grep -q 'package/skills/kb-query/SKILL.md'

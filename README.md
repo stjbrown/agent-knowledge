@@ -92,7 +92,7 @@ or open [`knowledge/viz.html`](./knowledge/viz.html) for the interactive graph. 
 
 ```
 skills/
-  kb/                 # hub: SKILL.md + reference/ (SPEC, glossary, trust-model) + templates/ + example-bundle/
+  kb/                 # hub: SKILL.md + references/ (SPEC, glossary, trust-model) + templates/ + example-bundle/
   kb-init/  kb-ingest/  kb-query/
   kb-lint/            # + scripts/conformance.py  (deterministic §9 check, no deps)
   kb-visualize/       # + scripts/graph.py        (graph-model extractor, no deps)
@@ -102,5 +102,5 @@ knowledge/            # this project's own OKF bundle (self-documenting) + viz.h
 
 ## License
 
-[MIT](./LICENSE). The vendored OKF specification (`skills/kb/reference/SPEC.md`) is from
+[MIT](./LICENSE). The vendored OKF specification (`skills/kb/references/SPEC.md`) is from
 GoogleCloudPlatform/knowledge-catalog under Apache-2.0; see [NOTICE](./NOTICE).

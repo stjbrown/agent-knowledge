@@ -1,0 +1,14 @@
+{
+  "name": "agent-knowledge-monorepo",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "build:skill-scripts": "node packages/kb-tools/scripts/build-skill-scripts.mjs"
+  },
+  "packageManager": "pnpm@11.13.1"
+}

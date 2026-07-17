@@ -1,0 +1,47 @@
+{
+  "name": "agent-knowledge",
+  "version": "0.1.0",
+  "description": "Janet — an npx-deployable agent that builds and maintains an OKF knowledge bundle.",
+  "type": "module",
+  "bin": {
+    "janet": "./dist/main.js",
+    "ding": "./dist/main.js"
+  },
+  "files": [
+    "dist",
+    "skills"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsup",
+    "prepack": "node scripts/copy-skills.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ai-sdk/amazon-bedrock": "^3.0.105",
+    "@ai-sdk/anthropic": "^3.0.96",
+    "@ai-sdk/google-vertex": "^3.0.152",
+    "@ai-sdk/openai": "^3.0.84",
+    "@ai-sdk/openai-compatible": "^2.0.59",
+    "@aws-sdk/credential-providers": "^3.864.0",
+    "@earendil-works/pi-tui": "0.80.6",
+    "@mastra/core": "^1.51.0",
+    "@mastra/libsql": "^1.16.0",
+    "@mastra/memory": "^1.23.0",
+    "ai": "^6.0.225",
+    "chalk": "^5.3.0",
+    "strip-ansi": "^7.1.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@agent-knowledge/kb-tools": "workspace:*",
+    "@types/node": "^22.20.1",
+    "tsup": "^8.3.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}

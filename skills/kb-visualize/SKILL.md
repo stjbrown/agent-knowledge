@@ -2,6 +2,8 @@
 name: kb-visualize
 description: Render a knowledge bundle as an interactive graph — native UI where the host supports it, otherwise a self-contained HTML artifact.
 disable-model-invocation: true
+version: 0.1.0
+tags: [knowledge, okf, visualize, graph]
 ---
 
 # kb-visualize — see the bundle as a graph
@@ -13,10 +15,12 @@ one concept); it is not a fixed template.
 
 ## 1. Extract the graph model
 
-Run the bundled extractor against the target bundle (default `knowledge/`):
+Run the bundled extractor against the target bundle (default `knowledge/`). It is a zero-dependency
+Node script (`node >=18`); `<skill-dir>` is this skill's directory — `${CLAUDE_SKILL_DIR}` under
+Claude Code, or whatever path your host exposes for the skill:
 
 ```
-python3 "${CLAUDE_SKILL_DIR}/scripts/graph.py" <bundle-dir>
+node "<skill-dir>/scripts/graph.mjs" <bundle-dir>
 ```
 
 It prints JSON: `nodes` (each with `id`, `type`, `title`, `description`, `tags`, `resource`,
