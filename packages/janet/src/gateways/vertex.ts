@@ -80,6 +80,16 @@ function vertexLocation(): string {
  * model avoids it. Applied to all Vertex Claude models — harmless when there's
  * no reasoning to replay.
  */
+/**
+ * Claude-on-Vertex rejects a request whose message array ends with an assistant
+ * turn ("does not support assistant message prefill. The conversation must end
+ * with a user message"). In a normal agent loop the model call always ends with
+ * a user or tool-result message; a trailing assistant message is only ever an
+ * (unintended) prefill — extended-thinking models (opus-4-8) can leave one after
+ * a tool approval / suspension resumes. Janet never prefills deliberately, so we
+ * defensively drop any trailing assistant message(s) and also stop replaying
+ * reasoning (`sendReasoning: false`).
+ */
 const vertexAnthropicMiddleware = {
   transformParams: async ({ params }: { params: Record<string, unknown> }) => {
     const providerOptions = (params["providerOptions"] as Record<string, unknown>) ?? {};
@@ -88,6 +98,19 @@ const vertexAnthropicMiddleware = {
       ...providerOptions,
       anthropic: { ...anthropic, sendReasoning: false },
     };
+
+    const prompt = params["prompt"];
+    if (Array.isArray(prompt)) {
+      const messages = prompt as Array<{ role?: string }>;
+      let dropped = 0;
+      while (messages.length > 1 && messages[messages.length - 1]?.role === "assistant") {
+        messages.pop();
+        dropped++;
+      }
+      if (dropped && process.env["JANET_DEBUG_MODEL"]) {
+        process.stderr.write(`[model] dropped ${dropped} trailing assistant (prefill) message(s)\n`);
+      }
+    }
     return params;
   },
 };
