@@ -1,11 +1,15 @@
 /**
  * Janet's interactive TUI — a minimal pi-tui chat.
  *
- * One screen: chat transcript (streaming markdown per assistant message, dim
- * one-liners for tool activity), an editor, and a status line showing the
- * current model and run state. Tool approvals are handled inline: the next
- * editor submit answers y/n, so there is exactly one focusable component and
- * zero focus juggling.
+ * The transcript renders in strict chronological order: each run of assistant
+ * text becomes its own markdown block, and a tool line / question / approval
+ * "closes" the current block so the next text appears BELOW it (rather than the
+ * whole answer streaming at the top while tools pile up underneath).
+ *
+ * Approvals are governed by the controller's tool-category policy: reads,
+ * skills, task bookkeeping, ask_user, and bundle edits never prompt; only
+ * command execution does — and that prompt offers "always allow" so it's a
+ * one-time thing. Questions with options render as an arrow-key SelectList.
  */
 import {
   Container,
@@ -13,10 +17,12 @@ import {
   Loader,
   Markdown,
   ProcessTerminal,
+  SelectList,
   Spacer,
   TUI,
   Text,
 } from "@earendil-works/pi-tui";
+import type { Component, SelectItem } from "@earendil-works/pi-tui";
 import type { AgentControllerEvent } from "@mastra/core/agent-controller";
 import { bootJanet, type BootOptions } from "../agent/controller.js";
 import { messageText } from "../headless/format.js";
@@ -55,17 +61,19 @@ interface QuestionOption {
 
 interface PendingQuestion {
   toolCallId: string;
-  question: string;
   options?: QuestionOption[];
   multi: boolean;
 }
 
-/**
- * Map a typed answer to ask_user resume data. Free-text questions pass the text
- * through. Option questions accept a 1-based number or an exact/prefix label
- * match; multi-select accepts a comma-separated list. Returns undefined when an
- * option question gets no match.
- */
+/** The assistant text block currently being streamed (one segment between tools). */
+interface ActiveMessage {
+  id: string;
+  committedLen: number;
+  comp: Markdown | null;
+  lastText: string;
+}
+
+/** Map a typed answer to ask_user resume data (free-text or multi-select). */
 function resolveAnswer(q: PendingQuestion, text: string): string | string[] | undefined {
   if (!q.options?.length) return text;
   const opts = q.options;
@@ -76,13 +84,11 @@ function resolveAnswer(q: PendingQuestion, text: string): string | string[] | un
     if (Number.isInteger(n) && n >= 1 && n <= opts.length) return opts[n - 1]!.label;
     const exact = opts.find((o) => o.label.toLowerCase() === t.toLowerCase());
     if (exact) return exact.label;
-    const prefix = opts.find((o) => o.label.toLowerCase().startsWith(t.toLowerCase()));
-    return prefix?.label;
+    return opts.find((o) => o.label.toLowerCase().startsWith(t.toLowerCase()))?.label;
   };
   if (q.multi) {
     const picks = text.split(",").map(pick);
-    if (picks.some((p) => p === undefined)) return undefined;
-    return picks as string[];
+    return picks.some((p) => p === undefined) ? undefined : (picks as string[]);
   }
   return pick(text);
 }
@@ -90,17 +96,10 @@ function resolveAnswer(q: PendingQuestion, text: string): string | string[] | un
 export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<number> {
   const { controller, session, paths } = await bootJanet({ ...opts, interactive: true });
 
-  // Interactive permission policy: auto-allow read-only and meta tools (skill,
-  // list/read files, ask_user) so only bundle-mutating actions prompt. Writes
-  // and command execution still require an explicit y/n.
-  for (const category of ["read", "other", "mcp"] as const) {
-    await session.permissions.setForCategory({ category, policy: "allow" });
-  }
-  for (const category of ["edit", "execute"] as const) {
-    await session.permissions.setForCategory({ category, policy: "ask" });
-  }
+  // The interactive approval policy is set deterministically in the controller's
+  // initialState (reads/edits/meta never prompt; only execute asks, with an
+  // "always allow" option) — see INTERACTIVE_RULES in controller.ts.
 
-  // Model preselection from env when nothing persisted.
   const envModel = process.env["JANET_MODEL"];
   if (!session.model.hasSelection() && envModel) {
     await session.model.switch({ modelId: envModel });
@@ -122,28 +121,35 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
   let loaderMounted = false;
   let pendingApproval: PendingApproval | null = null;
   let pendingQuestion: PendingQuestion | null = null;
-  // One Markdown component per assistant message id, updated as text streams.
-  const messageComponents = new Map<string, Markdown>();
+  let activeSelect: SelectList | null = null;
+  let active: ActiveMessage | null = null;
 
   const updateStatus = (): void => {
     const model = session.model.hasSelection() ? session.model.get() : "no model — /model <id>";
-    const state = pendingQuestion
-      ? "answer Janet's question"
-      : pendingApproval
-        ? "awaiting approval (y/n)"
-        : running
-          ? "working"
-          : "idle";
-    status.setText(
-      c.dim(`${paths.projectPath}  ·  `) + c.accent(model) + c.dim(`  ·  ${state}`),
-    );
+    const state =
+      pendingQuestion || activeSelect
+        ? "answer Janet's question"
+        : pendingApproval
+          ? "awaiting approval"
+          : running
+            ? "working"
+            : "idle";
+    status.setText(c.dim(`${paths.projectPath}  ·  `) + c.accent(model) + c.dim(`  ·  ${state}`));
     ui.requestRender();
   };
 
-  const addLine = (text: string): void => {
-    chat.addChild(new Text(text, 1, 0));
+  // Keep the spinner (and any focused select) visually last by inserting new
+  // content before them.
+  const appendToChat = (comp: Component): void => {
+    if (loaderMounted) chat.removeChild(loader);
+    if (activeSelect) chat.removeChild(activeSelect);
+    chat.addChild(comp);
+    if (activeSelect) chat.addChild(activeSelect);
+    if (loaderMounted) chat.addChild(loader);
     ui.requestRender();
   };
+
+  const addLine = (text: string): void => appendToChat(new Text(text, 1, 0));
 
   const setLoader = (on: boolean): void => {
     if (on && !loaderMounted) {
@@ -158,10 +164,34 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
     ui.requestRender();
   };
 
+  // Freeze the current text segment so the next assistant text starts a new
+  // block below whatever we're about to insert (a tool line, question, etc.).
+  const closeSegment = (): void => {
+    if (active) {
+      active.committedLen = active.lastText.length;
+      active.comp = null;
+    }
+  };
+
+  const answerQuestion = (resumeData: string | string[], echo: string): void => {
+    if (activeSelect) {
+      chat.removeChild(activeSelect);
+      activeSelect = null;
+    }
+    const q = pendingQuestion;
+    pendingQuestion = null;
+    ui.setFocus(editor);
+    addLine(c.user(`❯ ${echo}`));
+    setLoader(true);
+    updateStatus();
+    if (q) void session.respondToToolSuspension({ toolCallId: q.toolCallId, resumeData });
+  };
+
   const onEvent = (event: AgentControllerEvent): void => {
     switch (event.type) {
       case "agent_start":
         running = true;
+        active = null;
         setLoader(true);
         updateStatus();
         break;
@@ -170,30 +200,34 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
         if (event.message.role !== "assistant") break;
         const text = messageText(event.message);
         if (!text) break;
-        let md = messageComponents.get(event.message.id);
-        if (!md) {
-          md = new Markdown(text, 1, 0, markdownTheme);
-          messageComponents.set(event.message.id, md);
-          // Keep the loader visually last while streaming.
-          if (loaderMounted) chat.removeChild(loader);
-          chat.addChild(md);
-          if (loaderMounted) chat.addChild(loader);
-        } else {
-          md.setText(text);
+        if (!active || active.id !== event.message.id) {
+          active = { id: event.message.id, committedLen: 0, comp: null, lastText: "" };
         }
-        ui.requestRender();
+        active.lastText = text;
+        const tail = text.slice(active.committedLen);
+        if (!tail) break;
+        if (!active.comp) {
+          active.comp = new Markdown(tail, 1, 0, markdownTheme);
+          appendToChat(active.comp);
+        } else {
+          active.comp.setText(tail);
+          ui.requestRender();
+        }
         break;
       }
       case "tool_start":
-        // ask_user surfaces as a suspension below; don't announce it as a tool.
+        closeSegment();
         if (event.toolName !== "ask_user") addLine(c.dim(`  ⚙ ${event.toolName}`));
         break;
       case "tool_end":
-        if (event.isError) addLine(c.warn(`  ⚠ tool error: ${String(event.result).slice(0, 120)}`));
+        if (event.isError) {
+          closeSegment();
+          addLine(c.warn(`  ⚠ tool error: ${String(event.result).slice(0, 140)}`));
+        }
         break;
       case "tool_suspended": {
-        // Janet is asking the user something (ask_user) or requesting a decision.
-        // The next editor submit answers it via respondToToolSuspension.
+        closeSegment();
+        setLoader(false);
         const payload = event.suspendPayload as {
           question?: string;
           options?: QuestionOption[];
@@ -201,42 +235,52 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
         };
         const question = payload?.question ?? `Janet needs input for ${event.toolName}.`;
         const options = payload?.options;
-        pendingQuestion = {
-          toolCallId: event.toolCallId,
-          question,
-          options,
-          multi: payload?.selectionMode === "multi_select",
-        };
-        setLoader(false);
+        const multi = payload?.selectionMode === "multi_select";
         addLine(c.accentBold(`  ❓ ${question}`));
-        if (options?.length) {
-          options.forEach((o, i) => {
-            addLine(c.accent(`     ${i + 1}. `) + o.label + (o.description ? c.dim(` — ${o.description}`) : ""));
-          });
-          addLine(
-            c.dim(
-              pendingQuestion.multi
-                ? "     Reply with numbers or labels (comma-separated), then enter."
-                : "     Reply with a number or the label, then enter.",
-            ),
-          );
+
+        if (options?.length && !multi) {
+          // Arrow-key selection (↑/↓, enter), like a native picker.
+          const items: SelectItem[] = options.map((o) => ({
+            value: o.label,
+            label: o.label,
+            ...(o.description ? { description: o.description } : {}),
+          }));
+          const select = new SelectList(items, Math.min(items.length, 8), editorTheme.selectList);
+          select.onSelect = (item: SelectItem) => answerQuestion(item.value, item.label);
+          activeSelect = select;
+          pendingQuestion = { toolCallId: event.toolCallId, options, multi: false };
+          chat.addChild(select);
+          addLine(c.dim("     ↑/↓ to move, enter to choose."));
+          ui.setFocus(select);
         } else {
-          addLine(c.dim("     Type your answer and press enter."));
+          pendingQuestion = { toolCallId: event.toolCallId, options, multi };
+          if (options?.length) {
+            options.forEach((o, i) =>
+              addLine(c.accent(`     ${i + 1}. `) + o.label + (o.description ? c.dim(` — ${o.description}`) : "")),
+            );
+            addLine(c.dim("     Reply with numbers/labels (comma-separated), then enter."));
+          } else {
+            addLine(c.dim("     Type your answer and press enter."));
+          }
         }
         updateStatus();
         break;
       }
       case "tool_approval_required":
+        closeSegment();
         pendingApproval = { toolCallId: event.toolCallId, toolName: event.toolName };
         addLine(
           c.warn(`  Janet wants to run ${c.bold(event.toolName)}.`) +
-            c.dim("  Approve? Type y (yes) or n (no) and press enter."),
+            c.dim("  y = yes · n = no · a = always allow this kind"),
         );
         updateStatus();
         break;
       case "error": {
+        closeSegment();
         const err = event.error as Error & { responseBody?: string };
-        addLine(c.error(`  ✗ ${err?.message || "error"}${err?.responseBody ? ` — ${err.responseBody.slice(0, 200)}` : ""}`));
+        addLine(
+          c.error(`  ✗ ${err?.message || "error"}${err?.responseBody ? ` — ${err.responseBody.slice(0, 200)}` : ""}`),
+        );
         break;
       }
       case "model_changed":
@@ -244,8 +288,6 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
         break;
       case "agent_end":
         running = false;
-        // A turn that ends while a question is pending means it won't be
-        // answered — drop it so the editor is free again.
         if (event.reason !== "suspended") pendingQuestion = null;
         setLoader(false);
         updateStatus();
@@ -287,8 +329,7 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
         try {
           const models = await controller.listAvailableModels();
           const withAuth = models.filter((m) => m.hasApiKey);
-          const list = (withAuth.length ? withAuth : models).slice(0, 30);
-          for (const m of list) {
+          for (const m of (withAuth.length ? withAuth : models).slice(0, 30)) {
             addLine(c.dim(`  ${m.hasApiKey ? "●" : "○"} `) + m.id);
           }
           addLine(c.dim("Pick one with /model <id>."));
@@ -307,38 +348,34 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
     editor.setText("");
     if (!text) return;
 
-    // A pending question (ask_user) consumes the next submit as the answer.
-    if (pendingQuestion) {
-      const q = pendingQuestion;
-      const resumeData = resolveAnswer(q, text);
+    // A typed question (free-text or multi-select) consumes the next submit.
+    if (pendingQuestion && !activeSelect) {
+      const resumeData = resolveAnswer(pendingQuestion, text);
       if (resumeData === undefined) {
         addLine(c.dim("  Didn't match an option — reply with a number or an exact label."));
         return;
       }
-      pendingQuestion = null;
-      addLine(c.user(`❯ ${Array.isArray(resumeData) ? resumeData.join(", ") : resumeData}`));
-      setLoader(true);
-      updateStatus();
-      void session.respondToToolSuspension({ toolCallId: q.toolCallId, resumeData });
+      answerQuestion(resumeData, Array.isArray(resumeData) ? resumeData.join(", ") : resumeData);
       return;
     }
 
-    // Pending tool approval consumes the next submit.
+    // Pending tool approval: y / n / a (always allow this category).
     if (pendingApproval) {
       const approve = /^y(es)?$/i.test(text);
       const decline = /^n(o)?$/i.test(text);
-      if (approve || decline) {
+      const always = /^a(lways)?$/i.test(text);
+      if (approve || decline || always) {
         const { toolCallId } = pendingApproval;
         pendingApproval = null;
-        addLine(c.dim(approve ? "  ✓ approved" : "  ✗ declined"));
+        addLine(c.dim(always ? "  ✓ always allowed" : approve ? "  ✓ approved" : "  ✗ declined"));
         updateStatus();
         void session.respondToToolApproval({
-          decision: approve ? "approve" : "decline",
+          decision: always ? "always_allow_category" : approve ? "approve" : "decline",
           toolCallId,
         });
         return;
       }
-      addLine(c.dim("  Waiting on the approval — answer y or n first."));
+      addLine(c.dim("  Answer y (yes), n (no), or a (always allow) first."));
       return;
     }
 

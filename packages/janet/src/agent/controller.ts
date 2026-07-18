@@ -8,6 +8,7 @@ import { ensureSkillLinks } from "./skills-paths.js";
 import { resolveProjectPaths, type ProjectPaths } from "./paths.js";
 import { createVertexGateway } from "../gateways/vertex.js";
 import { createBedrockGateway } from "../gateways/bedrock.js";
+import { janetToolCategory } from "./permissions.js";
 
 export interface BootOptions {
   /** Working dir override (-C/--dir). Defaults to process.cwd(). */
@@ -24,6 +25,12 @@ export interface JanetSessionBoot {
   paths: ProjectPaths;
 }
 
+const policy = z.enum(["allow", "ask", "deny"]);
+const permissionRules = z.object({
+  categories: z.record(z.string(), policy),
+  tools: z.record(z.string(), policy),
+});
+
 const stateSchema = z.object({
   projectPath: z.string(),
   bundlePath: z.string(),
@@ -32,11 +39,22 @@ const stateSchema = z.object({
   // and skips tool-approval suspensions entirely. Headless sets it; interactive
   // keeps approvals on.
   yolo: z.boolean(),
+  // Tool-approval rules by category/tool. Must be in the schema or session state
+  // strips it, and setForCategory / getRules silently no-op.
+  permissionRules: permissionRules.optional(),
 });
 
 export type JanetState = z.infer<typeof stateSchema>;
 
 const MODES: AgentControllerMode[] = [{ id: "build", name: "Build" }];
+
+// Interactive approval policy: reads, skills, task bookkeeping, ask_user (category
+// null → always allow) and bundle edits never prompt; only command execution
+// asks — and that prompt offers "always allow". Headless relies on yolo instead.
+const INTERACTIVE_RULES = {
+  categories: { read: "allow", edit: "allow", other: "allow", mcp: "allow", execute: "ask" },
+  tools: {},
+} as const;
 
 /**
  * Build and initialize the AgentController, then mint the single per-process
@@ -56,7 +74,6 @@ export async function bootJanet(opts: BootOptions): Promise<JanetSessionBoot> {
   const workspace = createWorkspace({
     projectPath: paths.projectPath,
     skills,
-    requireApproval: opts.interactive,
   });
   const agent = createJanetAgent({ storage, workspace });
 
@@ -69,11 +86,13 @@ export async function bootJanet(opts: BootOptions): Promise<JanetSessionBoot> {
     modes: MODES,
     defaultModeId: "build",
     gateways: [createVertexGateway(), createBedrockGateway()],
+    toolCategoryResolver: janetToolCategory,
     initialState: {
       projectPath: paths.projectPath,
       bundlePath: paths.bundlePath,
       configDir: paths.globalConfigDir,
       yolo: !opts.interactive,
+      ...(opts.interactive ? { permissionRules: INTERACTIVE_RULES } : {}),
     },
     workspace: () => workspace,
   });

@@ -6,24 +6,20 @@ export interface WorkspaceOptions {
   projectPath: string;
   /** The mounted kb-* skills (relative root + symlink-target read exceptions). */
   skills: SkillMount;
-  /** Interactive sessions require approval for writes/deletes/exec; headless auto-approves. */
-  requireApproval: boolean;
 }
 
 /**
  * Build the workspace. The filesystem base is the whole project (so Janet can
- * read README/notes for ingest/schema inference); writes are constrained by the
- * skills to the bundle. `skills` is a WORKSPACE-RELATIVE path (Mastra rejects
- * absolute skills paths); the symlink targets are added to `allowedPaths` so
- * reads resolve through the links to the bundled copy outside the project.
+ * read README/notes for ingest/schema inference); writes stay within the
+ * project and are steered to the bundle by the skills. `skills` is a
+ * WORKSPACE-RELATIVE path (Mastra rejects absolute skills paths); the symlink
+ * targets are added to `allowedPaths` so reads resolve through the links.
  *
- * With skills configured here, the agent automatically gets the `skill`,
- * `skill_read`, and `skill_search` tools, and the available skills are listed
- * in its system message (per the workspace-skills docs).
- *
- * Trust-model enforcement rides on the tools config: `requireReadBeforeWrite`
- * on writes always, and `requireApproval` on write/delete/execute in
- * interactive mode.
+ * Approval is NOT configured here — it is governed entirely by the controller's
+ * permission policy + tool categories (see permissions.ts), so there is a single
+ * source of truth and the "always allow this category" flow works. We keep
+ * `requireReadBeforeWrite` on the mutating tools as a correctness guard (it is
+ * not an approval prompt).
  */
 export function createWorkspace(opts: WorkspaceOptions): Workspace {
   return new Workspace({
@@ -35,16 +31,8 @@ export function createWorkspace(opts: WorkspaceOptions): Workspace {
     sandbox: new LocalSandbox({ workingDirectory: opts.projectPath }),
     skills: [opts.skills.relativeRoot],
     tools: {
-      mastra_workspace_write_file: {
-        requireReadBeforeWrite: true,
-        requireApproval: opts.requireApproval,
-      },
-      mastra_workspace_edit_file: {
-        requireReadBeforeWrite: true,
-        requireApproval: opts.requireApproval,
-      },
-      mastra_workspace_delete: { requireApproval: opts.requireApproval },
-      mastra_workspace_execute_command: { requireApproval: opts.requireApproval },
+      mastra_workspace_write_file: { requireReadBeforeWrite: true },
+      mastra_workspace_edit_file: { requireReadBeforeWrite: true },
     },
   });
 }
