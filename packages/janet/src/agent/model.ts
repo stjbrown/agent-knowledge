@@ -3,6 +3,19 @@ import type { AgentControllerRequestContext } from "@mastra/core/agent-controlle
 import type { MastraModelConfig } from "@mastra/core/llm";
 import { VERTEX_GATEWAY_ID, createVertexModel } from "../gateways/vertex.js";
 import { BEDROCK_GATEWAY_ID, createBedrockModel } from "../gateways/bedrock.js";
+import { getAuthStorage, opencodeClaudeMaxProvider } from "../gateways/oauth/claude-max.js";
+import { openaiCodexProvider } from "../gateways/oauth/openai-codex.js";
+
+/** True when a Claude Max / Codex OAuth credential is stored for a provider. */
+function hasOAuthCredential(authProviderId: string): boolean {
+  try {
+    const storage = getAuthStorage();
+    storage.reload();
+    return storage.get(authProviderId)?.type === "oauth";
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Dynamic model resolver (pattern: mastracode `sdk/src/agents/model.ts`).
@@ -29,12 +42,23 @@ export function getDynamicModel({ requestContext }: { requestContext: RequestCon
   // auth, no bearer key), mirroring mastracode's resolveModel. Everything else
   // is a `provider/model` id resolved through core's default gateways using env
   // API keys.
-  const providerId = modelId.split("/")[0];
+  const slash = modelId.indexOf("/");
+  const providerId = slash >= 0 ? modelId.slice(0, slash) : modelId;
+  const bareModelId = slash >= 0 ? modelId.slice(slash + 1) : modelId;
+
   if (providerId === VERTEX_GATEWAY_ID) {
-    return createVertexModel(modelId.slice(VERTEX_GATEWAY_ID.length + 1)) as MastraModelConfig;
+    return createVertexModel(bareModelId) as MastraModelConfig;
   }
   if (providerId === BEDROCK_GATEWAY_ID) {
-    return createBedrockModel(modelId.slice(BEDROCK_GATEWAY_ID.length + 1)) as MastraModelConfig;
+    return createBedrockModel(bareModelId) as MastraModelConfig;
+  }
+  // OAuth (Claude Max / Codex): only when a subscription credential is stored;
+  // otherwise fall through to the API-key path via core's default gateways.
+  if (providerId === "anthropic" && hasOAuthCredential("anthropic")) {
+    return opencodeClaudeMaxProvider(bareModelId);
+  }
+  if (providerId === "openai" && hasOAuthCredential("openai-codex")) {
+    return openaiCodexProvider(bareModelId);
   }
   return modelId;
 }

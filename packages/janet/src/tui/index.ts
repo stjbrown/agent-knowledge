@@ -27,7 +27,11 @@ import type { AgentControllerEvent } from "@mastra/core/agent-controller";
 import { bootJanet, type BootOptions } from "../agent/controller.js";
 import { messageText } from "../headless/format.js";
 import { GREETING } from "../agent/persona.js";
+import { getAuthStorage } from "../gateways/oauth/claude-max.js";
 import { c, editorTheme, markdownTheme } from "./theme.js";
+
+/** OAuth providers janet can log in to. */
+const OAUTH_PROVIDERS = ["anthropic", "openai-codex"] as const;
 
 /** Editor with a Ctrl+C hook (raw-mode terminals deliver it as input \x03). */
 class JanetEditor extends Editor {
@@ -44,6 +48,9 @@ class JanetEditor extends Editor {
 const HELP_TEXT = `Commands:
   /model <provider/id>   Switch model (e.g. /model vertex/claude-opus-4-1)
   /models                List models for configured providers
+  /login <provider>      Log in with a subscription (anthropic, openai-codex)
+  /logout <provider>     Remove stored credentials for a provider
+  /auth                  Show which providers are authenticated
   /help                  This help
   /quit                  Exit (double Ctrl+C also works)
 
@@ -121,19 +128,22 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
   let loaderMounted = false;
   let pendingApproval: PendingApproval | null = null;
   let pendingQuestion: PendingQuestion | null = null;
+  let pendingInput: ((text: string) => void) | null = null;
   let activeSelect: SelectList | null = null;
   let active: ActiveMessage | null = null;
 
   const updateStatus = (): void => {
     const model = session.model.hasSelection() ? session.model.get() : "no model — /model <id>";
     const state =
-      pendingQuestion || activeSelect
-        ? "answer Janet's question"
-        : pendingApproval
-          ? "awaiting approval"
-          : running
-            ? "working"
-            : "idle";
+      pendingInput
+        ? "enter the requested value"
+        : pendingQuestion || activeSelect
+          ? "answer Janet's question"
+          : pendingApproval
+            ? "awaiting approval"
+            : running
+              ? "working"
+              : "idle";
     status.setText(c.dim(`${paths.projectPath}  ·  `) + c.accent(model) + c.dim(`  ·  ${state}`));
     ui.requestRender();
   };
@@ -303,6 +313,17 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
     process.exit(code);
   };
 
+  // Ask the user for one value; the next editor submit resolves it. Used by the
+  // OAuth login flow (paste-code / prompts).
+  const promptInput = (message: string, placeholder?: string): Promise<string> => {
+    addLine(c.accentBold(`  ${message}`));
+    if (placeholder) addLine(c.dim(`  (${placeholder})`));
+    updateStatus();
+    return new Promise((resolve) => {
+      pendingInput = resolve;
+    });
+  };
+
   const handleCommand = async (text: string): Promise<void> => {
     const [cmd, ...rest] = text.slice(1).split(/\s+/);
     switch (cmd) {
@@ -313,6 +334,58 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
       case "help":
         addLine(c.dim(HELP_TEXT));
         break;
+      case "login": {
+        const providerId = (rest[0] || "anthropic").trim();
+        if (!(OAUTH_PROVIDERS as readonly string[]).includes(providerId)) {
+          addLine(c.dim(`Usage: /login <${OAUTH_PROVIDERS.join(" | ")}>`));
+          break;
+        }
+        addLine(c.dim(`Starting ${providerId} login…`));
+        try {
+          await getAuthStorage().login(providerId, {
+            onAuth: (info) => {
+              addLine(c.accent("  Open this URL in your browser to authorize:"));
+              addLine("  " + info.url);
+              if (info.instructions) addLine(c.dim("  " + info.instructions));
+            },
+            onProgress: (m) => addLine(c.dim("  " + m)),
+            onManualCodeInput: () => promptInput("Paste the code shown after you authorize:"),
+            onPrompt: (p) => promptInput(p.message, p.placeholder),
+          });
+          addLine(c.accentBold(`  ✓ Logged in to ${providerId}.`));
+          updateStatus();
+        } catch (err) {
+          addLine(c.error(`  Login failed: ${(err as Error).message}`));
+        }
+        break;
+      }
+      case "logout": {
+        const providerId = rest[0]?.trim();
+        if (!providerId) {
+          addLine(c.dim(`Usage: /logout <${OAUTH_PROVIDERS.join(" | ")}>`));
+          break;
+        }
+        const storage = getAuthStorage();
+        storage.logout(providerId); // OAuth credential
+        storage.remove(`apikey:${providerId}`); // stored API key slot, if any
+        addLine(c.dim(`Logged out of ${providerId}.`));
+        break;
+      }
+      case "auth": {
+        const storage = getAuthStorage();
+        storage.reload();
+        const providers = storage.list();
+        if (!providers.length) {
+          addLine(c.dim("No stored credentials. Use /login <provider>, or set an API key env var"));
+          addLine(c.dim("(ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_VERTEX_PROJECT, AWS_*)."));
+        } else {
+          for (const p of providers) {
+            const cred = storage.get(p);
+            addLine(c.dim(`  ${p}: `) + (cred?.type === "oauth" ? c.accent("OAuth (subscription)") : "API key"));
+          }
+        }
+        break;
+      }
       case "model": {
         const id = rest.join(" ").trim();
         if (!id) {
@@ -347,6 +420,17 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
     const text = raw.trim();
     editor.setText("");
     if (!text) return;
+
+    // A requested value (e.g. an OAuth paste-code) consumes the next submit.
+    // Don't echo it verbatim — it may be a credential.
+    if (pendingInput) {
+      const resolve = pendingInput;
+      pendingInput = null;
+      addLine(c.dim("  ❯ (value entered)"));
+      updateStatus();
+      resolve(text);
+      return;
+    }
 
     // A typed question (free-text or multi-select) consumes the next submit.
     if (pendingQuestion && !activeSelect) {

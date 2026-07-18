@@ -79,6 +79,14 @@ export function ensureDir(dir: string): string {
 }
 
 /**
+ * The global (machine-wide) app-data dir, `~/.agent-knowledge`. Credentials
+ * (auth.json) and settings live here since they are not project-specific.
+ */
+export function appDataDir(): string {
+  return join(homedir(), CONFIG_DIR_NAME);
+}
+
+/**
  * Absolute path to the skills folder shipped inside this package (the external,
  * always-present fallback copy). Resolved relative to this module so it works
  * from `dist/` after bundling. In dev (src/) it points at the repo-root skills.
