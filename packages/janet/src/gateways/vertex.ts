@@ -87,18 +87,14 @@ function vertexLocation(): string {
  * a user or tool-result message; a trailing assistant message is only ever an
  * (unintended) prefill — extended-thinking models (opus-4-8) can leave one after
  * a tool approval / suspension resumes. Janet never prefills deliberately, so we
- * defensively drop any trailing assistant message(s) and also stop replaying
- * reasoning (`sendReasoning: false`).
+ * defensively drop any trailing assistant message(s).
+ *
+ * NOTE: we deliberately do NOT strip reasoning (`sendReasoning`) — extended
+ * thinking replays its thinking blocks across tool steps, and dropping them
+ * makes the model lose the thread of what it already tried and spin in loops.
  */
 const vertexAnthropicMiddleware = {
   transformParams: async ({ params }: { params: Record<string, unknown> }) => {
-    const providerOptions = (params["providerOptions"] as Record<string, unknown>) ?? {};
-    const anthropic = (providerOptions["anthropic"] as Record<string, unknown>) ?? {};
-    params["providerOptions"] = {
-      ...providerOptions,
-      anthropic: { ...anthropic, sendReasoning: false },
-    };
-
     const prompt = params["prompt"];
     if (Array.isArray(prompt)) {
       const messages = prompt as Array<{ role?: string }>;

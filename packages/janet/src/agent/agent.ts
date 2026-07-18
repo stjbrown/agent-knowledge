@@ -27,5 +27,8 @@ export function createJanetAgent(opts: JanetAgentOptions): Agent {
     model: getDynamicModel,
     memory,
     workspace: opts.workspace,
+    // Backstop against runaway loops. Real ingests do heavy work in scripts
+    // (few tool calls), so this is generous — it only trips on a genuine spin.
+    defaultOptions: { maxSteps: 60 },
   });
 }
