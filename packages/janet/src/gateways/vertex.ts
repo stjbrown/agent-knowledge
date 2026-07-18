@@ -1,8 +1,9 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { createVertex } from "@ai-sdk/google-vertex";
 import { createVertexAnthropic } from "@ai-sdk/google-vertex/anthropic";
+import { wrapLanguageModel } from "ai";
 import { MastraModelGateway } from "@mastra/core/llm";
 import type {
   GatewayAuthRequest,
@@ -36,10 +37,25 @@ export function hasGoogleCredentials(): boolean {
   return existsSync(join(home, ".config", "gcloud", "application_default_credentials.json"));
 }
 
+/** The quota/default project from the gcloud ADC file, if present. */
+function adcQuotaProject(): string | undefined {
+  const home = process.env["HOME"] || process.env["USERPROFILE"] || homedir();
+  const adcPath = join(home, ".config", "gcloud", "application_default_credentials.json");
+  try {
+    const adc = JSON.parse(readFileSync(adcPath, "utf-8")) as { quota_project_id?: string };
+    return adc.quota_project_id || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function vertexProject(): string | undefined {
   return (
     process.env["GOOGLE_VERTEX_PROJECT"] ||
     process.env["GOOGLE_CLOUD_PROJECT"] ||
+    // Fall back to the ADC quota project so a bare run (env unset) doesn't send
+    // `projects/undefined`.
+    adcQuotaProject() ||
     undefined
   );
 }
@@ -56,6 +72,26 @@ function vertexLocation(): string {
   );
 }
 
+/**
+ * Claude-on-Vertex rejects requests whose message array ends with an assistant
+ * turn ("does not support assistant message prefill"). Extended-thinking models
+ * (e.g. opus-4-8) leave a trailing reasoning block when a tool suspends and the
+ * turn resumes (ask_user), which trips this. Not replaying reasoning back to the
+ * model avoids it. Applied to all Vertex Claude models — harmless when there's
+ * no reasoning to replay.
+ */
+const vertexAnthropicMiddleware = {
+  transformParams: async ({ params }: { params: Record<string, unknown> }) => {
+    const providerOptions = (params["providerOptions"] as Record<string, unknown>) ?? {};
+    const anthropic = (providerOptions["anthropic"] as Record<string, unknown>) ?? {};
+    params["providerOptions"] = {
+      ...providerOptions,
+      anthropic: { ...anthropic, sendReasoning: false },
+    };
+    return params;
+  },
+};
+
 /** Build a Vertex language model for a bare model id (no `vertex/` prefix). */
 export function createVertexModel(
   bareModelId: string,
@@ -66,7 +102,11 @@ export function createVertexModel(
   const isAnthropic = /^claude/i.test(bareModelId);
   if (isAnthropic) {
     const provider = createVertexAnthropic({ project, location, headers });
-    return provider(bareModelId) as unknown as GatewayLanguageModel;
+    return wrapLanguageModel({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      model: provider(bareModelId) as any,
+      middleware: vertexAnthropicMiddleware as never,
+    }) as unknown as GatewayLanguageModel;
   }
   const provider = createVertex({ project, location, headers });
   return provider(bareModelId) as unknown as GatewayLanguageModel;

@@ -108,6 +108,19 @@ export async function runHeadless(opts: HeadlessOptions): Promise<HeadlessResult
           // Headless policy: auto-approve everything.
           void session.respondToToolApproval({ decision: "approve", toolCallId: event.toolCallId });
           break;
+        case "tool_suspended": {
+          // Headless can't prompt the user. For ask_user, tell Janet to proceed
+          // with sensible defaults so the run completes; for a decision-style
+          // suspension, approve. Prevents the turn hanging forever.
+          const payload = event.suspendPayload as { options?: { label: string }[] } | undefined;
+          const resumeData = event.toolName === "ask_user"
+            ? payload?.options?.length
+              ? payload.options[0]!.label
+              : "Proceed with reasonable defaults — this is a non-interactive run."
+            : { action: "approved" };
+          void session.respondToToolSuspension({ toolCallId: event.toolCallId, resumeData });
+          break;
+        }
         case "error": {
           const err = event.error as Error & { statusCode?: number; responseBody?: string };
           const detail = [

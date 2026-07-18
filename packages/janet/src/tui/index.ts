@@ -48,8 +48,57 @@ interface PendingApproval {
   toolName: string;
 }
 
+interface QuestionOption {
+  label: string;
+  description?: string;
+}
+
+interface PendingQuestion {
+  toolCallId: string;
+  question: string;
+  options?: QuestionOption[];
+  multi: boolean;
+}
+
+/**
+ * Map a typed answer to ask_user resume data. Free-text questions pass the text
+ * through. Option questions accept a 1-based number or an exact/prefix label
+ * match; multi-select accepts a comma-separated list. Returns undefined when an
+ * option question gets no match.
+ */
+function resolveAnswer(q: PendingQuestion, text: string): string | string[] | undefined {
+  if (!q.options?.length) return text;
+  const opts = q.options;
+  const pick = (token: string): string | undefined => {
+    const t = token.trim();
+    if (!t) return undefined;
+    const n = Number(t);
+    if (Number.isInteger(n) && n >= 1 && n <= opts.length) return opts[n - 1]!.label;
+    const exact = opts.find((o) => o.label.toLowerCase() === t.toLowerCase());
+    if (exact) return exact.label;
+    const prefix = opts.find((o) => o.label.toLowerCase().startsWith(t.toLowerCase()));
+    return prefix?.label;
+  };
+  if (q.multi) {
+    const picks = text.split(",").map(pick);
+    if (picks.some((p) => p === undefined)) return undefined;
+    return picks as string[];
+  }
+  return pick(text);
+}
+
 export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<number> {
   const { controller, session, paths } = await bootJanet({ ...opts, interactive: true });
+
+  // Interactive permission policy: auto-allow read-only and meta tools (skill,
+  // list/read files, ask_user) so only bundle-mutating actions prompt. Writes
+  // and command execution still require an explicit y/n.
+  for (const category of ["read", "other", "mcp"] as const) {
+    await session.permissions.setForCategory({ category, policy: "allow" });
+  }
+  for (const category of ["edit", "execute"] as const) {
+    await session.permissions.setForCategory({ category, policy: "ask" });
+  }
 
   // Model preselection from env when nothing persisted.
   const envModel = process.env["JANET_MODEL"];
@@ -72,12 +121,19 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
   let running = false;
   let loaderMounted = false;
   let pendingApproval: PendingApproval | null = null;
+  let pendingQuestion: PendingQuestion | null = null;
   // One Markdown component per assistant message id, updated as text streams.
   const messageComponents = new Map<string, Markdown>();
 
   const updateStatus = (): void => {
     const model = session.model.hasSelection() ? session.model.get() : "no model — /model <id>";
-    const state = pendingApproval ? "awaiting approval (y/n)" : running ? "working" : "idle";
+    const state = pendingQuestion
+      ? "answer Janet's question"
+      : pendingApproval
+        ? "awaiting approval (y/n)"
+        : running
+          ? "working"
+          : "idle";
     status.setText(
       c.dim(`${paths.projectPath}  ·  `) + c.accent(model) + c.dim(`  ·  ${state}`),
     );
@@ -129,11 +185,47 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
         break;
       }
       case "tool_start":
-        addLine(c.dim(`  ⚙ ${event.toolName}`));
+        // ask_user surfaces as a suspension below; don't announce it as a tool.
+        if (event.toolName !== "ask_user") addLine(c.dim(`  ⚙ ${event.toolName}`));
         break;
       case "tool_end":
         if (event.isError) addLine(c.warn(`  ⚠ tool error: ${String(event.result).slice(0, 120)}`));
         break;
+      case "tool_suspended": {
+        // Janet is asking the user something (ask_user) or requesting a decision.
+        // The next editor submit answers it via respondToToolSuspension.
+        const payload = event.suspendPayload as {
+          question?: string;
+          options?: QuestionOption[];
+          selectionMode?: string;
+        };
+        const question = payload?.question ?? `Janet needs input for ${event.toolName}.`;
+        const options = payload?.options;
+        pendingQuestion = {
+          toolCallId: event.toolCallId,
+          question,
+          options,
+          multi: payload?.selectionMode === "multi_select",
+        };
+        setLoader(false);
+        addLine(c.accentBold(`  ❓ ${question}`));
+        if (options?.length) {
+          options.forEach((o, i) => {
+            addLine(c.accent(`     ${i + 1}. `) + o.label + (o.description ? c.dim(` — ${o.description}`) : ""));
+          });
+          addLine(
+            c.dim(
+              pendingQuestion.multi
+                ? "     Reply with numbers or labels (comma-separated), then enter."
+                : "     Reply with a number or the label, then enter.",
+            ),
+          );
+        } else {
+          addLine(c.dim("     Type your answer and press enter."));
+        }
+        updateStatus();
+        break;
+      }
       case "tool_approval_required":
         pendingApproval = { toolCallId: event.toolCallId, toolName: event.toolName };
         addLine(
@@ -152,6 +244,9 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
         break;
       case "agent_end":
         running = false;
+        // A turn that ends while a question is pending means it won't be
+        // answered — drop it so the editor is free again.
+        if (event.reason !== "suspended") pendingQuestion = null;
         setLoader(false);
         updateStatus();
         break;
@@ -211,6 +306,22 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
     const text = raw.trim();
     editor.setText("");
     if (!text) return;
+
+    // A pending question (ask_user) consumes the next submit as the answer.
+    if (pendingQuestion) {
+      const q = pendingQuestion;
+      const resumeData = resolveAnswer(q, text);
+      if (resumeData === undefined) {
+        addLine(c.dim("  Didn't match an option — reply with a number or an exact label."));
+        return;
+      }
+      pendingQuestion = null;
+      addLine(c.user(`❯ ${Array.isArray(resumeData) ? resumeData.join(", ") : resumeData}`));
+      setLoader(true);
+      updateStatus();
+      void session.respondToToolSuspension({ toolCallId: q.toolCallId, resumeData });
+      return;
+    }
 
     // Pending tool approval consumes the next submit.
     if (pendingApproval) {
