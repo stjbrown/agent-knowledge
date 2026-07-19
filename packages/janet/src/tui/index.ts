@@ -101,7 +101,7 @@ function resolveAnswer(q: PendingQuestion, text: string): string | string[] | un
 }
 
 export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<number> {
-  const { controller, session, paths } = await bootJanet({ ...opts, interactive: true });
+  const { controller, session, paths, herdrDetach } = await bootJanet({ ...opts, interactive: true });
 
   // The interactive approval policy is set deterministically in the controller's
   // initialState (reads/edits/meta never prompt; only execute asks, with an
@@ -308,6 +308,7 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
 
   const shutdown = async (code: number): Promise<never> => {
     unsubscribe();
+    herdrDetach();
     ui.stop();
     await controller.destroy().catch(() => {});
     process.exit(code);

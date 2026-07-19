@@ -9,6 +9,7 @@ import { resolveProjectPaths, type ProjectPaths } from "./paths.js";
 import { createVertexGateway } from "../gateways/vertex.js";
 import { createBedrockGateway } from "../gateways/bedrock.js";
 import { janetToolCategory } from "./permissions.js";
+import { attachHerdrReporter } from "../herdr/reporter.js";
 
 export interface BootOptions {
   /** Working dir override (-C/--dir). Defaults to process.cwd(). */
@@ -23,6 +24,8 @@ export interface JanetSessionBoot {
   controller: AgentController<JanetState>;
   session: Awaited<ReturnType<AgentController<JanetState>["createSession"]>>;
   paths: ProjectPaths;
+  /** Detach the Herdr reporter and release the agent from the pane (no-op outside Herdr). */
+  herdrDetach: () => void;
 }
 
 const policy = z.enum(["allow", "ask", "deny"]);
@@ -103,5 +106,8 @@ export async function bootJanet(opts: BootOptions): Promise<JanetSessionBoot> {
     ownerId: paths.ownerId,
   });
 
-  return { controller, session, paths };
+  // Native Herdr reporting when running inside a Herdr pane (no-op otherwise).
+  const herdrDetach = attachHerdrReporter(session, { projectPath: paths.projectPath });
+
+  return { controller, session, paths, herdrDetach };
 }

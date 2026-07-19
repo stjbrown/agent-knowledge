@@ -25,7 +25,7 @@ export interface HeadlessResult {
  * `sdk/src/headless/`.
  */
 export async function runHeadless(opts: HeadlessOptions): Promise<HeadlessResult> {
-  const { controller, session } = await bootJanet({
+  const { controller, session, herdrDetach } = await bootJanet({
     dir: opts.dir,
     bundle: opts.bundle,
     interactive: false,
@@ -49,6 +49,7 @@ export async function runHeadless(opts: HeadlessOptions): Promise<HeadlessResult
       "No model selected. Pass --model 'provider/model' or set JANET_MODEL, " +
         "or run `janet` once to onboard. Checked: JANET_MODEL, and any persisted selection.\n",
     );
+    herdrDetach();
     await controller.destroy();
     return { exitCode: 2, text: "" };
   }
@@ -146,6 +147,7 @@ export async function runHeadless(opts: HeadlessOptions): Promise<HeadlessResult
   });
 
   process.stdout.write("\n");
+  herdrDetach();
   await controller.destroy();
   return { exitCode, text: finalText };
 }
