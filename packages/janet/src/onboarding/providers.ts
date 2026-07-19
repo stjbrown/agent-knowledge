@@ -11,6 +11,22 @@ export interface ModelChoice {
   via: string;
 }
 
+/**
+ * Models offered when signed in to a ChatGPT/Codex subscription (OAuth). The
+ * Codex `responses` backend accepts the model id verbatim, so this is a
+ * convenience lineup — ANY id also works via `/model openai/<id>`. Edit here as
+ * OpenAI's Codex catalog changes.
+ */
+const CODEX_MODELS: ReadonlyArray<{ id: string; label: string }> = [
+  { id: "gpt-5.5-codex", label: "GPT-5.5 Codex" },
+  { id: "gpt-5.5", label: "GPT-5.5" },
+  { id: "gpt-5.1-codex", label: "GPT-5.1 Codex" },
+  { id: "gpt-5.1", label: "GPT-5.1" },
+  { id: "gpt-5-codex", label: "GPT-5 Codex" },
+  { id: "gpt-5", label: "GPT-5" },
+  { id: "codex-mini-latest", label: "Codex Mini" },
+];
+
 function hasOAuth(provider: string): boolean {
   try {
     const s = getAuthStorage();
@@ -48,9 +64,12 @@ export function availableModels(): ModelChoice[] {
       { id: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5", via },
     );
   }
-  if (hasEnv("OPENAI_API_KEY") || hasOAuth("openai-codex")) {
-    const via = hasOAuth("openai-codex") ? "OpenAI (ChatGPT/Codex)" : "OpenAI (API key)";
-    out.push({ id: "openai/gpt-5.5", label: "GPT-5.5", via });
+  if (hasOAuth("openai-codex")) {
+    // Signed in to a ChatGPT/Codex subscription — offer the full Codex lineup.
+    const via = "OpenAI (ChatGPT/Codex)";
+    for (const m of CODEX_MODELS) out.push({ id: `openai/${m.id}`, label: m.label, via });
+  } else if (hasEnv("OPENAI_API_KEY")) {
+    out.push({ id: "openai/gpt-5.5", label: "GPT-5.5", via: "OpenAI (API key)" });
   }
   if (hasAwsCredentials()) {
     const via = "Amazon Bedrock (AWS)";
