@@ -459,6 +459,13 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
     editor.setText("");
     if (!text) return;
 
+    // Feed normal prompt input (messages + slash commands) into the editor's
+    // built-in up/down history. Skip transient responses — approvals, question
+    // answers, and paste-codes shouldn't clutter recall.
+    if (!pendingInput && !pendingApproval && !pendingQuestion) {
+      editor.addToHistory(text);
+    }
+
     // A requested value (e.g. an OAuth paste-code) consumes the next submit.
     // Don't echo it verbatim — it may be a credential.
     if (pendingInput) {
