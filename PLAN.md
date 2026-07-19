@@ -1,5 +1,75 @@
 # Plan: `janet` — an npx-deployable Mastra agent for agent-knowledge
 
+---
+
+## Implementation status (2026-07-19)
+
+**Janet is functionally complete on branch `janet-agent`** (cleanly fast-forward-mergeable to
+`main`). Everything in Parts A–D and the launch-blocking half of Phase 2 is built; most is verified
+end-to-end against real models. This section is the source of truth for what's done — the detailed
+plan below is the original design and remains accurate except where noted inline (`RESOLVED:` /
+"Hard-won implementation findings").
+
+### Done + verified E2E
+
+- **Part A — skills refactor.** `reference/` → `references/`, links fixed, `version`/`tags`
+  frontmatter added. `.py` → committed zero-dep `.mjs` (esbuild) with **byte-identical** output;
+  the `.py` originals are retired behind committed golden snapshots (`packages/kb-tools/test/fixtures`).
+- **Part B — `packages/kb-tools`.** TS ports of `conformance` + `graph`; vitest parity tests (4/4);
+  `build-skill-scripts.mjs` regenerates the committed `.mjs`; CI drift-checks them.
+- **Part C — the janet app.** AgentController + Agent (Janet persona + trust-model guardrail + a
+  "Not a girl." running gag) + Memory + Workspace, all against **published** `@mastra/core@1.51`.
+  Directory-based (cwd = project, bundle = `knowledge/`), per-project threads via libSQL.
+- **Part D — models.** Vertex gateway (net-new) **verified E2E on Opus 4.1 AND 4.8** (Claude-on-Vertex
+  via `@ai-sdk/google-vertex/anthropic`, default `global` region). Bedrock gateway lifted (build-only,
+  no AWS creds to test). API-key providers resolve through core's ModelsDev gateway.
+- **Part D — auth.** Claude Max + Codex OAuth subsystem lifted from mastracode (Apache-2.0, NOTICE);
+  model resolver dispatches to the OAuth wrapper when a subscription credential is stored. **Build +
+  unit verified only — the interactive OAuth flow needs a real account.**
+- **TUI + headless.** Streaming chronological render, arrow-key `SelectList` questions + model
+  picker, approval policy (reads/edits/meta silent, execute asks with "always allow"), `/login`
+  `/logout` `/auth` `/model` `/models`, up/down prompt history, first-run onboarding picker +
+  persisted `settings.json`. Headless one-shot (`-p`) verified for init/ingest/query/lint/viz.
+- **Phase 2 — Herdr.** Native `HERDR_PANE_ID` state reporting + `janet --thread <id>` resume, both
+  verified (stub `herdr` on PATH; two-process thread continuity).
+- **CI + packaging.** `.github/workflows/ci.yml` (build, typecheck, tests, `.mjs` drift, lint,
+  tarball smoke). `npm pack` ships `dist` + `skills`, both `janet` + `ding` bins run from the tarball.
+
+### Not yet done / follow-ups (see the memory note `janet-status-and-polish`)
+
+- **OAuth end-to-end validation** — needs a real Claude Max / ChatGPT account.
+- **Codex `/login` is browser-mode only** — add `/login openai-codex device` for SSH/headless (pass
+  `callbacks.authMode` through; the callback already exists). Also rename the lifted
+  `MASTRACODE_OPENAI_CODEX_AUTH_MODE` env override to a janet name.
+- **Bedrock gateway** — build-only; validate once AWS creds are available.
+- **Herdr upstream PR** — the bundled-installer (`herdr integration install janet`) is a best-effort
+  follow-up, NOT launch-blocking (native reporting already works).
+- **Model picker** offers a curated few models per provider — expand `onboarding/providers.ts` for more.
+- The onboarding wizard could add an inline `/login` auth step; currently just the model picker.
+
+### Handoff notes for the next agent
+
+- **Build/test:** `pnpm install && pnpm -r build`; `pnpm -r test`; typecheck janet with
+  `cd packages/janet && npx tsc --noEmit` (tsup does NOT typecheck). Deterministic lint:
+  `node skills/kb-lint/scripts/conformance.mjs knowledge`.
+- **Run it E2E:** use Vertex via the `eg` profile `vertex.janet` (`eg exec vertex.janet -- janet …`)
+  or set `GOOGLE_VERTEX_PROJECT=sbrown-dev` (region defaults to `global`). Opus 4.8 works there. See
+  the memory note `janet-vertex-test-setup`. Run E2E with the shell sandbox disabled (ADC token
+  refresh needs `oauth2.googleapis.com`).
+- **Reference source:** `~/projects/mastra/mastracode` (patterns) and `~/projects/mastra`
+  (monorepo, for `@mastra/core` internals). Prefer the embedded docs in
+  `node_modules/@mastra/core/dist/docs/` — they match the installed version.
+- **The load-bearing gotchas** (also inline below under "Hard-won implementation findings"):
+  workspace `skills` paths must be workspace-relative (janet symlinks bundled skills into
+  `<project>/.agent-knowledge/skills`); `state.yolo === true` is the headless auto-approve gate;
+  a `toolCategoryResolver` is required or every tool prompts; the Vertex Claude middleware must NOT
+  strip reasoning (breaks multi-step continuity) but MUST drop a trailing assistant message
+  (Claude-on-Vertex rejects prefill); version-pin to mastracode's set (`ai@6`, `@ai-sdk/*@3`).
+- **Testing the TUI:** it needs a TTY — drive it with a Python `pty.fork()` harness (examples used
+  throughout the build); the accumulated buffer redraws each frame, so match on the latest content.
+
+---
+
 ## Context
 
 `agent-knowledge` today is a family of `kb-*` **skills** (markdown `SKILL.md` prompts + two Python
