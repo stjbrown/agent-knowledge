@@ -37,6 +37,13 @@ plan below is the original design and remains accurate except where noted inline
 
 ### Not yet done / follow-ups (see the memory note `janet-status-and-polish`)
 
+- **npm package name — DECISION PENDING (blocks publish).** `agent-knowledge` is already
+  taken on npm by someone else, so `packages/janet/package.json` currently has an unpublishable
+  name. Finalists the owner narrowed to (2026-07-19): **`@stjbrown/agent-knowledge`** (scoped,
+  keeps continuity with the repo / skills.sh package / plugin) or **`janet-agent`** (unscoped,
+  matches the branch). Pick one, then update: `packages/janet/package.json` `name`, the
+  `npx agent-knowledge` references in README + PLAN, and the CI tarball smoke test. The bins
+  (`janet` + `ding`) do NOT change either way. `janet` and `okf` are both squatted on npm.
 - **OAuth end-to-end validation** — needs a real Claude Max / ChatGPT account.
 - **Codex `/login` is browser-mode only** — add `/login openai-codex device` for SSH/headless (pass
   `callbacks.authMode` through; the callback already exists). Also rename the lifted
