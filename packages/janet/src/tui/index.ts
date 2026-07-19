@@ -28,6 +28,8 @@ import { bootJanet, type BootOptions } from "../agent/controller.js";
 import { messageText } from "../headless/format.js";
 import { GREETING } from "../agent/persona.js";
 import { getAuthStorage } from "../gateways/oauth/claude-max.js";
+import { loadSettings, completeOnboarding } from "../onboarding/settings.js";
+import { availableModels } from "../onboarding/providers.js";
 import { c, editorTheme, markdownTheme } from "./theme.js";
 
 /** OAuth providers janet can log in to. */
@@ -107,9 +109,12 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
   // initialState (reads/edits/meta never prompt; only execute asks, with an
   // "always allow" option) — see INTERACTIVE_RULES in controller.ts.
 
-  const envModel = process.env["JANET_MODEL"];
-  if (!session.model.hasSelection() && envModel) {
-    await session.model.switch({ modelId: envModel });
+  // Model precedence: an already-persisted per-thread selection, else
+  // JANET_MODEL, else the global onboarding default. If none, the first-run
+  // wizard runs after the UI is up.
+  const presetModel = process.env["JANET_MODEL"] || loadSettings().defaultModelId;
+  if (!session.model.hasSelection() && presetModel) {
+    await session.model.switch({ modelId: presetModel });
   }
 
   const terminal = new ProcessTerminal();
@@ -502,6 +507,41 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
     }
   };
 
+  // First-run onboarding: no model configured → help the user pick one from the
+  // providers that are actually reachable, and persist the choice globally.
+  const runOnboarding = (): void => {
+    const choices = availableModels();
+    addLine(c.accentBold("  Let's pick a model to get you started."));
+    if (!choices.length) {
+      addLine(c.dim("  No providers are configured yet. Set one up, then use /model:"));
+      addLine(c.dim("    • Vertex AI:   gcloud auth application-default login  (+ GOOGLE_VERTEX_PROJECT)"));
+      addLine(c.dim("    • Anthropic:   set ANTHROPIC_API_KEY, or /login anthropic"));
+      addLine(c.dim("    • OpenAI:      set OPENAI_API_KEY, or /login openai-codex"));
+      addLine(c.dim("    • Bedrock:     configure AWS credentials"));
+      updateStatus();
+      return;
+    }
+    addLine(c.dim("  ↑/↓ to move, enter to choose:"));
+    const select = new SelectList(
+      choices.map((ch) => ({ value: ch.id, label: ch.label, description: ch.via })),
+      Math.min(choices.length, 8),
+      editorTheme.selectList,
+    );
+    select.onSelect = (item: SelectItem) => {
+      chat.removeChild(select);
+      activeSelect = null;
+      ui.setFocus(editor);
+      void session.model.switch({ modelId: item.value });
+      completeOnboarding(item.value, new Date().toISOString());
+      addLine(c.accentBold(`  ✓ Using ${item.value}.`) + c.dim("  Change it anytime with /model."));
+      updateStatus();
+    };
+    activeSelect = select;
+    chat.addChild(select);
+    ui.setFocus(select);
+    updateStatus();
+  };
+
   addLine(c.accentBold(GREETING));
   addLine(
     c.dim(
@@ -513,6 +553,8 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
   ui.start();
   ui.setFocus(editor);
   ui.requestRender();
+
+  if (!session.model.hasSelection()) runOnboarding();
 
   // The TUI owns the process from here; exit happens via shutdown().
   return await new Promise<number>(() => {});

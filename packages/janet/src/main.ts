@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { checkConformance, formatReport } from "@agent-knowledge/kb-tools";
+import { loadSettings } from "./onboarding/settings.js";
 import { parseArgs } from "./headless/flags.js";
 import { runHeadless } from "./headless/run.js";
 import { buildDirective, isSubcommand } from "./commands.js";
@@ -30,7 +31,12 @@ Options:
 Also installed as \`ding\` (you summon Janet with a ding).`;
 
 function resolveModelId(values: Record<string, string>): string | undefined {
-  return values["model"] ?? process.env["JANET_MODEL"] ?? undefined;
+  return (
+    values["model"] ??
+    process.env["JANET_MODEL"] ??
+    loadSettings().defaultModelId ??
+    undefined
+  );
 }
 
 async function main(argv: string[]): Promise<number> {
