@@ -1,6 +1,7 @@
 import { hasGoogleCredentials } from "../gateways/vertex.js";
 import { hasAwsCredentials } from "../gateways/bedrock.js";
 import { getAuthStorage } from "../gateways/oauth/claude-max.js";
+import { loadSettings } from "./settings.js";
 
 export interface ModelChoice {
   /** Full model id, e.g. "vertex/claude-opus-4-8". */
@@ -18,12 +19,12 @@ export interface ModelChoice {
  * OpenAI's Codex catalog changes.
  */
 const CODEX_MODELS: ReadonlyArray<{ id: string; label: string }> = [
+  { id: "gpt-5.6-codex", label: "GPT-5.6 Codex" },
+  { id: "gpt-5.6", label: "GPT-5.6" },
   { id: "gpt-5.5-codex", label: "GPT-5.5 Codex" },
   { id: "gpt-5.5", label: "GPT-5.5" },
   { id: "gpt-5.1-codex", label: "GPT-5.1 Codex" },
-  { id: "gpt-5.1", label: "GPT-5.1" },
   { id: "gpt-5-codex", label: "GPT-5 Codex" },
-  { id: "gpt-5", label: "GPT-5" },
   { id: "codex-mini-latest", label: "Codex Mini" },
 ];
 
@@ -80,6 +81,16 @@ export function availableModels(): ModelChoice[] {
   }
   if (hasEnv("GOOGLE_GENERATIVE_AI_API_KEY")) {
     out.push({ id: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro", via: "Google (API key)" });
+  }
+
+  // Models the user has used directly (via /model or --model) that aren't
+  // already listed — keeps the picker current as providers ship new models.
+  const known = new Set(out.map((m) => m.id));
+  for (const id of loadSettings().customModels ?? []) {
+    if (!known.has(id)) {
+      out.push({ id, label: id.split("/").pop() ?? id, via: "saved" });
+      known.add(id);
+    }
   }
 
   return out;

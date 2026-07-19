@@ -28,7 +28,7 @@ import { bootJanet, type BootOptions } from "../agent/controller.js";
 import { messageText } from "../headless/format.js";
 import { GREETING } from "../agent/persona.js";
 import { getAuthStorage } from "../gateways/oauth/claude-max.js";
-import { loadSettings, completeOnboarding } from "../onboarding/settings.js";
+import { loadSettings, completeOnboarding, rememberModel } from "../onboarding/settings.js";
 import { availableModels } from "../onboarding/providers.js";
 import { c, editorTheme, markdownTheme } from "./theme.js";
 
@@ -442,6 +442,7 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
         }
         await session.model.switch({ modelId: id });
         completeOnboarding(id, new Date().toISOString());
+        rememberModel(id); // so a hand-typed model shows up in the picker next time
         addLine(c.dim(`Model set to ${id}.`));
         updateStatus();
         break;

@@ -7,6 +7,8 @@ export interface JanetSettings {
   onboarding?: { completedAt: string; version: number };
   /** The persisted default model id, applied when no --model / JANET_MODEL is given. */
   defaultModelId?: string;
+  /** Model ids the user has used directly — surfaced in the picker afterward. */
+  customModels?: string[];
 }
 
 export const ONBOARDING_VERSION = 1;
@@ -39,4 +41,18 @@ export function completeOnboarding(modelId: string, stampedAt: string): void {
 
 export function hasOnboarded(): boolean {
   return loadSettings().onboarding !== undefined;
+}
+
+/**
+ * Remember a model id the user selected directly so it appears in the picker on
+ * later runs. Keeps the picker current without code changes as providers ship
+ * new models. Most-recent-first, capped.
+ */
+export function rememberModel(modelId: string): void {
+  const id = modelId.trim();
+  if (!id) return;
+  const settings = loadSettings();
+  const rest = (settings.customModels ?? []).filter((m) => m !== id);
+  settings.customModels = [id, ...rest].slice(0, 20);
+  saveSettings(settings);
 }
