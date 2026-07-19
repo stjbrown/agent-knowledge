@@ -48,8 +48,8 @@ class JanetEditor extends Editor {
 }
 
 const HELP_TEXT = `Commands:
-  /model <provider/id>   Switch model (e.g. /model vertex/claude-opus-4-1)
-  /models                List models for configured providers
+  /models                Pick a model from a list (arrow keys)
+  /model [provider/id]   Open the picker, or switch directly by id
   /login <provider>      Log in with a subscription (anthropic, openai-codex)
   /logout <provider>     Remove stored credentials for a provider
   /auth                  Show which providers are authenticated
@@ -330,6 +330,47 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
     });
   };
 
+  // Interactive model picker: an arrow-key list of models from the providers
+  // reachable right now. Selecting one switches the session and persists it as
+  // the default. Shared by /models, /model (no arg), and first-run onboarding.
+  const showModelPicker = (intro?: string): void => {
+    const choices = availableModels();
+    if (intro) addLine(c.accentBold(intro));
+    if (!choices.length) {
+      addLine(c.dim("  No providers are configured yet. Set one up, then try again:"));
+      addLine(c.dim("    • Vertex AI:   gcloud auth application-default login  (+ GOOGLE_VERTEX_PROJECT)"));
+      addLine(c.dim("    • Anthropic:   set ANTHROPIC_API_KEY, or /login anthropic"));
+      addLine(c.dim("    • OpenAI:      set OPENAI_API_KEY, or /login openai-codex"));
+      addLine(c.dim("    • Bedrock:     configure AWS credentials"));
+      updateStatus();
+      return;
+    }
+    const current = session.model.hasSelection() ? session.model.get() : null;
+    addLine(c.dim("  ↑/↓ to move, enter to choose:"));
+    const select = new SelectList(
+      choices.map((ch) => ({
+        value: ch.id,
+        label: ch.id === current ? `${ch.label} (current)` : ch.label,
+        description: ch.via,
+      })),
+      Math.min(choices.length, 10),
+      editorTheme.selectList,
+    );
+    select.onSelect = (item: SelectItem) => {
+      chat.removeChild(select);
+      activeSelect = null;
+      ui.setFocus(editor);
+      void session.model.switch({ modelId: item.value });
+      completeOnboarding(item.value, new Date().toISOString());
+      addLine(c.accentBold(`  ✓ Using ${item.value}.`) + c.dim("  (saved as your default)"));
+      updateStatus();
+    };
+    activeSelect = select;
+    chat.addChild(select);
+    ui.setFocus(select);
+    updateStatus();
+  };
+
   const handleCommand = async (text: string): Promise<void> => {
     const [cmd, ...rest] = text.slice(1).split(/\s+/);
     switch (cmd) {
@@ -394,29 +435,20 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
       }
       case "model": {
         const id = rest.join(" ").trim();
+        // No id → open the picker; an explicit id still works for power users.
         if (!id) {
-          addLine(c.dim("Usage: /model <provider/id>"));
+          showModelPicker();
           break;
         }
         await session.model.switch({ modelId: id });
+        completeOnboarding(id, new Date().toISOString());
         addLine(c.dim(`Model set to ${id}.`));
         updateStatus();
         break;
       }
-      case "models": {
-        addLine(c.dim("Fetching available models…"));
-        try {
-          const models = await controller.listAvailableModels();
-          const withAuth = models.filter((m) => m.hasApiKey);
-          for (const m of (withAuth.length ? withAuth : models).slice(0, 30)) {
-            addLine(c.dim(`  ${m.hasApiKey ? "●" : "○"} `) + m.id);
-          }
-          addLine(c.dim("Pick one with /model <id>."));
-        } catch (err) {
-          addLine(c.error(`  Couldn't list models: ${(err as Error).message}`));
-        }
+      case "models":
+        showModelPicker();
         break;
-      }
       default:
         addLine(c.dim(`Unknown command /${cmd}. Try /help.`));
     }
@@ -476,7 +508,7 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
 
     addLine(c.user(`❯ ${text}`));
     if (!session.model.hasSelection()) {
-      addLine(c.warn("  No model selected. Set one with /model <provider/id> (or JANET_MODEL)."));
+      showModelPicker("  Pick a model first:");
       return;
     }
     void session.sendMessage({ content: text }).catch((err: Error) => {
@@ -507,41 +539,6 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
     }
   };
 
-  // First-run onboarding: no model configured → help the user pick one from the
-  // providers that are actually reachable, and persist the choice globally.
-  const runOnboarding = (): void => {
-    const choices = availableModels();
-    addLine(c.accentBold("  Let's pick a model to get you started."));
-    if (!choices.length) {
-      addLine(c.dim("  No providers are configured yet. Set one up, then use /model:"));
-      addLine(c.dim("    • Vertex AI:   gcloud auth application-default login  (+ GOOGLE_VERTEX_PROJECT)"));
-      addLine(c.dim("    • Anthropic:   set ANTHROPIC_API_KEY, or /login anthropic"));
-      addLine(c.dim("    • OpenAI:      set OPENAI_API_KEY, or /login openai-codex"));
-      addLine(c.dim("    • Bedrock:     configure AWS credentials"));
-      updateStatus();
-      return;
-    }
-    addLine(c.dim("  ↑/↓ to move, enter to choose:"));
-    const select = new SelectList(
-      choices.map((ch) => ({ value: ch.id, label: ch.label, description: ch.via })),
-      Math.min(choices.length, 8),
-      editorTheme.selectList,
-    );
-    select.onSelect = (item: SelectItem) => {
-      chat.removeChild(select);
-      activeSelect = null;
-      ui.setFocus(editor);
-      void session.model.switch({ modelId: item.value });
-      completeOnboarding(item.value, new Date().toISOString());
-      addLine(c.accentBold(`  ✓ Using ${item.value}.`) + c.dim("  Change it anytime with /model."));
-      updateStatus();
-    };
-    activeSelect = select;
-    chat.addChild(select);
-    ui.setFocus(select);
-    updateStatus();
-  };
-
   addLine(c.accentBold(GREETING));
   addLine(
     c.dim(
@@ -554,7 +551,8 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
   ui.setFocus(editor);
   ui.requestRender();
 
-  if (!session.model.hasSelection()) runOnboarding();
+  // First run (no model configured): open the picker to get set up.
+  if (!session.model.hasSelection()) showModelPicker("  Let's pick a model to get you started.");
 
   // The TUI owns the process from here; exit happens via shutdown().
   return await new Promise<number>(() => {});
