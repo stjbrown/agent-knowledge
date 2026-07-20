@@ -1,28 +1,36 @@
 # agent-knowledge
 
-**Give your coding agent a knowledge base that gets better over time.**
+**Janet builds and maintains a portable, Git-backed LLM wiki using the Open Knowledge Format
+(OKF).**
 
-`agent-knowledge` turns project documents, decisions, notes, and conversations into a portable
-Markdown wiki that an agent maintains for you. Ask a question and get a cited answer. Add a source
-and the agent integrates it with what the project already knows. Run a health check and it finds
-stale claims, contradictions, and orphaned pages before the wiki quietly rots.
+Run Janet directly, call her as a subagent, or add her knowledge-management skills to the coding
+agent you already use. In every form, she turns project documents, decisions, notes, and
+conversations into a connected Markdown knowledge base that improves over time.
 
-Everything stays in your repository as plain Markdown + Git: readable without special tooling,
-diffable in code review, and portable across agents.
+Ask a question and get a cited answer. Add a source and Janet integrates it with what the project
+already knows. Run a health check and she finds stale claims, contradictions, and orphaned pages
+before the wiki quietly rots.
 
-## Two ways to use it
+Everything remains plain Markdown and Git: readable without special tooling, reviewable in pull
+requests, and portable across agents.
 
-**1. Janet — a standalone agent (`npx @stjbrown/agent-knowledge`).** A self-contained CLI agent, purpose-built
-to create and tend an OKF knowledge bundle. Run `janet` in any project and chat, or drive her
-headless from scripts and CI. Bring your own model — Claude, Gemini, GPT — via Google Vertex, Amazon
-Bedrock, API keys, or a Claude Max / ChatGPT subscription.
+## Ways to work with Janet
 
-**2. The skills — drop into the agent you already use.** The same knowledge-tending behavior packaged
+**1. Run Janet directly (`npx @stjbrown/agent-knowledge`).** Use the self-contained CLI in any
+project and chat with Janet, or drive her headlessly from scripts and CI. Bring your own model,
+including Claude, Gemini, or GPT, through Google Vertex, Amazon Bedrock, API keys, or a Claude Max or
+ChatGPT subscription.
+
+**2. Call Janet as a subagent.** Delegate ingestion, research, queries, and knowledge maintenance to
+a focused subagent while your primary agent stays on the larger task. The subagent can use Janet's
+headless CLI or load the same `kb-*` skills directly.
+
+**3. Add Janet's skills to the agent you already use.** The knowledge-tending behavior is packaged
 as [Agent Skills](https://agentskills.io) for Claude Code, Cursor, Codex, and 20+ other hosts. No new
-runtime; your existing agent gains the `kb-*` capabilities.
+runtime is required; your existing agent gains the `kb-*` capabilities.
 
-Both are powered by the same `kb-*` skills, so they behave identically — Janet just ships her own
-runtime, model selection, and TUI around them.
+Every mode is powered by the same `kb-*` skills. The standalone Janet CLI adds its own runtime,
+model selection, and TUI around them.
 
 ---
 
