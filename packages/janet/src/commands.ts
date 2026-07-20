@@ -19,6 +19,26 @@ export function isSubcommand(x: string): x is SubcommandName {
   return (SUBCOMMANDS as readonly string[]).includes(x);
 }
 
+/** Preserve deterministic lint failures even when the agent audit itself succeeds. */
+export function commandExitCode(
+  command: SubcommandName,
+  agentExitCode: number,
+  conformanceErrors: number = 0,
+): number {
+  return command === "lint" && conformanceErrors > 0 ? 1 : agentExitCode;
+}
+
+export function headlessCapabilities(command: SubcommandName, flags: Set<string>) {
+  return {
+    allowEdits:
+      command === "init" ||
+      command === "ingest" ||
+      command === "viz" ||
+      (command === "lint" && flags.has("fix")),
+    allowExec: flags.has("allow-exec"),
+  };
+}
+
 export function buildDirective(cmd: SubcommandName, ctx: DirectiveContext): string {
   const bundle = ctx.bundlePath;
   switch (cmd) {

@@ -8,12 +8,18 @@
  */
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { RESERVED, collectMarkdown, frontmatter, normalizePosix, pythonJson } from "./shared.js";
+import {
+  RESERVED,
+  collectMarkdown,
+  frontmatter,
+  normalizePosix,
+  parseYamlFrontmatter,
+  pythonJson,
+} from "./shared.js";
 
 const HEADING_LOG_RE = /^##\s+(.+?)\s*$/gm;
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const LINK_RE = /\]\(([^)#\s]+\.md)(#[^)]*)?\)/g;
-const TYPE_RE = /^type:\s*(.+?)\s*$/m;
 
 export interface ConformanceReport {
   bundle: string;
@@ -40,7 +46,13 @@ export function checkConformance(bundle: string): ConformanceReport {
       // declare okf_version (SPEC §6/§11).
       if (fm !== null) {
         const isRootIndex = rel === "index.md";
-        if (!(isRootIndex && fm.includes("okf_version"))) {
+        const parsed = parseYamlFrontmatter(fm);
+        if (
+          !isRootIndex ||
+          parsed.errors.length > 0 ||
+          !parsed.data ||
+          !Object.prototype.hasOwnProperty.call(parsed.data, "okf_version")
+        ) {
           errors.push(`${rel}: reserved file must not carry frontmatter`);
         }
       }
@@ -59,8 +71,13 @@ export function checkConformance(bundle: string): ConformanceReport {
       errors.push(`${rel}: concept has no parseable frontmatter`);
       continue;
     }
-    const tm = TYPE_RE.exec(fm);
-    if (!tm || !tm[1]!.trim()) {
+    const parsed = parseYamlFrontmatter(fm);
+    if (parsed.errors.length > 0 || !parsed.data) {
+      errors.push(`${rel}: concept has no parseable frontmatter`);
+      continue;
+    }
+    const type = parsed.data["type"];
+    if (typeof type !== "string" || !type.trim()) {
       errors.push(`${rel}: missing or empty required 'type'`);
     }
   }

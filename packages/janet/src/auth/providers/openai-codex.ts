@@ -149,7 +149,12 @@ type TokenResponseJson = {
 
 function tokenResponseToResult(json: TokenResponseJson, logPrefix: string): TokenResult {
   if (!json.access_token || !json.refresh_token) {
-    console.error(`[openai-codex] ${logPrefix} response missing fields:`, json);
+    // Never log token response values: a partial response may still contain a
+    // valid access, refresh, or identity token.
+    console.error(
+      `[openai-codex] ${logPrefix} response missing required fields; received keys:`,
+      Object.keys(json),
+    );
     return { type: 'failed' };
   }
 
@@ -176,8 +181,7 @@ async function exchangeAuthorizationCode(code: string, verifier: string, redirec
   });
 
   if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    console.error('[openai-codex] code->token failed:', response.status, text);
+    console.error('[openai-codex] code->token failed:', response.status);
     return { type: 'failed' };
   }
 
@@ -197,8 +201,7 @@ async function refreshAccessToken(refreshToken: string): Promise<TokenResult> {
     });
 
     if (!response.ok) {
-      const text = await response.text().catch(() => '');
-      console.error('[openai-codex] Token refresh failed:', response.status, text);
+      console.error('[openai-codex] Token refresh failed:', response.status);
       return { type: 'failed' };
     }
 
@@ -582,7 +585,7 @@ export async function loginOpenAICodex(options: {
   mode?: 'browser' | 'device';
 }): Promise<OAuthCredentials> {
   const envMode =
-    typeof process !== 'undefined' && process.env?.MASTRACODE_OPENAI_CODEX_AUTH_MODE === 'device'
+    typeof process !== 'undefined' && process.env?.JANET_OPENAI_CODEX_AUTH_MODE === 'device'
       ? 'device'
       : undefined;
   const mode = options.mode ?? envMode ?? 'browser';

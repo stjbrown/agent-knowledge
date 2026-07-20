@@ -9,7 +9,15 @@
  */
 import { readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { FM_RE, RESERVED, collectMarkdown, conceptId, normalizePosix, pythonJson } from "./shared.js";
+import {
+  FM_RE,
+  RESERVED,
+  collectMarkdown,
+  conceptId,
+  normalizePosix,
+  parseYamlFrontmatter,
+  pythonJson,
+} from "./shared.js";
 
 const LINK_RE = /\[[^\]]*\]\(([^)#\s]+\.md)(?:#[^)]*)?\)/g;
 
@@ -34,50 +42,17 @@ export interface GraphModel {
   edges: { source: string; target: string }[];
 }
 
-type FrontmatterData = Record<string, string | string[]>;
+type FrontmatterData = Record<string, unknown>;
 
-/** Strip any leading/trailing `"` or `'` characters (Python str.strip("\"'")). */
-function stripQuotes(s: string): string {
-  return s.replace(/^["']+/, "").replace(/["']+$/, "");
-}
-
-/** Minimal YAML: scalars and simple `[a, b]` / `- item` lists. No deps. */
+/** Parse YAML for graph metadata; malformed frontmatter degrades to an empty map. */
 export function parseFrontmatter(fm: string): FrontmatterData {
-  const data: FrontmatterData = {};
-  let key: string | null = null;
-  for (const line of fm.split("\n")) {
-    if (/^\s+-\s+/.test(line) && key) {
-      if (!(key in data)) data[key] = [];
-      const cur = data[key];
-      if (Array.isArray(cur)) {
-        cur.push(stripQuotes(line.trim().slice(2).trim()));
-      }
-      continue;
-    }
-    const m = /^([A-Za-z0-9_]+):\s*(.*)$/.exec(line);
-    if (!m) continue;
-    key = m[1]!;
-    const val = m[2]!.trim();
-    if (val === "") {
-      data[key] = [];
-    } else if (val.startsWith("[") && val.endsWith("]")) {
-      data[key] = val
-        .slice(1, -1)
-        .split(",")
-        .map((x) => x.trim())
-        .filter((x) => x.length > 0)
-        .map(stripQuotes);
-    } else {
-      data[key] = stripQuotes(val);
-    }
-  }
-  return data;
+  return parseYamlFrontmatter(fm).data ?? {};
 }
 
 function scalar(data: FrontmatterData, k: string, dflt: string): string {
   const v = data[k];
   if (v === undefined) return dflt;
-  return Array.isArray(v) ? dflt : v;
+  return typeof v === "string" ? v : dflt;
 }
 
 /** Resolve a markdown link target (relative or bundle-absolute) to a concept id. */
@@ -116,7 +91,11 @@ export function extractGraph(bundle: string): GraphModel {
     }
 
     const rawTags = fm["tags"];
-    const tags = Array.isArray(rawTags) ? rawTags : rawTags === undefined ? [] : [rawTags];
+    const tags = Array.isArray(rawTags)
+      ? rawTags.filter((tag): tag is string => typeof tag === "string")
+      : typeof rawTags === "string"
+        ? [rawTags]
+        : [];
 
     nodes.set(cid, {
       id: cid,

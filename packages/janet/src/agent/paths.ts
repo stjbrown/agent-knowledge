@@ -3,7 +3,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { homedir, hostname } from "node:os";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 /** App-data dir name (global + project-local). */
 export const CONFIG_DIR_NAME = ".agent-knowledge";
@@ -59,9 +59,20 @@ export function resolveProjectPaths(opts: { dir?: string; bundle?: string } = {}
   const projectPath = resolve(opts.dir ?? process.cwd());
   const bundlePath = opts.bundle
     ? isAbsolute(opts.bundle)
-      ? opts.bundle
-      : join(projectPath, opts.bundle)
+      ? resolve(opts.bundle)
+      : resolve(projectPath, opts.bundle)
     : join(projectPath, BUNDLE_DIR_NAME);
+
+  const bundleRelative = relative(projectPath, bundlePath);
+  if (
+    bundleRelative === ".." ||
+    bundleRelative.startsWith(`..${sep}`) ||
+    isAbsolute(bundleRelative)
+  ) {
+    throw new Error(
+      `Bundle path must be inside the project workspace: ${bundlePath} is outside ${projectPath}`,
+    );
+  }
 
   const globalConfigDir = join(homedir(), CONFIG_DIR_NAME);
   const projectConfigDir = join(projectPath, CONFIG_DIR_NAME);

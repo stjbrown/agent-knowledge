@@ -12,7 +12,9 @@ export default defineConfig({
   clean: true,
   dts: false,
   sourcemap: true,
-  banner: { js: "#!/usr/bin/env node" },
+  banner: {
+    js: '#!/usr/bin/env node\nimport { createRequire as __janetCreateRequire } from "node:module";\nconst require = __janetCreateRequire(import.meta.url);',
+  },
   // Keep node_modules external — this is a CLI installed with its deps, not a
   // bundle — EXCEPT the private workspace package, which is unpublished and
   // must be inlined into dist.

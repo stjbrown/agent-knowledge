@@ -20,7 +20,6 @@ const ALWAYS_ALLOW = new Set([
   "task_complete",
   "task_check",
   "submit_plan",
-  "request_access",
 ]);
 
 const CATEGORY: Record<string, ToolCategory> = {

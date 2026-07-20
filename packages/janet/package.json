@@ -1,7 +1,18 @@
 {
-  "name": "agent-knowledge",
+  "name": "@stjbrown/agent-knowledge",
   "version": "0.1.0",
   "description": "Janet — an npx-deployable agent that builds and maintains an OKF knowledge bundle.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stjbrown/agent-knowledge.git",
+    "directory": "packages/janet"
+  },
+  "homepage": "https://github.com/stjbrown/agent-knowledge#readme",
+  "bugs": "https://github.com/stjbrown/agent-knowledge/issues",
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "bin": {
     "janet": "./dist/main.js",
@@ -9,7 +20,10 @@
   },
   "files": [
     "dist",
-    "skills"
+    "skills",
+    "README.md",
+    "LICENSE",
+    "NOTICE"
   ],
   "engines": {
     "node": ">=22"
@@ -34,6 +48,7 @@
     "ai": "^6.0.225",
     "chalk": "^5.3.0",
     "strip-ansi": "^7.1.0",
+    "yaml": "2.9.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {

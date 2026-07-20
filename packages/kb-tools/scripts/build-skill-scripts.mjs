@@ -34,7 +34,11 @@ for (const t of targets) {
     platform: "node",
     format: "esm",
     target: "node22",
-    banner: { js: "#!/usr/bin/env node" },
+    // The bundled YAML parser is CommonJS. Give esbuild's ESM compatibility
+    // wrapper a real Node require without leaving any runtime package dependency.
+    banner: {
+      js: '#!/usr/bin/env node\nimport { createRequire as __kbCreateRequire } from "node:module";\nconst require = __kbCreateRequire(import.meta.url);',
+    },
     legalComments: "none",
   });
   console.log(`built ${t.out}`);

@@ -11,6 +11,10 @@ export interface HeadlessOptions {
   modelId?: string;
   /** Resume an existing thread. */
   threadId?: string;
+  /** Allow workspace edits. Defaults to read-only. */
+  allowEdits?: boolean;
+  /** Allow shell execution. Defaults to false and should be an explicit user opt-in. */
+  allowExec?: boolean;
 }
 
 export interface HeadlessResult {
@@ -20,8 +24,8 @@ export interface HeadlessResult {
 }
 
 /**
- * Headless one-shot: boot a session, auto-approve tool calls, stream assistant
- * text to stdout, and resolve on `agent_end`. Pattern from mastracode's
+ * Headless one-shot: boot a fail-closed session, stream assistant text to
+ * stdout, and resolve on `agent_end`. Pattern adapted from mastracode's
  * `sdk/src/headless/`.
  */
 export async function runHeadless(opts: HeadlessOptions): Promise<HeadlessResult> {
@@ -29,11 +33,10 @@ export async function runHeadless(opts: HeadlessOptions): Promise<HeadlessResult
     dir: opts.dir,
     bundle: opts.bundle,
     interactive: false,
+    threadId: opts.threadId,
+    allowHeadlessEdits: opts.allowEdits,
+    allowHeadlessExec: opts.allowExec,
   });
-
-  if (opts.threadId) {
-    await session.thread.set({ threadId: opts.threadId });
-  }
   // Expose the active thread id so a supervisor (e.g. Herdr) can reattach with
   // `janet --thread <id>` after a restart.
   const activeThreadId = session.thread.getId();
@@ -106,8 +109,9 @@ export async function runHeadless(opts: HeadlessOptions): Promise<HeadlessResult
           break;
         }
         case "tool_approval_required":
-          // Headless policy: auto-approve everything.
-          void session.respondToToolApproval({ decision: "approve", toolCallId: event.toolCallId });
+          // Explicit permission rules should normally resolve without a prompt.
+          // If an unknown gate still reaches us, fail closed instead of hanging.
+          void session.respondToToolApproval({ decision: "decline", toolCallId: event.toolCallId });
           break;
         case "tool_suspended": {
           // Headless can't prompt the user. For ask_user, tell Janet to proceed
@@ -118,7 +122,7 @@ export async function runHeadless(opts: HeadlessOptions): Promise<HeadlessResult
             ? payload?.options?.length
               ? payload.options[0]!.label
               : "Proceed with reasonable defaults — this is a non-interactive run."
-            : { action: "approved" };
+            : { action: "denied" };
           void session.respondToToolSuspension({ toolCallId: event.toolCallId, resumeData });
           break;
         }
@@ -143,7 +147,12 @@ export async function runHeadless(opts: HeadlessOptions): Promise<HeadlessResult
       }
     });
 
-    void session.sendMessage({ content: opts.message + nonInteractiveNote });
+    void session.sendMessage({ content: opts.message + nonInteractiveNote }).catch((err: Error) => {
+      process.stderr.write(`\nJanet hit a snag: ${err.message}\n`);
+      exitCode = 1;
+      unsubscribe();
+      resolve();
+    });
   });
 
   process.stdout.write("\n");

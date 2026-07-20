@@ -1,7 +1,7 @@
 ---
 type: Spec Section
 title: "OKF §8 — Citations"
-description: External sources should be listed under a numbered # Citations heading at the bottom of a concept document.
+description: "External sources should be listed under a numbered # Citations heading at the bottom of a concept document."
 tags: [okf, spec, citations]
 timestamp: 2026-07-01
 ---

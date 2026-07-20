@@ -12,7 +12,7 @@ diffable in code review, and portable across agents.
 
 ## Two ways to use it
 
-**1. Janet — a standalone agent (`npx agent-knowledge`).** A self-contained CLI agent, purpose-built
+**1. Janet — a standalone agent (`npx @stjbrown/agent-knowledge`).** A self-contained CLI agent, purpose-built
 to create and tend an OKF knowledge bundle. Run `janet` in any project and chat, or drive her
 headless from scripts and CI. Bring your own model — Claude, Gemini, GPT — via Google Vertex, Amazon
 Bedrock, API keys, or a Claude Max / ChatGPT subscription.
@@ -32,9 +32,12 @@ Janet (after *The Good Place*'s all-knowing repository-of-knowledge) is the stan
 operates on the **current directory**: run her in `~/project/` and the bundle is `~/project/knowledge/`,
 with conversation history scoped to that project.
 
+`--bundle <path>` may select a different bundle inside the project. Janet intentionally rejects
+bundle paths outside the project workspace so its filesystem boundary remains meaningful.
+
 ```bash
 # Interactive chat (also installed as `ding` — you summon Janet with a ding)
-npx agent-knowledge
+npx @stjbrown/agent-knowledge
 # or, once installed globally:
 janet
 ```
@@ -51,15 +54,16 @@ janet viz                        # write an interactive graph (knowledge/graph.h
 ```
 
 Add `-p` (or pipe/redirect) for **headless** one-shot mode — streams to stdout, exits on completion,
-CI-friendly. `janet lint` runs a deterministic, token-free OKF conformance check before the agent's
-drift audit, so it's usable as a CI gate on its own.
+CI-friendly. Headless query/lint runs are read-only; init/ingest/viz may edit the workspace, while
+shell commands and Git commits require explicit `--allow-exec`. `janet lint` runs a deterministic,
+token-free OKF conformance check before the agent's drift audit, so it is usable as a CI gate.
 
 **Inside the chat:**
 
 | Command | |
 |---|---|
 | `/models` · `/model [id]` | pick a model from an arrow-key list, or switch by id |
-| `/login <anthropic\|openai-codex>` · `/logout` · `/auth` | subscription sign-in and status |
+| `/login <anthropic\|openai-codex> [browser\|device]` · `/logout` · `/auth` | subscription sign-in and status; device mode is available for remote OpenAI login |
 | `/help` · `/quit` | help; exit (or double Ctrl+C) |
 
 Just type to talk to Janet; ↑/↓ recalls previous prompts.
@@ -70,7 +74,7 @@ key **or** subscription OAuth), and Google Gemini (API key). Set the choice once
 `JANET_MODEL`, or the first-run picker) and it persists.
 
 Janet is built on [Mastra](https://mastra.ai) and lives in [`packages/janet`](./packages/janet)
-(published as `agent-knowledge`, bins `janet` + `ding`). She also reports lifecycle state natively to
+(published as `@stjbrown/agent-knowledge`, bins `janet` + `ding`). She also reports lifecycle state natively to
 [Herdr](https://herdr.dev) when run inside a Herdr pane.
 
 ---
@@ -180,4 +184,3 @@ runs the conformance/graph parity tests.
 [MIT](./LICENSE). The vendored OKF specification (`skills/kb/references/SPEC.md`) is from
 GoogleCloudPlatform/knowledge-catalog under Apache-2.0; portions of `packages/janet` (the auth
 subsystem and Bedrock gateway) are adapted from MastraCode under Apache-2.0. See [NOTICE](./NOTICE).
-```

@@ -31,6 +31,9 @@ _ingest_plan.md
 
 # prepack copy of repo-root skills/ into the publishable package (build artifact)
 packages/janet/skills/
+packages/janet/README.md
+packages/janet/LICENSE
+packages/janet/NOTICE
 
 # janet project-local config (thread scope, skill symlinks)
 .agent-knowledge/

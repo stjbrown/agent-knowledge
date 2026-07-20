@@ -26,7 +26,7 @@ jobs:
         run: pnpm -r build
 
       - name: Typecheck janet
-        run: pnpm --filter agent-knowledge typecheck
+        run: pnpm --filter @stjbrown/agent-knowledge typecheck
 
       - name: Parity + unit tests
         run: pnpm -r test
@@ -47,5 +47,12 @@ jobs:
         run: |
           cd packages/janet
           npm pack --silent
-          tar tzf agent-knowledge-*.tgz | grep -q 'package/dist/main.js'
-          tar tzf agent-knowledge-*.tgz | grep -q 'package/skills/kb-query/SKILL.md'
+          tarball="$PWD/$(find . -maxdepth 1 -name 'stjbrown-agent-knowledge-*.tgz' -print -quit)"
+          tar tzf "$tarball" | grep -q 'package/dist/main.js'
+          tar tzf "$tarball" | grep -q 'package/skills/kb-query/SKILL.md'
+          tar tzf "$tarball" | grep -q 'package/LICENSE'
+          tar tzf "$tarball" | grep -q 'package/NOTICE'
+          node -e 'const p=require("./package.json"); if(p.bin.janet!==p.bin.ding) process.exit(1)'
+          mkdir -p "$RUNNER_TEMP/janet-package-smoke"
+          npm install --ignore-scripts --prefix "$RUNNER_TEMP/janet-package-smoke" "$tarball"
+          "$RUNNER_TEMP/janet-package-smoke/node_modules/.bin/janet" --help >/dev/null

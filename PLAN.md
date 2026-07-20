@@ -37,17 +37,13 @@ plan below is the original design and remains accurate except where noted inline
 
 ### Not yet done / follow-ups (see the memory note `janet-status-and-polish`)
 
-- **npm package name — DECISION PENDING (blocks publish).** `agent-knowledge` is already
-  taken on npm by someone else, so `packages/janet/package.json` currently has an unpublishable
-  name. Finalists the owner narrowed to (2026-07-19): **`@stjbrown/agent-knowledge`** (scoped,
-  keeps continuity with the repo / skills.sh package / plugin) or **`janet-agent`** (unscoped,
-  matches the branch). Pick one, then update: `packages/janet/package.json` `name`, the
-  `npx agent-knowledge` references in README + PLAN, and the CI tarball smoke test. The bins
-  (`janet` + `ding`) do NOT change either way. `janet` and `okf` are both squatted on npm.
+- **npm package name — RESOLVED for launch.** Publish as **`@stjbrown/agent-knowledge`**; the bins
+  remain `janet` + `ding`. A future rename of the whole project to `janet-agent` remains open, but
+  it does not block the initial scoped release. See [`REVIEW.md`](./REVIEW.md) for the release
+  checklist.
 - **OAuth end-to-end validation** — needs a real Claude Max / ChatGPT account.
-- **Codex `/login` is browser-mode only** — add `/login openai-codex device` for SSH/headless (pass
-  `callbacks.authMode` through; the callback already exists). Also rename the lifted
-  `MASTRACODE_OPENAI_CODEX_AUTH_MODE` env override to a janet name.
+- **Codex remote login — RESOLVED.** `/login openai-codex device` selects the device-code flow for
+  SSH/headless environments; `JANET_OPENAI_CODEX_AUTH_MODE=device` is the environment override.
 - **Bedrock gateway** — build-only; validate once AWS creds are available.
 - **Herdr upstream PR** — the bundled-installer (`herdr integration install janet`) is a best-effort
   follow-up, NOT launch-blocking (native reporting already works).
@@ -68,8 +64,9 @@ plan below is the original design and remains accurate except where noted inline
   `node_modules/@mastra/core/dist/docs/` — they match the installed version.
 - **The load-bearing gotchas** (also inline below under "Hard-won implementation findings"):
   workspace `skills` paths must be workspace-relative (janet symlinks bundled skills into
-  `<project>/.agent-knowledge/skills`); `state.yolo === true` is the headless auto-approve gate;
-  a `toolCategoryResolver` is required or every tool prompts; the Vertex Claude middleware must NOT
+  `<project>/.agent-knowledge/skills`); headless sessions use explicit command-specific permission
+  rules and fail closed rather than enabling `state.yolo`; a `toolCategoryResolver` is required or
+  every tool prompts; the Vertex Claude middleware must NOT
   strip reasoning (breaks multi-step continuity) but MUST drop a trailing assistant message
   (Claude-on-Vertex rejects prefill); version-pin to mastracode's set (`ai@6`, `@ai-sdk/*@3`).
 - **Testing the TUI:** it needs a TTY — drive it with a Python `pty.fork()` harness (examples used
@@ -88,7 +85,7 @@ We want to copy the **packaging pattern** of a standalone, npx-installable agent
 agent-knowledge's **purpose**: create and manage an OKF knowledge bundle (NOT generate code docs).
 
 The result is a new agent — **persona/command `janet`** (after The Good Place's all-knowing
-repository-of-knowledge assistant), shipped in the **package `agent-knowledge`** — built on **native
+repository-of-knowledge assistant), shipped in the **package `@stjbrown/agent-knowledge`** — built on **native
 Mastra primitives + the `AgentController` layer** (not `@mastra/code-sdk`, and not rolling our own
 agent loop). It **reuses the repo's existing `kb-*` skills** as its behavior (via Mastra's native
 workspace-skills feature, which follows the same Agent Skills spec the skills already conform to),
@@ -101,8 +98,8 @@ plugins, OM, web, multi-mode).
 
 ## Decisions locked in (from discussion)
 
-- Persona named **Janet**; published package name stays **`agent-knowledge`**; **two bins from the
-  same entry point: `janet` and `ding`** (you summon Janet with a ding). So `npx agent-knowledge`,
+- Persona named **Janet**; launch package is **`@stjbrown/agent-knowledge`**; **two bins from the
+  same entry point: `janet` and `ding`** (you summon Janet with a ding). So `npx @stjbrown/agent-knowledge`,
   `janet`, and `ding` all work. Known, accepted: the Janet programming language also installs a
   `janet` binary — `ding` doubles as the collision-free alias.
 - **Directory-based by default** (like Claude Code / pi): `janet` operates on the **current working
@@ -266,8 +263,9 @@ Wiring mirrors the **minimal viable subset** confirmed in `mastracode/sdk/src/in
   `new Workspace({ filesystem: new LocalFilesystem({ basePath: projectPath, allowedPaths }),
   sandbox: new LocalSandbox({ workingDirectory: projectPath }), tools, skills: skillPaths })`.
   `projectPath` = cwd (where `knowledge/` lives), read from controller state. **Trust-model
-  enforcement via `tools` config**: `requireReadBeforeWrite: true` on `write_file`; `requireApproval`
-  on write/delete/execute in interactive mode (auto-approved by headless policy).
+  enforcement via `tools` config**: `requireReadBeforeWrite: true` on `write_file`; command
+  execution asks in interactive mode. Headless uses command-specific rules: query/lint are
+  read-only, known write commands allow edits, and execution requires `--allow-exec`.
 - **controller.ts** — `new AgentController({ id:'agent-knowledge', storage, agent, stateSchema
   (projectPath, configDir, modelId), initialState, modes:[{id:'build',name:'Build',
   metadata:{default:true}}], workspace: getWorkspace })`; `await controller.init()` (builds internal
@@ -281,8 +279,8 @@ Wiring mirrors the **minimal viable subset** confirmed in `mastracode/sdk/src/in
 - `janet init | ingest <src…> | query "<q>" | lint [--fix] | viz [scope]` → build session, send a
   **directive message** telling Janet to load & follow the matching skill (`kb-init`/`kb-ingest`/
   `kb-query`/`kb-lint`/`kb-visualize`) against the target bundle (default `knowledge/`).
-- `--print`/`-p`, or piped/non-TTY → **headless** (`headless/run.ts`): auto-approve policy, stream to
-  stdout, exit on `agent_end`. Pattern from `mastracode/sdk/src/headless/`.
+- `--print`/`-p`, or piped/non-TTY → **headless** (`headless/run.ts`): fail-closed permission policy,
+  stream to stdout, exit on `agent_end`. Pattern adapted from `mastracode/sdk/src/headless/`.
 - `--help`/`-h`, `--version`.
 - **Model controls**: interactive `/models`, `/login`, `/logout`, `/api-keys`, `/custom-providers`,
   `/setup`; headless `--model 'provider/model'` / `JANET_MODEL` (Part D). First interactive run with no
@@ -412,7 +410,7 @@ Dev: `tsup`, `tsx`, `typescript`, `esbuild` (kb-tools), `vitest`. `engines.node 
    into `.agents/skills` and confirm the common-dir copy shadows the bundled one (and is shared with a
    host agent).
 9. **Packaging**: `npm pack --dry-run` in `packages/janet` shows `dist/` + `skills/` shipped;
-   `npx ./agent-knowledge-*.tgz lint` runs from the tarball, and a global install from the tarball
+   `npx ./stjbrown-agent-knowledge-*.tgz lint` runs from the tarball, and a global install from the tarball
    exposes **both** `janet` and `ding` on PATH (same entry point).
 
 ## Phase 2 — Herdr integration (**native support ships with launch; upstream listing is a buzz lever**)
@@ -489,12 +487,11 @@ integration surface; a Herdr instance is needed to test the launch-blocking item
   `<project>/.agent-knowledge/skills/` and configures `skills: [".agent-knowledge/skills"]`;
   symlink targets go in `LocalFilesystem.allowedPaths`. A real (non-symlink) dir there is left
   alone, so a user's `npx skills add` copy shadows the bundled one.
-- **`state.yolo === true` is the session-wide auto-approve gate** (core reads it directly). It
-  must be part of the controller `stateSchema` + `initialState`. Without it every tool call
-  suspends for approval, and resume-per-tool degrades the run (identical-message loops until max
-  output length). Headless sets `yolo: true`; interactive keeps approvals.
-- Headless approval backstop uses `session.respondToToolApproval({ decision: "approve" })`
-  (mastracode's API), not `approveToolCall`.
+- **`state.yolo === true` is the session-wide auto-approve gate** (core reads it directly), but
+  Janet deliberately leaves it false. `toolCategoryResolver` and schema-backed `permissionRules`
+  provide command-specific behavior while unknown future tools fail closed.
+- Headless approval backstop uses `session.respondToToolApproval({ decision: "decline" })`
+  (mastracode's API), not `approveToolCall`; known allowed categories do not reach the backstop.
 - Version pins matter: match mastracode's known-good set (`ai@^6`, `@ai-sdk/*@^3`), NOT latest
   (`ai@7`/`@ai-sdk/*@4` are a provider-spec major ahead of core).
 - Agent must be constructed with the workspace (agent-level `workspace:`) — the controller's

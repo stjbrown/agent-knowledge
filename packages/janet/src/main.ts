@@ -3,7 +3,12 @@ import { checkConformance, formatReport } from "@agent-knowledge/kb-tools";
 import { loadSettings } from "./onboarding/settings.js";
 import { parseArgs } from "./headless/flags.js";
 import { runHeadless } from "./headless/run.js";
-import { buildDirective, isSubcommand } from "./commands.js";
+import {
+  buildDirective,
+  commandExitCode,
+  headlessCapabilities,
+  isSubcommand,
+} from "./commands.js";
 import { resolveProjectPaths } from "./agent/paths.js";
 import { GREETING } from "./agent/persona.js";
 
@@ -21,10 +26,11 @@ Usage:
 
 Options:
   -C, --dir <path>           Operate on <path> instead of the current directory
-      --bundle <path>        Bundle location (default: <dir>/knowledge)
+      --bundle <path>        Bundle location within <dir> (default: knowledge)
   -p, --print                Headless: stream to stdout and exit
       --model <provider/id>  Model to use (or set JANET_MODEL)
       --thread <id>          Resume a thread
+      --allow-exec           Allow shell commands in a one-shot run
   -h, --help                 Show this help
   -v, --version              Show version
 
@@ -65,7 +71,7 @@ async function main(argv: string[]): Promise<number> {
     if (!headless) {
       const { runTui } = await import("./tui/index.js");
       if (modelId && !process.env["JANET_MODEL"]) process.env["JANET_MODEL"] = modelId;
-      return runTui({ dir, bundle: bundleOverride });
+      return runTui({ dir, bundle: bundleOverride, threadId });
     }
     process.stderr.write("No subcommand. Try `janet --help`.\n");
     return 2;
@@ -78,6 +84,7 @@ async function main(argv: string[]): Promise<number> {
 
   // `lint` runs the deterministic conformance check in-process first (no tokens,
   // CI-gateable), then hands the drift audit to the agent.
+  let conformanceErrors = 0;
   if (sub === "lint") {
     if (!existsSync(paths.bundlePath)) {
       process.stderr.write(
@@ -86,6 +93,7 @@ async function main(argv: string[]): Promise<number> {
       return 2;
     }
     const report = checkConformance(paths.bundlePath);
+    conformanceErrors = report.errors.length;
     process.stdout.write(formatReport(report) + "\n");
     // If no model is configured, stop after the deterministic pass (still useful
     // and exit-coded for CI).
@@ -111,6 +119,7 @@ async function main(argv: string[]): Promise<number> {
     args: parsed.positionals,
     flags: parsed.flags,
   });
+  const capabilities = headlessCapabilities(sub, parsed.flags);
 
   const result = await runHeadless({
     message: directive,
@@ -118,8 +127,9 @@ async function main(argv: string[]): Promise<number> {
     bundle: bundleOverride,
     modelId,
     threadId,
+    ...capabilities,
   });
-  return result.exitCode;
+  return commandExitCode(sub, result.exitCode, conformanceErrors);
 }
 
 main(process.argv.slice(2))

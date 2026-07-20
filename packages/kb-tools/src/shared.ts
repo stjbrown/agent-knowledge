@@ -1,8 +1,9 @@
 import { readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
+import { parseDocument } from "yaml";
 
-/** Frontmatter block at the very top: ---\n<body>\n--- (DOTALL, non-greedy). */
-export const FM_RE = /^---\n([\s\S]*?)\n---\n?/;
+/** Frontmatter block at the very top, accepting LF or CRLF. */
+export const FM_RE = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/;
 
 /** Reserved (non-concept) filenames. */
 export const RESERVED = new Set(["index.md", "log.md"]);
@@ -44,6 +45,24 @@ export function collectMarkdown(bundle: string): string[] {
 export function frontmatter(text: string): string | null {
   const m = FM_RE.exec(text);
   return m ? m[1]! : null;
+}
+
+export interface YamlFrontmatter {
+  data: Record<string, unknown> | null;
+  errors: string[];
+}
+
+/** Parse frontmatter as a YAML mapping and retain parser diagnostics. */
+export function parseYamlFrontmatter(fm: string): YamlFrontmatter {
+  const document = parseDocument(fm, { uniqueKeys: true });
+  const errors = document.errors.map((error) => error.message);
+  if (errors.length) return { data: null, errors };
+  const value = document.toJS() as unknown;
+  if (value === null) return { data: {}, errors: [] };
+  if (typeof value !== "object" || Array.isArray(value)) {
+    return { data: null, errors: ["frontmatter must be a YAML mapping"] };
+  }
+  return { data: value as Record<string, unknown>, errors: [] };
 }
 
 /** Strip a bundle-relative `.md` path to its concept id. */

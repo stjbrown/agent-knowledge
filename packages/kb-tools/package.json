@@ -19,6 +19,9 @@
     "build:skills": "node scripts/build-skill-scripts.mjs",
     "test": "vitest run"
   },
+  "dependencies": {
+    "yaml": "2.9.0"
+  },
   "devDependencies": {
     "@types/node": "^22.20.1",
     "esbuild": "^0.24.0",

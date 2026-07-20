@@ -7,9 +7,9 @@
  * whole answer streaming at the top while tools pile up underneath).
  *
  * Approvals are governed by the controller's tool-category policy: reads,
- * skills, task bookkeeping, ask_user, and bundle edits never prompt; only
- * command execution does — and that prompt offers "always allow" so it's a
- * one-time thing. Questions with options render as an arrow-key SelectList.
+ * skills, task bookkeeping, ask_user, and bundle edits never prompt. Execution,
+ * MCP, and unknown future tools ask — and the prompt offers "always allow" for
+ * the session. Questions with options render as an arrow-key SelectList.
  */
 import {
   Container,
@@ -50,7 +50,8 @@ class JanetEditor extends Editor {
 const HELP_TEXT = `Commands:
   /models                Pick a model from a list (arrow keys)
   /model [provider/id]   Open the picker, or switch directly by id
-  /login <provider>      Log in with a subscription (anthropic, openai-codex)
+  /login <provider> [mode]
+                         Log in; OpenAI mode is browser or device
   /logout <provider>     Remove stored credentials for a provider
   /auth                  Show which providers are authenticated
   /help                  This help
@@ -387,6 +388,14 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
           addLine(c.dim(`Usage: /login <${OAUTH_PROVIDERS.join(" | ")}>`));
           break;
         }
+        const authMode = rest[1]?.trim();
+        if (
+          authMode &&
+          (providerId !== "openai-codex" || !["browser", "device"].includes(authMode))
+        ) {
+          addLine(c.dim("Usage: /login openai-codex [browser | device]"));
+          break;
+        }
         addLine(c.dim(`Starting ${providerId} login…`));
         try {
           await getAuthStorage().login(providerId, {
@@ -398,6 +407,7 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
             onProgress: (m) => addLine(c.dim("  " + m)),
             onManualCodeInput: () => promptInput("Paste the code shown after you authorize:"),
             onPrompt: (p) => promptInput(p.message, p.placeholder),
+            ...(authMode ? { authMode } : {}),
           });
           addLine(c.accentBold(`  ✓ Logged in to ${providerId}.`));
           updateStatus();

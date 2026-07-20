@@ -16,8 +16,14 @@ export interface BootOptions {
   dir?: string;
   /** Bundle location override (--bundle). Defaults to <dir>/knowledge. */
   bundle?: string;
-  /** Headless auto-approves tool calls; interactive requires approval. */
+  /** Interactive sessions can ask for approval; headless sessions fail closed. */
   interactive: boolean;
+  /** Existing thread to hydrate and resume. */
+  threadId?: string;
+  /** Permit workspace edit tools in a headless session. */
+  allowHeadlessEdits?: boolean;
+  /** Permit shell execution in a headless session (explicit opt-in only). */
+  allowHeadlessExec?: boolean;
 }
 
 export interface JanetSessionBoot {
@@ -38,9 +44,8 @@ const stateSchema = z.object({
   projectPath: z.string(),
   bundlePath: z.string(),
   configDir: z.string(),
-  // Session-wide auto-approve: core's approval gate reads `state.yolo === true`
-  // and skips tool-approval suspensions entirely. Headless sets it; interactive
-  // keeps approvals on.
+  // Core's approval gate reads `state.yolo === true`; Janet keeps it false and
+  // uses explicit per-category policies so headless operation can fail closed.
   yolo: z.boolean(),
   // Tool-approval rules by category/tool. Must be in the schema or session state
   // strips it, and setForCategory / getRules silently no-op.
@@ -51,13 +56,34 @@ export type JanetState = z.infer<typeof stateSchema>;
 
 const MODES: AgentControllerMode[] = [{ id: "build", name: "Build" }];
 
-// Interactive approval policy: reads, skills, task bookkeeping, ask_user (category
-// null → always allow) and bundle edits never prompt; only command execution
-// asks — and that prompt offers "always allow". Headless relies on yolo instead.
+// Interactive approval policy: normal reads and edits are quiet, while execution,
+// MCP, and unknown future tools ask. Headless gets an explicit fail-closed policy
+// from `permissionRulesFor` and never relies on yolo.
 const INTERACTIVE_RULES = {
-  categories: { read: "allow", edit: "allow", other: "allow", mcp: "allow", execute: "ask" },
+  categories: { read: "allow", edit: "allow", other: "ask", mcp: "ask", execute: "ask" },
   tools: {},
 } as const;
+
+export function permissionRulesFor(opts: BootOptions) {
+  if (opts.interactive) return INTERACTIVE_RULES;
+  return {
+    categories: {
+      read: "allow",
+      edit: opts.allowHeadlessEdits ? "allow" : "deny",
+      execute: opts.allowHeadlessExec ? "allow" : "deny",
+      mcp: "deny",
+      other: "deny",
+    },
+    tools: {},
+  } as const;
+}
+
+export async function resumeThread(
+  session: { thread: { switch: (args: { threadId: string }) => Promise<void> } },
+  threadId?: string,
+): Promise<void> {
+  if (threadId) await session.thread.switch({ threadId });
+}
 
 /**
  * Build and initialize the AgentController, then mint the single per-process
@@ -94,8 +120,8 @@ export async function bootJanet(opts: BootOptions): Promise<JanetSessionBoot> {
       projectPath: paths.projectPath,
       bundlePath: paths.bundlePath,
       configDir: paths.globalConfigDir,
-      yolo: !opts.interactive,
-      ...(opts.interactive ? { permissionRules: INTERACTIVE_RULES } : {}),
+      yolo: false,
+      permissionRules: permissionRulesFor(opts),
     },
     workspace: () => workspace,
   });
@@ -105,6 +131,9 @@ export async function bootJanet(opts: BootOptions): Promise<JanetSessionBoot> {
     resourceId: paths.resourceId,
     ownerId: paths.ownerId,
   });
+  // `switch` hydrates persisted settings and rebinds the stream; `set` only
+  // changes the low-level binding and is not sufficient for a real resume.
+  await resumeThread(session, opts.threadId);
 
   // Native Herdr reporting when running inside a Herdr pane (no-op otherwise).
   const herdrDetach = attachHerdrReporter(session, { projectPath: paths.projectPath });

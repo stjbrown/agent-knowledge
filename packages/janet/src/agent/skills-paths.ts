@@ -8,11 +8,11 @@
  * each skill dir into `<project>/.agent-knowledge/skills/` and configuring the
  * workspace with that relative root.
  *
- * Layering (plan: local shadows bundled):
- * - A dedicated real copy at `~/.agent-knowledge/skills` (e.g. from
- *   `npx skills add`) becomes the symlink SOURCE instead of the bundled copy.
- * - A real (non-symlink) skill dir already present in the project-local root is
- *   left untouched — a user-managed copy wins over any symlink we'd create.
+ * Layering (local shadows bundled) is resolved independently for each skill:
+ * project `.agents/skills` → project `.claude/skills` → user equivalents →
+ * `~/.agent-knowledge/skills` → npm-bundled fallback. A real skill directory
+ * already present in the project-local mount is left untouched and wins over
+ * all generated links.
  */
 import fs from "node:fs";
 import os from "node:os";
@@ -21,22 +21,9 @@ import { CONFIG_DIR_NAME, bundledSkillsDir, ensureDir } from "./paths.js";
 
 /** The kb-* skills janet ships and knows how to drive. */
 const JANET_SKILL_NAMES = ["kb", "kb-init", "kb-ingest", "kb-query", "kb-lint", "kb-visualize"];
-const JANET_SKILL_SET = new Set(JANET_SKILL_NAMES);
 
 function isSkillDir(dir: string): boolean {
   return fs.existsSync(path.join(dir, "SKILL.md"));
-}
-
-/** True when `root` exists and every child dir is one of janet's kb-* skills. */
-function isDedicatedJanetRoot(root: string): boolean {
-  let entries: fs.Dirent[];
-  try {
-    entries = fs.readdirSync(root, { withFileTypes: true });
-  } catch {
-    return false;
-  }
-  const dirs = entries.filter((e) => e.isDirectory() || e.isSymbolicLink());
-  return dirs.length > 0 && dirs.every((e) => JANET_SKILL_SET.has(e.name));
 }
 
 export interface SkillMount {
@@ -52,16 +39,21 @@ export interface SkillMount {
  * to resolve through.
  */
 export function ensureSkillLinks(projectPath: string, homeDir: string = os.homedir()): SkillMount {
-  const globalRoot = path.join(homeDir, CONFIG_DIR_NAME, "skills");
   const bundled = bundledSkillsDir();
-  const sourceRoot = isDedicatedJanetRoot(globalRoot) ? globalRoot : bundled;
+  const sourceRoots = [
+    path.join(projectPath, ".agents", "skills"),
+    path.join(projectPath, ".claude", "skills"),
+    path.join(homeDir, ".agents", "skills"),
+    path.join(homeDir, ".claude", "skills"),
+    path.join(homeDir, CONFIG_DIR_NAME, "skills"),
+    bundled,
+  ];
 
   const linkRoot = path.join(projectPath, CONFIG_DIR_NAME, "skills");
   ensureDir(linkRoot);
+  const allowedPaths = new Set<string>([linkRoot]);
 
   for (const name of JANET_SKILL_NAMES) {
-    const src = path.join(sourceRoot, name);
-    if (!isSkillDir(src)) continue;
     const dest = path.join(linkRoot, name);
 
     let st: fs.Stats | undefined;
@@ -70,6 +62,15 @@ export function ensureSkillLinks(projectPath: string, homeDir: string = os.homed
     } catch {
       st = undefined;
     }
+
+    if (st && !st.isSymbolicLink()) {
+      if (isSkillDir(dest)) allowedPaths.add(dest);
+      continue;
+    }
+
+    const src = sourceRoots.map((root) => path.join(root, name)).find(isSkillDir);
+    if (!src) continue;
+    allowedPaths.add(src);
 
     if (st?.isSymbolicLink()) {
       // Repoint a stale link (e.g. package moved between installs).
@@ -80,11 +81,10 @@ export function ensureSkillLinks(projectPath: string, homeDir: string = os.homed
     } else if (!st) {
       fs.symlinkSync(src, dest, "dir");
     }
-    // A real dir (user-managed copy) is left alone — it wins.
   }
 
   return {
     relativeRoot: path.join(CONFIG_DIR_NAME, "skills"),
-    allowedPaths: [...new Set([sourceRoot, linkRoot])],
+    allowedPaths: [...allowedPaths],
   };
 }
