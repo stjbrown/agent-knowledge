@@ -2,7 +2,7 @@
 
 **Give your coding agent a knowledge base that gets better over time.**
 
-[![BundleDex](https://bundledex.net/badge/agent-knowledge.svg)](https://bundledex.net/bundles/agent-knowledge/)
+[![OKF BundleDex](https://bundledex.net/static-badge.svg)](https://bundledex.net)
 
 `agent-knowledge` turns project documents, decisions, notes, and conversations into a portable
 Markdown wiki that your agent maintains for you. Ask a question and get a cited answer. Add a source
