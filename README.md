@@ -1,6 +1,6 @@
 # agent-knowledge
 
-**Janet builds and maintains a portable, Git-backed LLM wiki using the Open Knowledge Format
+**Janet builds and maintains a portable LLM wiki in plain Markdown using the Open Knowledge Format
 (OKF).**
 
 Run Janet directly, call her as a subagent, or add her knowledge-management skills to the coding
@@ -11,8 +11,8 @@ Ask a question and get a cited answer. Add a source and Janet integrates it with
 already knows. Run a health check and she finds stale claims, contradictions, and orphaned pages
 before the wiki quietly rots.
 
-Everything remains plain Markdown and Git: readable without special tooling, reviewable in pull
-requests, and portable across agents.
+Everything remains plain Markdown: readable without special tooling, easy to diff and review, and
+portable across agents.
 
 ## Ways to work with Janet
 
