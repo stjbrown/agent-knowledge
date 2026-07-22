@@ -3,9 +3,9 @@ import type { ToolCategory } from "@mastra/core/agent-controller";
 /**
  * Classify janet's tools into permission categories (pattern: mastracode's
  * `permissions.ts`). The AgentController uses this to decide what needs
- * approval. Returning `null` means "always allow, never prompt" — reads,
- * skill loading, task bookkeeping, and ask_user are pure/interactive and never
- * mutate the project, so they should never interrupt the user.
+ * approval. Returning `null` means "no category", so tools that should never
+ * prompt also receive explicit per-tool `allow` rules from
+ * `JANET_ALWAYS_ALLOW_TOOL_RULES`.
  *
  * Without this resolver every tool falls to the default "ask" policy, which is
  * why an un-wired janet prompted for even read_file and skill.
@@ -21,6 +21,10 @@ const ALWAYS_ALLOW = new Set([
   "task_check",
   "submit_plan",
 ]);
+
+export const JANET_ALWAYS_ALLOW_TOOL_RULES = Object.fromEntries(
+  [...ALWAYS_ALLOW].map((toolName) => [toolName, "allow" as const]),
+) as Record<string, "allow">;
 
 const CATEGORY: Record<string, ToolCategory> = {
   mastra_workspace_read_file: "read",

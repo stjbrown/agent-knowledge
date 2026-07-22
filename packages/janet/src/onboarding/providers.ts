@@ -18,15 +18,39 @@ export interface ModelChoice {
  * convenience lineup — ANY id also works via `/model openai/<id>`. Edit here as
  * OpenAI's Codex catalog changes.
  */
-const CODEX_MODELS: ReadonlyArray<{ id: string; label: string }> = [
-  { id: "gpt-5.6-codex", label: "GPT-5.6 Codex" },
-  { id: "gpt-5.6", label: "GPT-5.6" },
-  { id: "gpt-5.5-codex", label: "GPT-5.5 Codex" },
+export const CODEX_MODELS: ReadonlyArray<{ id: string; label: string }> = [
+  { id: "gpt-5.6-sol", label: "GPT-5.6 Sol" },
+  { id: "gpt-5.6-terra", label: "GPT-5.6 Terra" },
+  { id: "gpt-5.6-luna", label: "GPT-5.6 Luna" },
   { id: "gpt-5.5", label: "GPT-5.5" },
-  { id: "gpt-5.1-codex", label: "GPT-5.1 Codex" },
-  { id: "gpt-5-codex", label: "GPT-5 Codex" },
-  { id: "codex-mini-latest", label: "Codex Mini" },
+  { id: "gpt-5.4", label: "GPT-5.4" },
+  { id: "gpt-5.4-mini", label: "GPT-5.4 Mini" },
 ];
+
+const LEGACY_CODEX_MODEL_IDS: Readonly<Record<string, string>> = {
+  "gpt-5.6-codex": "openai/gpt-5.6-sol",
+  "openai/gpt-5.6-codex": "openai/gpt-5.6-sol",
+  "gpt-5.5-codex": "openai/gpt-5.5",
+  "openai/gpt-5.5-codex": "openai/gpt-5.5",
+};
+
+/**
+ * Resolve a hand-typed or previously persisted model name to Mastra's required
+ * `provider/model` form when the active provider catalog makes it unambiguous.
+ * Also migrates the invalid Codex aliases Janet advertised before v0.1.0.
+ */
+export function normalizeModelSelection(
+  modelId: string,
+  choices: ReadonlyArray<ModelChoice>,
+): string {
+  const id = modelId.trim();
+  const legacy = LEGACY_CODEX_MODEL_IDS[id];
+  if (legacy) return legacy;
+  if (!id || id.includes("/")) return id;
+
+  const matches = choices.filter((choice) => choice.id.endsWith(`/${id}`));
+  return matches.length === 1 ? matches[0]!.id : id;
+}
 
 function hasOAuth(provider: string): boolean {
   try {
@@ -86,7 +110,8 @@ export function availableModels(): ModelChoice[] {
   // Models the user has used directly (via /model or --model) that aren't
   // already listed — keeps the picker current as providers ship new models.
   const known = new Set(out.map((m) => m.id));
-  for (const id of loadSettings().customModels ?? []) {
+  for (const savedId of loadSettings().customModels ?? []) {
+    const id = normalizeModelSelection(savedId, out);
     if (!known.has(id)) {
       out.push({ id, label: id.split("/").pop() ?? id, via: "saved" });
       known.add(id);

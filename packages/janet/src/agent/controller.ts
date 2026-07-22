@@ -8,7 +8,7 @@ import { ensureSkillLinks } from "./skills-paths.js";
 import { resolveProjectPaths, type ProjectPaths } from "./paths.js";
 import { createVertexGateway } from "../gateways/vertex.js";
 import { createBedrockGateway } from "../gateways/bedrock.js";
-import { janetToolCategory } from "./permissions.js";
+import { JANET_ALWAYS_ALLOW_TOOL_RULES, janetToolCategory } from "./permissions.js";
 import { attachHerdrReporter } from "../herdr/reporter.js";
 
 export interface BootOptions {
@@ -61,7 +61,7 @@ const MODES: AgentControllerMode[] = [{ id: "build", name: "Build" }];
 // from `permissionRulesFor` and never relies on yolo.
 const INTERACTIVE_RULES = {
   categories: { read: "allow", edit: "allow", other: "ask", mcp: "ask", execute: "ask" },
-  tools: {},
+  tools: { ...JANET_ALWAYS_ALLOW_TOOL_RULES },
 } as const;
 
 export function permissionRulesFor(opts: BootOptions) {
@@ -74,7 +74,7 @@ export function permissionRulesFor(opts: BootOptions) {
       mcp: "deny",
       other: "deny",
     },
-    tools: {},
+    tools: { ...JANET_ALWAYS_ALLOW_TOOL_RULES },
   } as const;
 }
 

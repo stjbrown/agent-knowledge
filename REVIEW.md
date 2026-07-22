@@ -28,7 +28,9 @@ describes the product and implementation; this file is the release-readiness che
 
 ## Verification gaps that need real credentials or external coordination
 
-- [ ] Validate Anthropic and OpenAI subscription OAuth end to end with real accounts.
+- [x] Validate OpenAI subscription OAuth end to end with a real account and model response from an
+  installed package.
+- [ ] Validate Anthropic subscription OAuth end to end with a real account.
 - [ ] Validate the Bedrock gateway with AWS credentials.
 - [x] Expose OpenAI browser and device-code login modes through the TUI `/login` command.
 - [ ] Decide whether a separate noninteractive login command is needed outside the TUI.
@@ -47,10 +49,15 @@ describes the product and implementation; this file is the release-readiness che
 
 ## Review evidence
 
-After the first remediation pass, the monorepo build and Janet typecheck pass; all 21 tests pass;
+After the latest remediation pass, the monorepo build and Janet typecheck pass; all 27 tests pass;
 the in-repo knowledge bundle has zero conformance errors or warnings; and fresh skill-script builds
 match the committed hashes. The packed `@stjbrown/agent-knowledge` artifact contains the expected
 metadata, documentation, executable, and six skills. Its installed-tarball smoke test is part of CI.
+
+The installed-package OpenAI test completed Janet's browser OAuth flow with a ChatGPT account,
+selected `openai/gpt-5.6-sol`, and received a real model response. The same test exposed and drove
+fixes for the stale Codex model catalog, bare model-id normalization, an abandoned OAuth input
+prompt, and unnecessary approvals for `skill` and `ask_user` orchestration tools.
 
 The remaining production dependency advisory is low severity in an indirect
 `@ai-sdk/provider-utils` version (GHSA-866g-f22w-33x8). No patched release exists in the currently

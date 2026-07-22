@@ -24,6 +24,18 @@ describe("Janet permission policy", () => {
     expect(rules.categories.execute).toBe("allow");
   });
 
+  it("always allows orchestration tools without widening unknown categories", () => {
+    const interactive = permissionRulesFor({ interactive: true });
+    const headless = permissionRulesFor({ interactive: false });
+
+    for (const toolName of ["skill", "ask_user", "submit_plan", "task_write"]) {
+      expect(interactive.tools[toolName]).toBe("allow");
+      expect(headless.tools[toolName]).toBe("allow");
+      expect(janetToolCategory(toolName)).toBeNull();
+    }
+    expect(interactive.tools.future_mutating_tool).toBeUndefined();
+  });
+
   it("asks interactively for unknown and access-escalation tools", () => {
     const rules = permissionRulesFor({ interactive: true });
     expect(rules.categories.other).toBe("ask");

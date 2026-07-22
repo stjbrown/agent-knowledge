@@ -29,7 +29,7 @@ import { messageText } from "../headless/format.js";
 import { GREETING } from "../agent/persona.js";
 import { getAuthStorage } from "../gateways/oauth/claude-max.js";
 import { loadSettings, completeOnboarding, rememberModel } from "../onboarding/settings.js";
-import { availableModels } from "../onboarding/providers.js";
+import { availableModels, normalizeModelSelection } from "../onboarding/providers.js";
 import { c, editorTheme, markdownTheme } from "./theme.js";
 
 /** OAuth providers janet can log in to. */
@@ -113,7 +113,10 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
   // Model precedence: an already-persisted per-thread selection, else
   // JANET_MODEL, else the global onboarding default. If none, the first-run
   // wizard runs after the UI is up.
-  const presetModel = process.env["JANET_MODEL"] || loadSettings().defaultModelId;
+  const persistedModel = process.env["JANET_MODEL"] || loadSettings().defaultModelId;
+  const presetModel = persistedModel
+    ? normalizeModelSelection(persistedModel, availableModels())
+    : undefined;
   if (!session.model.hasSelection() && presetModel) {
     await session.model.switch({ modelId: presetModel });
   }
@@ -413,6 +416,12 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
           updateStatus();
         } catch (err) {
           addLine(c.error(`  Login failed: ${(err as Error).message}`));
+        } finally {
+          // A successful browser callback can win the race with the manual-code
+          // prompt. Disarm that abandoned prompt so it cannot consume the next
+          // chat message after login completes.
+          pendingInput = null;
+          updateStatus();
         }
         break;
       }
@@ -444,12 +453,13 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
         break;
       }
       case "model": {
-        const id = rest.join(" ").trim();
+        const inputId = rest.join(" ").trim();
         // No id → open the picker; an explicit id still works for power users.
-        if (!id) {
+        if (!inputId) {
           showModelPicker();
           break;
         }
+        const id = normalizeModelSelection(inputId, availableModels());
         await session.model.switch({ modelId: id });
         completeOnboarding(id, new Date().toISOString());
         rememberModel(id); // so a hand-typed model shows up in the picker next time

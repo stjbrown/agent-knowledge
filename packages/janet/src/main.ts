@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { checkConformance, formatReport } from "@agent-knowledge/kb-tools";
 import { loadSettings } from "./onboarding/settings.js";
+import { availableModels, normalizeModelSelection } from "./onboarding/providers.js";
 import { parseArgs } from "./headless/flags.js";
 import { runHeadless } from "./headless/run.js";
 import {
@@ -37,12 +38,12 @@ Options:
 Also installed as \`ding\` (you summon Janet with a ding).`;
 
 function resolveModelId(values: Record<string, string>): string | undefined {
-  return (
+  const selected =
     values["model"] ??
     process.env["JANET_MODEL"] ??
     loadSettings().defaultModelId ??
-    undefined
-  );
+    undefined;
+  return selected ? normalizeModelSelection(selected, availableModels()) : undefined;
 }
 
 async function main(argv: string[]): Promise<number> {
