@@ -187,6 +187,12 @@ packages/
 The repo is a pnpm workspace. `pnpm install && pnpm -r build` builds both packages; `pnpm -r test`
 runs the conformance/graph parity tests.
 
+## Pre-release testing
+
+Janet is not published to npm yet. To build an installable tarball from `janet-agent`, install it on
+another laptop, or run the public-preview test matrix, see [`TESTING.md`](./TESTING.md). Maintainers
+can run `pnpm pack:janet` to execute the release checks and write the package to `artifacts/`.
+
 ## License
 
 [MIT](./LICENSE). The vendored OKF specification (`skills/kb/references/SPEC.md`) is from

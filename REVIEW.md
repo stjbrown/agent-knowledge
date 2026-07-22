@@ -14,6 +14,8 @@ describes the product and implementation; this file is the release-readiness che
 ## Must be complete before publish
 
 - [x] Janet has real unit tests, and the complete CI-equivalent pipeline passes locally.
+- [ ] Complete the minimum two-laptop matrix in [`TESTING.md`](./TESTING.md), including both OpenAI
+  OAuth modes and a full wiki lifecycle from the installed tarball.
 - [ ] Confirm the updated workflow passes in hosted CI from a clean checkout.
 - [x] The npm tarball contains `LICENSE`, `NOTICE`, README, `dist/`, and all six bundled skills.
 - [x] `janet lint` preserves deterministic conformance failures in its process exit code.

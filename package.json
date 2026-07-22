@@ -8,7 +8,9 @@
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r test",
-    "build:skill-scripts": "node packages/kb-tools/scripts/build-skill-scripts.mjs"
+    "build:skill-scripts": "node packages/kb-tools/scripts/build-skill-scripts.mjs",
+    "verify:janet": "pnpm -r build && pnpm --filter @stjbrown/agent-knowledge typecheck && pnpm -r test && node skills/kb-lint/scripts/conformance.mjs knowledge",
+    "pack:janet": "pnpm verify:janet && pnpm build:skill-scripts && node scripts/pack-janet.mjs"
   },
   "packageManager": "pnpm@11.13.1"
 }
