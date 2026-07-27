@@ -23,6 +23,67 @@ const CODEX_USER_AGENT = 'janet';
 // Singleton auth storage instance (shared with claude-max.ts)
 let authStorageInstance: AuthStorage | null = null;
 
+interface CodexRequestItemSummary {
+  type?: string;
+  role?: string;
+  name?: string;
+  callId?: string;
+  contentTypes?: string[];
+  hasEncryptedContent?: boolean;
+}
+
+interface CodexRequestSummary {
+  model?: string;
+  store?: boolean;
+  parallelToolCalls?: boolean;
+  include?: unknown;
+  input: CodexRequestItemSummary[];
+}
+
+/**
+ * Summarize a Responses API request without logging prompts, tool arguments,
+ * tool results, or credentials. Useful for diagnosing stateless continuation.
+ */
+export function summarizeCodexRequest(body: unknown): CodexRequestSummary | undefined {
+  if (typeof body !== 'object' || body === null) return undefined;
+
+  const request = body as Record<string, unknown>;
+  const items = Array.isArray(request.input) ? request.input : [];
+  return {
+    ...(typeof request.model === 'string' ? { model: request.model } : {}),
+    ...(typeof request.store === 'boolean' ? { store: request.store } : {}),
+    ...(typeof request.parallel_tool_calls === 'boolean'
+      ? { parallelToolCalls: request.parallel_tool_calls }
+      : {}),
+    ...(request.include !== undefined ? { include: request.include } : {}),
+    input: items.flatMap((value): CodexRequestItemSummary[] => {
+      if (typeof value !== 'object' || value === null) return [];
+      const item = value as Record<string, unknown>;
+      const content = Array.isArray(item.content) ? item.content : [];
+      return [{
+        ...(typeof item.type === 'string' ? { type: item.type } : {}),
+        ...(typeof item.role === 'string' ? { role: item.role } : {}),
+        ...(typeof item.name === 'string' ? { name: item.name } : {}),
+        ...(typeof item.call_id === 'string' ? { callId: item.call_id } : {}),
+        ...(content.length > 0
+          ? {
+              contentTypes: content.flatMap((part) =>
+                typeof part === 'object' &&
+                part !== null &&
+                typeof (part as Record<string, unknown>).type === 'string'
+                  ? [(part as Record<string, unknown>).type as string]
+                  : [],
+              ),
+            }
+          : {}),
+        ...(item.encrypted_content !== undefined
+          ? { hasEncryptedContent: typeof item.encrypted_content === 'string' }
+          : {}),
+      }];
+    }),
+  };
+}
+
 /**
  * Get or create the shared AuthStorage instance
  */
@@ -47,6 +108,7 @@ IMPORTANT: You should be concise, direct, and helpful. Focus on solving the user
 
 /** Valid thinking level values. */
 export type ThinkingLevel = 'off' | 'low' | 'medium' | 'high' | 'xhigh';
+export const DEFAULT_CODEX_THINKING_LEVEL: ThinkingLevel = 'low';
 
 const GPT5_MODEL_RE = /^gpt-5(?:\.|-|$)/;
 
@@ -193,7 +255,25 @@ export function buildOpenAICodexOAuthFetch(
     const finalUrl = shouldRewrite ? new URL(CODEX_API_ENDPOINT) : parsed;
 
     try {
-      return await fetch(finalUrl, { ...init, headers });
+      if (process.env.JANET_DEBUG_CODEX && typeof init?.body === 'string') {
+        try {
+          const summary = summarizeCodexRequest(JSON.parse(init.body));
+          console.error(`[codex-request] ${JSON.stringify(summary)}`);
+        } catch {
+          console.error('[codex-request] unable to summarize request body');
+        }
+      }
+      const response = await fetch(finalUrl, { ...init, headers });
+      if (process.env.JANET_DEBUG_CODEX) {
+        const requestId =
+          response.headers.get('x-request-id') ??
+          response.headers.get('openai-request-id') ??
+          undefined;
+        console.error(
+          `[codex-response] ${response.status}${requestId ? ` requestId=${requestId}` : ''}`,
+        );
+      }
+      return response;
     } catch (error) {
       if (error && typeof error === 'object') {
         Object.assign(error as Record<string, unknown>, {
@@ -402,7 +482,8 @@ export function openaiCodexProvider(
   modelId: string = 'codex-mini-latest',
   options?: { thinkingLevel?: ThinkingLevel; headers?: Record<string, string>; authStorage?: CredentialStore },
 ): MastraModelConfig {
-  const requestedLevel: ThinkingLevel = options?.thinkingLevel ?? 'medium';
+  const requestedLevel: ThinkingLevel =
+    options?.thinkingLevel ?? DEFAULT_CODEX_THINKING_LEVEL;
   const effectiveLevel = getEffectiveThinkingLevel(modelId, requestedLevel);
   const reasoningEffort = THINKING_LEVEL_TO_REASONING_EFFORT[effectiveLevel];
   const middleware = createCodexMiddleware(reasoningEffort);

@@ -42,6 +42,13 @@ user only what you still can't infer:
 Keep it short — a few types and a one-line routing rule is enough to start; the schema layer
 co-evolves later.
 
+Interaction contract:
+
+- Inspect the workspace once, batching related reads where practical.
+- Ask one concise, free-text question for everything that remains unknown.
+- Do not use canned multiple-choice options for this domain-specific input.
+- After the user answers, continue from this loaded procedure. Do not load `kb-init` again.
+
 **Completion criterion:** you can name the bundle's initial `type` values, its raw sources, and a
 one-line ingest routing rule.
 

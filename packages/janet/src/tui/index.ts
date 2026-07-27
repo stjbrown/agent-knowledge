@@ -30,6 +30,7 @@ import { GREETING } from "../agent/persona.js";
 import { getAuthStorage } from "../gateways/oauth/claude-max.js";
 import { loadSettings, completeOnboarding, rememberModel } from "../onboarding/settings.js";
 import { availableModels, normalizeModelSelection } from "../onboarding/providers.js";
+import { toolActivityLabel } from "./activity.js";
 import { c, editorTheme, markdownTheme } from "./theme.js";
 
 /** OAuth providers janet can log in to. */
@@ -140,6 +141,7 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
   let pendingInput: ((text: string) => void) | null = null;
   let activeSelect: SelectList | null = null;
   let active: ActiveMessage | null = null;
+  const activeTools = new Map<string, string>();
 
   const updateStatus = (): void => {
     const model = session.model.hasSelection() ? session.model.get() : "no model — /model <id>";
@@ -211,6 +213,8 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
       case "agent_start":
         running = true;
         active = null;
+        activeTools.clear();
+        loader.setMessage("Janet is thinking…");
         setLoader(true);
         updateStatus();
         break;
@@ -236,16 +240,26 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
       }
       case "tool_start":
         closeSegment();
-        if (event.toolName !== "ask_user") addLine(c.dim(`  ⚙ ${event.toolName}`));
+        if (event.toolName !== "ask_user") {
+          activeTools.set(event.toolCallId, event.toolName);
+          loader.setMessage(toolActivityLabel(event.toolName));
+        }
         break;
       case "tool_end":
+        activeTools.delete(event.toolCallId);
+        loader.setMessage(
+          activeTools.size
+            ? toolActivityLabel(Array.from(activeTools.values()).at(-1)!)
+            : "Janet is thinking…",
+        );
         if (event.isError) {
           closeSegment();
-          addLine(c.warn(`  ⚠ tool error: ${String(event.result).slice(0, 140)}`));
+          addLine(c.warn(`  Tool error: ${String(event.result).slice(0, 140)}`));
         }
         break;
       case "tool_suspended": {
         closeSegment();
+        activeTools.delete(event.toolCallId);
         setLoader(false);
         const payload = event.suspendPayload as {
           question?: string;
@@ -255,7 +269,7 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
         const question = payload?.question ?? `Janet needs input for ${event.toolName}.`;
         const options = payload?.options;
         const multi = payload?.selectionMode === "multi_select";
-        addLine(c.accentBold(`  ❓ ${question}`));
+        addLine(c.accentBold(`  Janet asks: ${question}`));
 
         if (options?.length && !multi) {
           // Arrow-key selection (↑/↓, enter), like a native picker.
@@ -269,7 +283,7 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
           activeSelect = select;
           pendingQuestion = { toolCallId: event.toolCallId, options, multi: false };
           chat.addChild(select);
-          addLine(c.dim("     ↑/↓ to move, enter to choose."));
+          addLine(c.dim("     Use ↑/↓ and Enter."));
           ui.setFocus(select);
         } else {
           pendingQuestion = { toolCallId: event.toolCallId, options, multi };
@@ -277,9 +291,9 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
             options.forEach((o, i) =>
               addLine(c.accent(`     ${i + 1}. `) + o.label + (o.description ? c.dim(` — ${o.description}`) : "")),
             );
-            addLine(c.dim("     Reply with numbers/labels (comma-separated), then enter."));
+            addLine(c.dim("     Reply with numbers or labels, then press Enter."));
           } else {
-            addLine(c.dim("     Type your answer and press enter."));
+            addLine(c.dim("     Type your answer, then press Enter."));
           }
         }
         updateStatus();
@@ -287,6 +301,7 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
       }
       case "tool_approval_required":
         closeSegment();
+        activeTools.delete(event.toolCallId);
         pendingApproval = { toolCallId: event.toolCallId, toolName: event.toolName };
         addLine(
           c.warn(`  Janet wants to run ${c.bold(event.toolName)}.`) +
@@ -298,7 +313,7 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
         closeSegment();
         const err = event.error as Error & { responseBody?: string };
         addLine(
-          c.error(`  ✗ ${err?.message || "error"}${err?.responseBody ? ` — ${err.responseBody.slice(0, 200)}` : ""}`),
+          c.error(`  Error: ${err?.message || "unknown"}${err?.responseBody ? ` — ${err.responseBody.slice(0, 200)}` : ""}`),
         );
         break;
       }
@@ -307,6 +322,8 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
         break;
       case "agent_end":
         running = false;
+        activeTools.clear();
+        loader.setMessage("Janet is thinking…");
         if (event.reason !== "suspended") pendingQuestion = null;
         setLoader(false);
         updateStatus();

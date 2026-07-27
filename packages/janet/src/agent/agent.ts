@@ -4,6 +4,7 @@ import type { MastraCompositeStore } from "@mastra/core/storage";
 import type { Workspace } from "@mastra/core/workspace";
 import { PERSONA_INSTRUCTIONS } from "./persona.js";
 import { getDynamicModel } from "./model.js";
+import { createSkillTurnGuard } from "./turn-guard.js";
 
 export interface JanetAgentOptions {
   storage: MastraCompositeStore;
@@ -20,6 +21,8 @@ export interface JanetAgentOptions {
  */
 export function createJanetAgent(opts: JanetAgentOptions): Agent {
   const memory = new Memory({ storage: opts.storage });
+  const guardSkillLoader = createSkillTurnGuard();
+
   return new Agent({
     id: "janet",
     name: "Janet",
@@ -27,8 +30,18 @@ export function createJanetAgent(opts: JanetAgentOptions): Agent {
     model: getDynamicModel,
     memory,
     workspace: opts.workspace,
+    hooks: {
+      beforeToolCall: ({ toolName, input, context }) =>
+        guardSkillLoader.beforeToolCall(toolName, input, context),
+      afterToolCall: ({ toolName, input, context, error }) =>
+        guardSkillLoader.afterToolCall(toolName, input, context, error),
+    },
     // Backstop against runaway loops. Real ingests do heavy work in scripts
-    // (few tool calls), so this is generous — it only trips on a genuine spin.
-    defaultOptions: { maxSteps: 60 },
+    // (few tool calls), so the step ceiling remains generous. The hook above
+    // prevents a loaded procedure from being fetched repeatedly without
+    // mutating Mastra's active tool list between steps.
+    defaultOptions: {
+      maxSteps: 60,
+    },
   });
 }

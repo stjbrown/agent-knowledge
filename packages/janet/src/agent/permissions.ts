@@ -30,12 +30,18 @@ const CATEGORY: Record<string, ToolCategory> = {
   mastra_workspace_read_file: "read",
   mastra_workspace_list_files: "read",
   mastra_workspace_file_stat: "read",
+  mastra_workspace_grep: "read",
   mastra_workspace_search: "read",
+  mastra_workspace_lsp_inspect: "read",
   mastra_workspace_write_file: "edit",
   mastra_workspace_edit_file: "edit",
   mastra_workspace_delete: "edit",
   mastra_workspace_mkdir: "edit",
+  mastra_workspace_ast_edit: "edit",
+  mastra_workspace_index: "edit",
   mastra_workspace_execute_command: "execute",
+  mastra_workspace_get_process_output: "execute",
+  mastra_workspace_kill_process: "execute",
 };
 
 export function janetToolCategory(toolName: string): ToolCategory | null {

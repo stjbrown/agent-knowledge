@@ -44,8 +44,9 @@ const stateSchema = z.object({
   projectPath: z.string(),
   bundlePath: z.string(),
   configDir: z.string(),
-  // Core's approval gate reads `state.yolo === true`; Janet keeps it false and
-  // uses explicit per-category policies so headless operation can fail closed.
+  // Core's approval gate reads `state.yolo === true`. Janet enables normal
+  // in-loop tool execution and puts approval on the dangerous tools themselves;
+  // denied headless categories are still removed from the active tool set.
   yolo: z.boolean(),
   // Tool-approval rules by category/tool. Must be in the schema or session state
   // strips it, and setForCategory / getRules silently no-op.
@@ -58,7 +59,8 @@ const MODES: AgentControllerMode[] = [{ id: "build", name: "Build" }];
 
 // Interactive approval policy: normal reads and edits are quiet, while execution,
 // MCP, and unknown future tools ask. Headless gets an explicit fail-closed policy
-// from `permissionRulesFor` and never relies on yolo.
+// from `permissionRulesFor`; execution tools read the same rules to decide
+// whether they need an interactive approval suspension.
 const INTERACTIVE_RULES = {
   categories: { read: "allow", edit: "allow", other: "ask", mcp: "ask", execute: "ask" },
   tools: { ...JANET_ALWAYS_ALLOW_TOOL_RULES },
@@ -115,12 +117,21 @@ export async function bootJanet(opts: BootOptions): Promise<JanetSessionBoot> {
     modes: MODES,
     defaultModeId: "build",
     gateways: [createVertexGateway(), createBedrockGateway()],
+    // Janet's KB procedures are focused enough that controller-level planning
+    // and task bookkeeping add noise and can encourage plan-reset loops.
+    disableBuiltinTools: [
+      "submit_plan",
+      "task_write",
+      "task_update",
+      "task_complete",
+      "task_check",
+    ],
     toolCategoryResolver: janetToolCategory,
     initialState: {
       projectPath: paths.projectPath,
       bundlePath: paths.bundlePath,
       configDir: paths.globalConfigDir,
-      yolo: false,
+      yolo: true,
       permissionRules: permissionRulesFor(opts),
     },
     workspace: () => workspace,
