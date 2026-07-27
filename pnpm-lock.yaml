@@ -11,49 +11,49 @@ importers:
   packages/janet:
     dependencies:
       '@ai-sdk/amazon-bedrock':
-        specifier: ^3.0.105
+        specifier: 3.0.106
         version: 3.0.106(zod@4.4.3)
       '@ai-sdk/anthropic':
-        specifier: ^3.0.96
+        specifier: 3.0.97
         version: 3.0.97(zod@4.4.3)
       '@ai-sdk/google-vertex':
-        specifier: ^3.0.152
+        specifier: 3.0.152
         version: 3.0.152(zod@4.4.3)
       '@ai-sdk/openai':
-        specifier: ^3.0.84
+        specifier: 3.0.85
         version: 3.0.85(zod@4.4.3)
       '@ai-sdk/openai-compatible':
-        specifier: ^2.0.59
+        specifier: 2.0.61
         version: 2.0.61(zod@4.4.3)
       '@aws-sdk/credential-providers':
-        specifier: ^3.864.0
+        specifier: 3.1088.0
         version: 3.1088.0
       '@earendil-works/pi-tui':
         specifier: 0.80.6
         version: 0.80.6
       '@mastra/core':
-        specifier: ^1.51.0
+        specifier: 1.51.0
         version: 1.51.0(ai@6.0.228(zod@4.4.3))(express@5.2.1)(zod@4.4.3)
       '@mastra/libsql':
-        specifier: ^1.16.0
+        specifier: 1.16.0
         version: 1.16.0(@mastra/core@1.51.0(ai@6.0.228(zod@4.4.3))(express@5.2.1)(zod@4.4.3))
       '@mastra/memory':
-        specifier: ^1.23.0
+        specifier: 1.23.0
         version: 1.23.0(@mastra/core@1.51.0(ai@6.0.228(zod@4.4.3))(express@5.2.1)(zod@4.4.3))
       ai:
-        specifier: ^6.0.225
+        specifier: 6.0.228
         version: 6.0.228(zod@4.4.3)
       chalk:
-        specifier: ^5.3.0
+        specifier: 5.6.2
         version: 5.6.2
       strip-ansi:
-        specifier: ^7.1.0
+        specifier: 7.2.0
         version: 7.2.0
       yaml:
         specifier: 2.9.0
         version: 2.9.0
       zod:
-        specifier: ^4.3.6
+        specifier: 4.4.3
         version: 4.4.3
     devDependencies:
       '@agent-knowledge/kb-tools':

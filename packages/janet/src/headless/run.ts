@@ -1,6 +1,6 @@
 import type { AgentControllerEvent } from "@mastra/core/agent-controller";
 import { bootJanet } from "../agent/controller.js";
-import { messageText } from "./format.js";
+import { messageText, messageToolNames } from "./format.js";
 
 export interface HeadlessOptions {
   /** The directive/message to send to Janet. */
@@ -75,11 +75,11 @@ export async function runHeadless(opts: HeadlessOptions): Promise<HeadlessResult
       if (debug) {
         const extra =
           event.type === "tool_start"
-            ? ` ${event.toolName} ${JSON.stringify(event.args).slice(0, 100)}`
+              ? ` ${event.toolName} ${JSON.stringify(event.args).slice(0, 100)}`
             : event.type === "tool_end"
               ? ` isError=${event.isError} ${String(event.result).slice(0, 80)}`
               : event.type === "message_end" && event.message.role === "assistant"
-                ? ` toolCalls=${JSON.stringify(event.message.content.filter((c) => c.type === "tool_call").map((c) => (c as { name: string }).name))}`
+                ? ` toolCalls=${JSON.stringify(messageToolNames(event.message))}`
                 : event.type === "agent_end"
                   ? ` reason=${event.reason}`
                   : event.type === "error"

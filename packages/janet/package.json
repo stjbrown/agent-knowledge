@@ -1,6 +1,6 @@
 {
   "name": "@stjbrown/agent-knowledge",
-  "version": "0.1.0-beta.1",
+  "version": "0.1.0-beta.2",
   "description": "Janet builds and maintains portable LLM wikis in plain Markdown using OKF.",
   "keywords": [
     "agent",
@@ -45,21 +45,21 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@ai-sdk/amazon-bedrock": "^3.0.105",
-    "@ai-sdk/anthropic": "^3.0.96",
-    "@ai-sdk/google-vertex": "^3.0.152",
-    "@ai-sdk/openai": "^3.0.84",
-    "@ai-sdk/openai-compatible": "^2.0.59",
-    "@aws-sdk/credential-providers": "^3.864.0",
+    "@ai-sdk/amazon-bedrock": "3.0.106",
+    "@ai-sdk/anthropic": "3.0.97",
+    "@ai-sdk/google-vertex": "3.0.152",
+    "@ai-sdk/openai": "3.0.85",
+    "@ai-sdk/openai-compatible": "2.0.61",
+    "@aws-sdk/credential-providers": "3.1088.0",
     "@earendil-works/pi-tui": "0.80.6",
-    "@mastra/core": "^1.51.0",
-    "@mastra/libsql": "^1.16.0",
-    "@mastra/memory": "^1.23.0",
-    "ai": "^6.0.225",
-    "chalk": "^5.3.0",
-    "strip-ansi": "^7.1.0",
+    "@mastra/core": "1.51.0",
+    "@mastra/libsql": "1.16.0",
+    "@mastra/memory": "1.23.0",
+    "ai": "6.0.228",
+    "chalk": "5.6.2",
+    "strip-ansi": "7.2.0",
     "yaml": "2.9.0",
-    "zod": "^4.3.6"
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@agent-knowledge/kb-tools": "workspace:*",
