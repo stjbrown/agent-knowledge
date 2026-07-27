@@ -4,13 +4,15 @@ This guide is the release-candidate test plan for Janet. It covers building from
 `janet-agent` branch, sharing an installable package with another laptop, testing authentication and
 the model runtime, and recording results without exposing credentials.
 
-The npm package is not public yet. Until it is, do not use `npx @stjbrown/agent-knowledge` as an
-installation test: registry resolution is expected to fail. Test either a branch checkout or the
-tarball produced from that checkout.
+Preview releases are published to npm under the `next` tag. Use
+`npx @stjbrown/agent-knowledge@next` for a registry installation test. Use a branch checkout or the
+tarball produced from that checkout when testing an unpublished candidate or reproducing the exact
+contents of a release.
 
 ## Minimum release gate
 
-Complete these checks before the public preview:
+Complete these checks before promoting Janet to npm's `latest` tag and announcing the public
+release:
 
 - [ ] Test on at least two laptops or clean user environments.
 - [ ] Build and verify the package from a clean `janet-agent` checkout.
@@ -48,14 +50,14 @@ Node.js 22 or newer is required. `pack:janet` builds the workspace, typechecks J
 checks the in-repo OKF bundle, regenerates the standalone skill scripts, and creates:
 
 ```text
-artifacts/stjbrown-agent-knowledge-0.1.0.tgz
+artifacts/stjbrown-agent-knowledge-0.1.0-beta.1.tgz
 ```
 
 Before sharing it, record the source revision and checksum:
 
 ```bash
 git rev-parse HEAD
-shasum -a 256 artifacts/stjbrown-agent-knowledge-0.1.0.tgz
+shasum -a 256 artifacts/stjbrown-agent-knowledge-0.1.0-beta.1.tgz
 git status --short
 ```
 
@@ -74,7 +76,7 @@ JANET_INSTALL_DIR="$(mktemp -d /tmp/janet-install.XXXXXX)"
 npm install \
   --cache "$JANET_INSTALL_DIR/npm-cache" \
   --prefix "$JANET_INSTALL_DIR" \
-  /path/to/stjbrown-agent-knowledge-0.1.0.tgz
+  /path/to/stjbrown-agent-knowledge-0.1.0-beta.1.tgz
 
 "$JANET_INSTALL_DIR/node_modules/.bin/janet" --version
 "$JANET_INSTALL_DIR/node_modules/.bin/ding" --help
@@ -96,7 +98,7 @@ JANET_NPM_CACHE="$(mktemp -d /tmp/janet-npm-cache.XXXXXX)"
 npm install \
   --cache "$JANET_NPM_CACHE" \
   --global \
-  /path/to/stjbrown-agent-knowledge-0.1.0.tgz
+  /path/to/stjbrown-agent-knowledge-0.1.0-beta.1.tgz
 janet --version
 ding --help
 ```
@@ -269,13 +271,13 @@ Use `/logout openai-codex` or `/logout anthropic` to remove a provider credentia
 Do not delete the whole `.agent-knowledge` directory merely to reset one provider; it also contains
 settings and conversation storage.
 
-## After npm publication
+## Registry preview installation
 
-Add one final clean-machine check using the registry rather than a local tarball:
+Run one final clean-machine check using the registry rather than a local tarball:
 
 ```bash
-npx --yes @stjbrown/agent-knowledge@0.1.0 --version
-npx --yes @stjbrown/agent-knowledge@0.1.0
+npx --yes @stjbrown/agent-knowledge@next --version
+npx --yes @stjbrown/agent-knowledge@next
 ```
 
 This is the only install behavior the tarball workflow cannot validate before publication.

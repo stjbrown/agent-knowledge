@@ -1,14 +1,24 @@
 {
   "name": "@stjbrown/agent-knowledge",
-  "version": "0.1.0",
-  "description": "Janet — an npx-deployable agent that builds and maintains an OKF knowledge bundle.",
+  "version": "0.1.0-beta.1",
+  "description": "Janet builds and maintains portable LLM wikis in plain Markdown using OKF.",
+  "keywords": [
+    "agent",
+    "agent-skills",
+    "janet",
+    "knowledge-base",
+    "llm",
+    "llm-wiki",
+    "markdown",
+    "okf"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/stjbrown/agent-knowledge.git",
     "directory": "packages/janet"
   },
-  "homepage": "https://github.com/stjbrown/agent-knowledge#readme",
+  "homepage": "https://github.com/stjbrown/agent-knowledge/tree/janet-agent#readme",
   "bugs": "https://github.com/stjbrown/agent-knowledge/issues",
   "publishConfig": {
     "access": "public"

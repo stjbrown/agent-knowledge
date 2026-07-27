@@ -27,10 +27,10 @@ Janet is one way to use Agent Knowledge, not a requirement. You can:
 **1. Add the skills to the agent you already use.** Install the `kb-*` skills in Claude Code,
 Cursor, Codex, or one of 20+ other hosts. No new runtime is required.
 
-**2. Run Janet directly (`npx @stjbrown/agent-knowledge`).** Chat with a self-contained knowledge
-agent in any project, or drive her headlessly from scripts and CI. Bring your own model, including
-Claude, Gemini, or GPT, through Google Vertex, Amazon Bedrock, API keys, or a Claude Max or ChatGPT
-subscription.
+**2. Run Janet directly (`npx @stjbrown/agent-knowledge@next`).** Chat with a self-contained
+knowledge agent in any project, or drive her headlessly from scripts and CI. Bring your own model,
+including Claude, Gemini, or GPT, through Google Vertex, Amazon Bedrock, API keys, or a Claude Max or
+ChatGPT subscription.
 
 **3. Call Janet as a subagent.** Delegate ingestion, research, queries, and knowledge maintenance to
 a focused subagent while your primary agent stays on the larger task. The subagent can use Janet's
@@ -51,8 +51,8 @@ with conversation history scoped to that project.
 bundle paths outside the project workspace so its filesystem boundary remains meaningful.
 
 ```bash
-# Interactive chat (also installed as `ding` — you summon Janet with a ding)
-npx @stjbrown/agent-knowledge
+# Interactive preview (also installed as `ding`, because you summon Janet with a ding)
+npx @stjbrown/agent-knowledge@next
 # or, once installed globally:
 janet
 ```
@@ -88,9 +88,10 @@ Gemini, via ADC/service account), Amazon Bedrock (AWS credential chain), Anthrop
 key **or** subscription OAuth), and Google Gemini (API key). Set the choice once (`--model`,
 `JANET_MODEL`, or the first-run picker) and it persists.
 
-Janet is built on [Mastra](https://mastra.ai) and lives in [`packages/janet`](./packages/janet)
-(published as `@stjbrown/agent-knowledge`, bins `janet` + `ding`). She also reports lifecycle state natively to
-[Herdr](https://herdr.dev) when run inside a Herdr pane.
+Janet is built on [Mastra](https://mastra.ai) and lives in
+[`packages/janet`](https://github.com/stjbrown/agent-knowledge/tree/janet-agent/packages/janet)
+(published as `@stjbrown/agent-knowledge`, bins `janet` + `ding`). She also reports lifecycle state
+natively to [Herdr](https://herdr.dev) when run inside a Herdr pane.
 
 ---
 
@@ -122,7 +123,7 @@ What conflicts with our current deployment strategy?
 /kb-visualize  # explore the bundle as an interactive graph
 ```
 
-![Interactive knowledge graph showing concepts, implementations, operations, references, and OKF spec sections](./assets/knowledge-graph.png)
+![Interactive knowledge graph showing concepts, implementations, operations, references, and OKF spec sections](https://raw.githubusercontent.com/stjbrown/agent-knowledge/janet-agent/assets/knowledge-graph.png)
 
 The family splits on **who invokes them**. **Model-invoked** skills the agent reaches for on its own
 when the task fits; **user-invoked** skills you trigger deliberately by name.
@@ -172,9 +173,12 @@ to OKF.
 
 ## This repo documents itself in OKF
 
-The [`knowledge/`](./knowledge/) directory is a **conformant OKF bundle about OKF and the LLM Wiki
-pattern** — so the repository is its own worked example. Browse it to see what a bundle looks like, or
-open the generated graph for the interactive view. Start at [`knowledge/index.md`](./knowledge/index.md).
+The
+[`knowledge/`](https://github.com/stjbrown/agent-knowledge/tree/janet-agent/knowledge)
+directory is a **conformant OKF bundle about OKF and the LLM Wiki pattern**, so the repository is
+its own worked example. Browse it to see what a bundle looks like, or open the generated graph for
+the interactive view. Start at
+[`knowledge/index.md`](https://github.com/stjbrown/agent-knowledge/blob/janet-agent/knowledge/index.md).
 
 ## Layout
 
@@ -194,10 +198,11 @@ packages/
 The repo is a pnpm workspace. `pnpm install && pnpm -r build` builds both packages; `pnpm -r test`
 runs the conformance/graph parity tests.
 
-## Pre-release testing
+## Preview testing
 
-Janet is not published to npm yet. To build an installable tarball from `janet-agent`, install it on
-another laptop, or run the public-preview test matrix, see [`TESTING.md`](./TESTING.md). Maintainers
+Janet preview releases are published to npm under the `next` tag. To install the preview on another
+laptop, build an installable tarball from `janet-agent`, or run the release test matrix, see
+[`TESTING.md`](https://github.com/stjbrown/agent-knowledge/blob/janet-agent/TESTING.md). Maintainers
 can run `pnpm pack:janet` to execute the release checks and write the package to `artifacts/`.
 
 ## License

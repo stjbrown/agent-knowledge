@@ -12,8 +12,7 @@ import {
 } from "./commands.js";
 import { resolveProjectPaths } from "./agent/paths.js";
 import { GREETING } from "./agent/persona.js";
-
-const VERSION = "0.1.0";
+import { packageVersion } from "./version.js";
 
 const HELP = `${GREETING}
 
@@ -54,7 +53,7 @@ async function main(argv: string[]): Promise<number> {
     return 0;
   }
   if (parsed.flags.has("version")) {
-    process.stdout.write(VERSION + "\n");
+    process.stdout.write(packageVersion() + "\n");
     return 0;
   }
 
