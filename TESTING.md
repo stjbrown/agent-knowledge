@@ -50,14 +50,14 @@ Node.js 22 or newer is required. `pack:janet` builds the workspace, typechecks J
 checks the in-repo OKF bundle, regenerates the standalone skill scripts, and creates:
 
 ```text
-artifacts/stjbrown-agent-knowledge-0.1.0-beta.2.tgz
+artifacts/stjbrown-agent-knowledge-0.1.0-beta.3.tgz
 ```
 
 Before sharing it, record the source revision and checksum:
 
 ```bash
 git rev-parse HEAD
-shasum -a 256 artifacts/stjbrown-agent-knowledge-0.1.0-beta.2.tgz
+shasum -a 256 artifacts/stjbrown-agent-knowledge-0.1.0-beta.3.tgz
 git status --short
 ```
 
@@ -76,7 +76,7 @@ JANET_INSTALL_DIR="$(mktemp -d /tmp/janet-install.XXXXXX)"
 npm install \
   --cache "$JANET_INSTALL_DIR/npm-cache" \
   --prefix "$JANET_INSTALL_DIR" \
-  /path/to/stjbrown-agent-knowledge-0.1.0-beta.2.tgz
+  /path/to/stjbrown-agent-knowledge-0.1.0-beta.3.tgz
 
 "$JANET_INSTALL_DIR/node_modules/.bin/janet" --version
 "$JANET_INSTALL_DIR/node_modules/.bin/ding" --help
@@ -98,7 +98,7 @@ JANET_NPM_CACHE="$(mktemp -d /tmp/janet-npm-cache.XXXXXX)"
 npm install \
   --cache "$JANET_NPM_CACHE" \
   --global \
-  /path/to/stjbrown-agent-knowledge-0.1.0-beta.2.tgz
+  /path/to/stjbrown-agent-knowledge-0.1.0-beta.3.tgz
 janet --version
 ding --help
 ```
