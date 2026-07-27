@@ -39,8 +39,10 @@ user only what you still can't infer:
   `type` vocabulary (e.g. `person`, `deal`, `metric`; or `character`, `chapter`, `theme`).
 - What raw **sources** will be ingested, and how should they route to those entities?
 
-Keep it short — a few types and a one-line routing rule is enough to start; the schema layer
-co-evolves later.
+Keep it short — a few **provisional** types and a one-line routing rule is enough to start. This is
+an initial vocabulary, not a closed enum; the schema layer co-evolves as ingest reveals the domain.
+`Reference` (captured source material) and `Spec Section` (the bundle's own schema documents) are
+workflow types supplied by the seed, not domain choices the user needs to design.
 
 Interaction contract:
 
@@ -48,19 +50,28 @@ Interaction contract:
 - Ask one concise, free-text question for everything that remains unknown.
 - Do not use canned multiple-choice options for this domain-specific input.
 - After the user answers, continue from this loaded procedure. Do not load `kb-init` again.
+- If you propose a schema for confirmation, accept the user's answer once. After approval, scaffold
+  without restating or replanning it.
 
 **Completion criterion:** you can name the bundle's initial `type` values, its raw sources, and a
 one-line ingest routing rule.
 
-## 3. Copy the seed and write the schema layer
+## 3. Write the adapted seed and schema layer
 
-Copy [../kb/example-bundle/](../kb/example-bundle/) into the target, then adapt every seed artifact:
+Read [../kb/example-bundle/](../kb/example-bundle/) as the source scaffold, then write its adapted
+artifacts into the target. Do not first write an unmodified copy and then overwrite it: create the
+directories and write each target file once with its final, domain-specific content. Work quietly
+after the user's approval; do not narrate each read or write.
+
+If a prior attempt already created a target file, it is no longer new: read that file immediately
+before editing it, preserve valid work, and resume from the incomplete step. Never retry a
+read-before-write failure blindly or dismiss it as a false alarm.
 
 | Artifact | Action |
 |---|---|
 | `index.md` | Keep `okf_version: "0.1"` frontmatter; replace the body with this bundle's title and section list. |
 | `log.md` | Start fresh with a single dated `**Creation**` entry. |
-| `spec/types.md` | Replace example types with the domain's `type` vocabulary from step 2. |
+| `spec/types.md` | Keep `Spec Section` and `Reference`; replace only the example domain types with the provisional vocabulary from step 2. |
 | `spec/conventions.md` | Replace with folder taxonomy, naming, ingest routing rule, and a trust-model pointer. |
 | `concepts/*` | Remove example entities (`customers`, `orders`); leave `concepts/` empty or create domain starter folders. |
 | `knowledge/index.md` | If multi-bundle (step 1): create or update the catalog entry for this bundle. |

@@ -34,3 +34,15 @@ export function toolActivityLabel(toolName: string): string {
   }
   return "Janet is working…";
 }
+
+/** Turn recoverable workspace guard failures into useful user-facing status. */
+export function toolErrorLabel(result: unknown): string {
+  const detail = String(result);
+  const readRequired = detail.match(
+    /File "([^"]+)" (?:has not been read|was modified since last read)/,
+  );
+  if (readRequired) {
+    return `Update paused: Janet needs to re-read "${readRequired[1]}" first.`;
+  }
+  return `Tool error: ${detail.slice(0, 140)}`;
+}

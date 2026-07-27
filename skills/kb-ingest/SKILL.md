@@ -63,8 +63,26 @@ Before writing anything, draft a plan — the discovery-before-synthesis guard. 
 Keep the plan in scratch (or a temporary `_ingest_plan.md` you delete before finishing). A rich
 source may touch 10–15 concepts.
 
+### Schema-fit check
+
+Treat `spec/types.md` as a living vocabulary, not a closed enum. Before routing, check whether the
+source reveals a recurring, materially distinct kind of entity that the current types cannot
+describe cleanly. Do not force-fit it or create an undocumented type.
+
+- **Safe additive change:** when the new type and its route are unambiguous and do not reclassify
+  existing concepts, add it to `spec/types.md`, update `spec/conventions.md` if routing changes, and
+  include the schema change in this ingest's log entry.
+- **Judgment or migration change:** ask the user once before renaming, splitting, merging, or
+  deprecating types; changing a type's meaning; moving existing concepts; or choosing among
+  plausible schemas. Present the proposed change and affected concepts together.
+- Prefer a useful broader type for a one-off signal. Add a type when it is likely to recur or its
+  distinction materially improves routing and retrieval.
+- Preserve old type values as deprecated until any approved migration is complete. Update affected
+  concepts and indexes together; never leave two undocumented vocabularies in parallel.
+
 **Completion criterion:** a written plan exists listing every entity, its route (create/update), the
-Reference for the source, and any supersede/conflict flags.
+Reference for the source, any supersede/conflict flags, and any schema addition or proposed
+migration.
 
 ## 4. Store the source as a Reference (provenance)
 
@@ -84,8 +102,8 @@ mechanics of create / **supersede** / **conflict** / additive-event. Write new c
 both directions** (a person named in a deal links to their concept and back), with relative links.
 
 **Completion criterion:** every entity in the plan has its concept created or updated with a
-non-empty `type`, citing the Reference; planned supersede/conflict actions are applied per the trust
-model — no meaning rewritten in place.
+non-empty, documented `type`, citing the Reference; planned schema and supersede/conflict actions
+are applied per the schema layer and trust model — no meaning rewritten in place.
 
 ## 6. Re-synthesize overviews
 

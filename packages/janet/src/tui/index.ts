@@ -30,7 +30,7 @@ import { GREETING } from "../agent/persona.js";
 import { getAuthStorage } from "../gateways/oauth/claude-max.js";
 import { loadSettings, completeOnboarding, rememberModel } from "../onboarding/settings.js";
 import { availableModels, normalizeModelSelection } from "../onboarding/providers.js";
-import { toolActivityLabel } from "./activity.js";
+import { toolActivityLabel, toolErrorLabel } from "./activity.js";
 import { c, editorTheme, markdownTheme } from "./theme.js";
 
 /** OAuth providers janet can log in to. */
@@ -254,7 +254,7 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
         );
         if (event.isError) {
           closeSegment();
-          addLine(c.warn(`  Tool error: ${String(event.result).slice(0, 140)}`));
+          addLine(c.warn(`  ${toolErrorLabel(event.result)}`));
         }
         break;
       case "tool_suspended": {

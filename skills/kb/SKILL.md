@@ -28,6 +28,11 @@ non-empty `type`. Everything else is soft guidance — consumers MUST tolerate m
 unknown types, and broken links. Never reject a bundle over them. Full rules:
 [references/SPEC.md](references/SPEC.md) §9.
 
+The domain portion of `spec/types.md` is a living, producer-chosen vocabulary, not a validation
+enum. Keep the workflow conventions `Reference` and `Spec Section`; start the domain types small
+and evolve them through [`kb-ingest`](../kb-ingest/SKILL.md) when the domain reveals a durable new
+kind of entity. Use [`kb-lint`](../kb-lint/SKILL.md) to detect schema drift.
+
 ## Route to the right skill
 
 | The user wants to… | Use |

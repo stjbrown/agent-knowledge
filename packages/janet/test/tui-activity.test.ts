@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { toolActivityLabel } from "../src/tui/activity.js";
+import {
+  toolActivityLabel,
+  toolErrorLabel,
+} from "../src/tui/activity.js";
 
 describe("TUI activity labels", () => {
   it("turns internal tool names into quiet user-facing status", () => {
@@ -17,5 +20,18 @@ describe("TUI activity labels", () => {
       "Janet is running a check…",
     );
     expect(toolActivityLabel("unknown_tool")).toBe("Janet is working…");
+  });
+
+  it("explains read-before-write recovery without leaking an internal exception", () => {
+    expect(
+      toolErrorLabel(
+        'Error: File "knowledge/spec/types.md" has not been read. You must read a file before writing to it.',
+      ),
+    ).toBe(
+      'Update paused: Janet needs to re-read "knowledge/spec/types.md" first.',
+    );
+    expect(toolErrorLabel("network unavailable")).toBe(
+      "Tool error: network unavailable",
+    );
   });
 });
