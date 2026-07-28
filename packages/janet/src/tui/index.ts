@@ -21,6 +21,7 @@ import {
   Spacer,
   TUI,
   Text,
+  matchesKey,
 } from "@earendil-works/pi-tui";
 import type { Component, SelectItem } from "@earendil-works/pi-tui";
 import type { AgentControllerEvent } from "@mastra/core/agent-controller";
@@ -28,25 +29,29 @@ import { bootJanet, type BootOptions } from "../agent/controller.js";
 import { messageText } from "../headless/format.js";
 import { GREETING } from "../agent/persona.js";
 import { getAuthStorage } from "../gateways/oauth/claude-max.js";
-import { loadSettings, completeOnboarding, rememberModel } from "../onboarding/settings.js";
+import {
+  loadSettings,
+  completeOnboarding,
+  rememberModel,
+  rememberObservability,
+} from "../onboarding/settings.js";
 import { availableModels, normalizeModelSelection } from "../onboarding/providers.js";
+import { resolveObservabilityConfig } from "../observability/config.js";
+import {
+  formatObservabilityStatus,
+  safeObservabilityEndpoint,
+} from "../observability/runtime.js";
+import type {
+  ObservabilityCaptureMode,
+  ObservabilitySettings,
+} from "../observability/types.js";
 import { toolActivityLabel, toolErrorLabel } from "./activity.js";
+import { createInterruptController, type InterruptResult } from "./interrupt.js";
+import { formatTraceTree, traceStatus } from "./traces.js";
 import { c, editorTheme, markdownTheme } from "./theme.js";
 
 /** OAuth providers janet can log in to. */
 const OAUTH_PROVIDERS = ["anthropic", "openai-codex"] as const;
-
-/** Editor with a Ctrl+C hook (raw-mode terminals deliver it as input \x03). */
-class JanetEditor extends Editor {
-  onCtrlC?: () => void;
-  override handleInput(data: string): void {
-    if (data === "\x03") {
-      this.onCtrlC?.();
-      return;
-    }
-    super.handleInput(data);
-  }
-}
 
 const HELP_TEXT = `Commands:
   /models                Pick a model from a list (arrow keys)
@@ -55,9 +60,13 @@ const HELP_TEXT = `Commands:
                          Log in; OpenAI mode is browser or device
   /logout <provider>     Remove stored credentials for a provider
   /auth                  Show which providers are authenticated
+  /observability         Configure opt-in tracing
+  /traces                Browse recent local traces
+  /cancel                Cancel the active run
   /help                  This help
   /quit                  Exit (double Ctrl+C also works)
 
+While Janet is working, Esc or Ctrl+C cancels the active run.
 Anything else is a message to Janet.`;
 
 interface PendingApproval {
@@ -105,7 +114,10 @@ function resolveAnswer(q: PendingQuestion, text: string): string | string[] | un
 }
 
 export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<number> {
-  const { controller, session, paths, herdrDetach } = await bootJanet({ ...opts, interactive: true });
+  const { controller, session, paths, herdrDetach, observability } = await bootJanet({
+    ...opts,
+    interactive: true,
+  });
 
   // The interactive approval policy is set deterministically in the controller's
   // initialState (reads/edits/meta never prompt; only execute asks, with an
@@ -126,7 +138,7 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
   const ui = new TUI(terminal);
   const chat = new Container();
   const status = new Text("", 1, 0);
-  const editor = new JanetEditor(ui, editorTheme);
+  const editor = new Editor(ui, editorTheme);
   const loader = new Loader(ui, c.accent, c.dim, "Janet is thinking…");
 
   ui.addChild(chat);
@@ -141,10 +153,14 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
   let pendingInput: ((text: string) => void) | null = null;
   let activeSelect: SelectList | null = null;
   let active: ActiveMessage | null = null;
+  let cancelRequested = false;
   const activeTools = new Map<string, string>();
 
   const updateStatus = (): void => {
     const model = session.model.hasSelection() ? session.model.get() : "no model — /model <id>";
+    const tracing = observability.status.enabled
+      ? c.dim(`  ·  trace:${observability.status.capture}`)
+      : "";
     const state =
       pendingInput
         ? "enter the requested value"
@@ -152,10 +168,17 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
           ? "answer Janet's question"
           : pendingApproval
             ? "awaiting approval"
+            : cancelRequested
+              ? "cancelling"
             : running
-              ? "working"
+              ? "working · Esc/Ctrl+C cancels"
               : "idle";
-    status.setText(c.dim(`${paths.projectPath}  ·  `) + c.accent(model) + c.dim(`  ·  ${state}`));
+    status.setText(
+      c.dim(`${paths.projectPath}  ·  `) +
+        c.accent(model) +
+        c.dim(`  ·  ${state}`) +
+        tracing,
+    );
     ui.requestRender();
   };
 
@@ -212,6 +235,7 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
     switch (event.type) {
       case "agent_start":
         running = true;
+        cancelRequested = false;
         active = null;
         activeTools.clear();
         loader.setMessage("Janet is thinking…");
@@ -322,6 +346,7 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
         break;
       case "agent_end":
         running = false;
+        cancelRequested = false;
         activeTools.clear();
         loader.setMessage("Janet is thinking…");
         if (event.reason !== "suspended") pendingQuestion = null;
@@ -331,23 +356,94 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
     }
   };
   const unsubscribe = session.subscribe(onEvent);
+  let removeInputListener = (): void => {};
+  let sigintHandler: (() => void) | undefined;
 
   const shutdown = async (code: number): Promise<never> => {
+    removeInputListener();
+    if (sigintHandler) process.off("SIGINT", sigintHandler);
     unsubscribe();
     herdrDetach();
     ui.stop();
+    await observability.flush().catch(() => {});
     await controller.destroy().catch(() => {});
     process.exit(code);
   };
+
+  const notifyInterrupt = (result: Exclude<InterruptResult, "ignored">): void => {
+    switch (result) {
+      case "cancelled":
+        addLine(c.dim("  Cancelling the active run…"));
+        break;
+      case "cleared":
+        break;
+      case "exit":
+        break;
+      case "exit-hint":
+        addLine(c.dim("  Press Ctrl+C again to quit."));
+        break;
+    }
+    updateStatus();
+  };
+
+  const abortActiveRun = (): void => {
+    if (cancelRequested) return;
+    cancelRequested = true;
+    pendingApproval = null;
+    pendingQuestion = null;
+    activeTools.clear();
+    if (activeSelect) {
+      chat.removeChild(activeSelect);
+      activeSelect = null;
+    }
+    ui.setFocus(editor);
+    loader.setMessage("Cancelling…");
+    session.abort();
+  };
+
+  const interrupts = createInterruptController({
+    isRunning: () => running,
+    hasInput: () => editor.getText().length > 0,
+    abortRun: abortActiveRun,
+    clearInput: () => {
+      editor.setText("");
+      ui.requestRender();
+    },
+    exit: () => {
+      void shutdown(0);
+    },
+    notify: notifyInterrupt,
+  });
+
+  // Input listeners run before the focused component, so cancellation works
+  // during pickers, approvals, questions, and streamed tool activity.
+  removeInputListener = ui.addInputListener((data) => {
+    if (matchesKey(data, "ctrl+c")) {
+      interrupts.handleCtrlC();
+      return { consume: true };
+    }
+    if (matchesKey(data, "escape") && running) {
+      interrupts.handleEscape();
+      return { consume: true };
+    }
+    return undefined;
+  });
+
+  // Raw terminals normally deliver Ctrl+C as input. Keep a SIGINT fallback for
+  // terminals and supervisors that preserve normal signal handling.
+  sigintHandler = () => {
+    interrupts.handleCtrlC();
+  };
+  process.on("SIGINT", sigintHandler);
 
   // Ask the user for one value; the next editor submit resolves it. Used by the
   // OAuth login flow (paste-code / prompts).
   const promptInput = (message: string, placeholder?: string): Promise<string> => {
     addLine(c.accentBold(`  ${message}`));
     if (placeholder) addLine(c.dim(`  (${placeholder})`));
-    updateStatus();
     return new Promise((resolve) => {
       pendingInput = resolve;
+      updateStatus();
     });
   };
 
@@ -392,6 +488,269 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
     updateStatus();
   };
 
+  const savedObservabilitySummary = (): string => {
+    const saved = loadSettings().observability;
+    const resolved = resolveObservabilityConfig(saved, {});
+    return formatObservabilityStatus({
+      enabled: resolved.enabled,
+      capture: resolved.capture,
+      sampleRate: resolved.sampleRate,
+      destinations: [
+        ...(resolved.local.enabled ? ["local"] : []),
+        ...(resolved.remote
+          ? [
+              resolved.remote.kind === "phoenix"
+                ? `phoenix (${safeObservabilityEndpoint(resolved.remote.endpoint)})`
+                : `otlp (${safeObservabilityEndpoint(resolved.remote.endpoint)})`,
+            ]
+          : []),
+      ],
+      warnings: resolved.warnings,
+    });
+  };
+
+  const persistObservability = (settings: ObservabilitySettings): void => {
+    rememberObservability(settings);
+    addLine(c.accentBold("  ✓ Observability settings saved."));
+    addLine(c.dim(`  Saved: ${savedObservabilitySummary()}`));
+    addLine(c.dim("  Restart Janet to apply the new setting."));
+    updateStatus();
+  };
+
+  const closeActiveSelect = (select: SelectList): void => {
+    chat.removeChild(select);
+    if (activeSelect === select) activeSelect = null;
+    ui.setFocus(editor);
+  };
+
+  const confirmFullCapture = (
+    base: Omit<ObservabilitySettings, "capture">,
+  ): void => {
+    addLine(
+      c.warn(
+        "  Full capture includes prompts, responses, and tool payloads. Do not use it with sensitive material.",
+      ),
+    );
+    const select = new SelectList(
+      [
+        {
+          value: "no",
+          label: "Keep metadata-only capture",
+          description: "Recommended. Content stays out of traces.",
+        },
+        {
+          value: "yes",
+          label: "Enable full capture",
+          description: "I understand trace content may contain sensitive data.",
+        },
+      ],
+      2,
+      editorTheme.selectList,
+    );
+    select.onSelect = (item: SelectItem) => {
+      closeActiveSelect(select);
+      persistObservability({
+        ...base,
+        capture: item.value === "yes" ? "full" : "metadata",
+      });
+    };
+    activeSelect = select;
+    chat.addChild(select);
+    ui.setFocus(select);
+    updateStatus();
+  };
+
+  const chooseCaptureMode = (
+    base: Omit<ObservabilitySettings, "capture">,
+  ): void => {
+    addLine(c.accentBold("  What may Janet include in traces?"));
+    const select = new SelectList(
+      [
+        {
+          value: "metadata",
+          label: "Metadata only",
+          description: "Timing, tool names, model, tokens, status, and errors.",
+        },
+        {
+          value: "full",
+          label: "Full content",
+          description: "Also includes prompts, responses, and tool payloads.",
+        },
+      ],
+      2,
+      editorTheme.selectList,
+    );
+    select.onSelect = (item: SelectItem) => {
+      closeActiveSelect(select);
+      const capture = item.value as ObservabilityCaptureMode;
+      if (capture === "full") {
+        confirmFullCapture(base);
+      } else {
+        persistObservability({ ...base, capture });
+      }
+    };
+    activeSelect = select;
+    chat.addChild(select);
+    ui.setFocus(select);
+    updateStatus();
+  };
+
+  const showObservabilityPicker = (): void => {
+    if (running) {
+      addLine(c.dim("  Cancel the active run before changing observability settings."));
+      return;
+    }
+    addLine(c.accentBold("  Configure observability"));
+    addLine(c.dim(`  Active now: ${formatObservabilityStatus(observability.status)}`));
+    addLine(c.dim("  Tracing is opt-in and changes apply after restart."));
+    const select = new SelectList(
+      [
+        {
+          value: "off",
+          label: "Off",
+          description: "No spans, trace database, or network export.",
+        },
+        {
+          value: "local",
+          label: "Local trace history",
+          description: "Store traces in ~/.agent-knowledge/observability.db.",
+        },
+        {
+          value: "phoenix",
+          label: "Phoenix",
+          description: "Send OTLP traces to http://localhost:6006.",
+        },
+        {
+          value: "otlp",
+          label: "Custom OTLP",
+          description: "Send OTLP/HTTP protobuf traces to your endpoint.",
+        },
+      ],
+      4,
+      editorTheme.selectList,
+    );
+    select.onSelect = (item: SelectItem) => {
+      closeActiveSelect(select);
+      if (item.value === "off") {
+        persistObservability({
+          capture: "off",
+          sampleRate: 1,
+          local: { enabled: false, retentionDays: 7 },
+        });
+        return;
+      }
+      if (item.value === "local") {
+        chooseCaptureMode({
+          sampleRate: 1,
+          local: { enabled: true, retentionDays: 7 },
+        });
+        return;
+      }
+      if (item.value === "phoenix") {
+        chooseCaptureMode({
+          sampleRate: 1,
+          local: { enabled: false, retentionDays: 7 },
+          remote: {
+            kind: "phoenix",
+            endpoint: "http://localhost:6006",
+            projectName: "janet",
+          },
+        });
+        return;
+      }
+      void promptInput(
+        "OTLP endpoint (for example, http://localhost:4318):",
+      ).then((endpoint) => {
+        try {
+          const parsed = new URL(endpoint);
+          if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error();
+          if (parsed.username || parsed.password || parsed.search || parsed.hash) {
+            addLine(
+              c.error(
+                "  Do not put credentials or query parameters in the saved endpoint. Use OTEL_EXPORTER_OTLP_HEADERS.",
+              ),
+            );
+            return;
+          }
+        } catch {
+          addLine(c.error("  Endpoint must be a valid HTTP or HTTPS URL."));
+          return;
+        }
+        chooseCaptureMode({
+          sampleRate: 1,
+          local: { enabled: false, retentionDays: 7 },
+          remote: {
+            kind: "otlp",
+            endpoint,
+          },
+        });
+      });
+    };
+    activeSelect = select;
+    chat.addChild(select);
+    ui.setFocus(select);
+    updateStatus();
+  };
+
+  const showLocalTraces = async (): Promise<void> => {
+    if (running) {
+      addLine(c.dim("  Cancel the active run before browsing traces."));
+      return;
+    }
+    if (!observability.config.local.enabled) {
+      addLine(c.dim("  Local trace history is not active. Use /observability to enable it."));
+      return;
+    }
+    await observability.flush().catch(() => {});
+    const store = await observability.storage.getStore("observability");
+    if (!store) {
+      addLine(c.error("  Local trace storage is unavailable."));
+      return;
+    }
+    const recent = await store.listTraces({
+      pagination: { page: 0, perPage: 10 },
+      orderBy: { field: "startedAt", direction: "DESC" },
+    });
+    if (!recent.spans.length) {
+      addLine(c.dim("  No local traces yet."));
+      return;
+    }
+
+    addLine(c.accentBold("  Recent local traces"));
+    const select = new SelectList(
+      recent.spans.map((span) => {
+        const state = traceStatus(span);
+        const marker = state === "error" ? "✗" : state === "running" ? "…" : "✓";
+        return {
+          value: span.traceId,
+          label: `${marker} ${span.name}`,
+          description: `${span.startedAt.toLocaleString()} · ${span.traceId}`,
+        };
+      }),
+      Math.min(recent.spans.length, 10),
+      editorTheme.selectList,
+    );
+    select.onSelect = (item: SelectItem) => {
+      closeActiveSelect(select);
+      void store.getTrace({ traceId: item.value }).then((trace) => {
+        if (!trace) {
+          addLine(c.error(`  Trace not found: ${item.value}`));
+          return;
+        }
+        addLine(c.accentBold(`  Trace ${trace.traceId}`));
+        for (const line of formatTraceTree(trace.spans)) {
+          addLine(c.dim(`  ${line}`));
+        }
+      }).catch((error: Error) => {
+        addLine(c.error(`  Could not read trace: ${error.message}`));
+      });
+    };
+    activeSelect = select;
+    chat.addChild(select);
+    ui.setFocus(select);
+    updateStatus();
+  };
+
   const handleCommand = async (text: string): Promise<void> => {
     const [cmd, ...rest] = text.slice(1).split(/\s+/);
     switch (cmd) {
@@ -401,6 +760,32 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
         break;
       case "help":
         addLine(c.dim(HELP_TEXT));
+        break;
+      case "cancel":
+        if (interrupts.handleEscape() === "ignored") {
+          addLine(c.dim("  No active run to cancel."));
+        }
+        break;
+      case "observability": {
+        const action = rest[0]?.trim().toLowerCase();
+        if (action === "status") {
+          addLine(c.dim(`  Active: ${formatObservabilityStatus(observability.status)}`));
+          addLine(c.dim(`  Saved:  ${savedObservabilitySummary()}`));
+        } else if (action === "off") {
+          persistObservability({
+            capture: "off",
+            sampleRate: 1,
+            local: { enabled: false, retentionDays: 7 },
+          });
+        } else if (!action) {
+          showObservabilityPicker();
+        } else {
+          addLine(c.dim("Usage: /observability [status | off]"));
+        }
+        break;
+      }
+      case "traces":
+        await showLocalTraces();
         break;
       case "login": {
         const providerId = (rest[0] || "anthropic").trim();
@@ -556,32 +941,20 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
       showModelPicker("  Pick a model first:");
       return;
     }
-    void session.sendMessage({ content: text }).catch((err: Error) => {
+    void session.sendMessage({
+      content: text,
+      tracingOptions: observability.tracingOptionsForTurn({
+        interactive: true,
+        operation: "chat",
+        resourceId: paths.resourceId,
+        threadId: session.thread.getId() ?? undefined,
+      }),
+    }).catch((err: Error) => {
       running = false;
       setLoader(false);
       addLine(c.error(`  ✗ ${err.message}`));
       updateStatus();
     });
-  };
-
-  // Double Ctrl+C exits; single clears input or aborts a running turn.
-  let lastCtrlC = 0;
-  editor.onCtrlC = () => {
-    const now = Date.now();
-    if (now - lastCtrlC < 800) {
-      void shutdown(0);
-      return;
-    }
-    lastCtrlC = now;
-    if (running) {
-      void session.abort();
-      addLine(c.dim("  (aborted — Ctrl+C again to quit)"));
-    } else if (editor.getText()) {
-      editor.setText("");
-      ui.requestRender();
-    } else {
-      addLine(c.dim("  (Ctrl+C again to quit)"));
-    }
   };
 
   addLine(c.accentBold(GREETING));
@@ -591,6 +964,9 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
         `Ask me anything in the bundle, or say what to ingest. /help for commands.`,
     ),
   );
+  for (const warning of observability.status.warnings) {
+    addLine(c.warn(`Observability: ${warning}`));
+  }
   updateStatus();
   ui.start();
   ui.setFocus(editor);

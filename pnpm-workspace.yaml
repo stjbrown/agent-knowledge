@@ -3,6 +3,7 @@ packages:
 
 allowBuilds:
   esbuild: true
+  protobufjs: false
 
 minimumReleaseAgeExclude:
   - '@ai-sdk/anthropic@2.0.87'

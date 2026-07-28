@@ -1,7 +1,50 @@
 import { join } from "node:path";
 import { LibSQLStore } from "@mastra/libsql";
-import type { MastraCompositeStore } from "@mastra/core/storage";
+import { MastraCompositeStore } from "@mastra/core/storage";
 import { ensureDir } from "./paths.js";
+
+export interface JanetStorageOptions {
+  localObservability?: {
+    enabled: boolean;
+    retentionDays: number;
+  };
+}
+
+export function observabilityDbPath(globalConfigDir: string): string {
+  return join(globalConfigDir, "observability.db");
+}
+
+class JanetCompositeStorage extends MastraCompositeStore {
+  constructor(
+    private readonly threadStore: LibSQLStore,
+    private readonly observabilityStore: LibSQLStore,
+    retentionDays: number,
+  ) {
+    super({
+      id: "agent-knowledge-storage",
+      default: threadStore,
+      domains: {
+        observability: observabilityStore.stores.observability,
+      },
+      retention: {
+        observability: {
+          spans: { maxAge: `${retentionDays}d` },
+        },
+      },
+    });
+  }
+
+  override async close(): Promise<void> {
+    const results = await Promise.allSettled([
+      this.threadStore.close(),
+      this.observabilityStore.close(),
+    ]);
+    const failure = results.find(
+      (result): result is PromiseRejectedResult => result.status === "rejected",
+    );
+    if (failure) throw failure.reason;
+  }
+}
 
 /**
  * Build the controller's storage. Threads/history live in a per-machine libSQL
@@ -9,10 +52,27 @@ import { ensureDir } from "./paths.js";
  * `resourceId` (so continuity is per-project, shared across clones/worktrees).
  *
  * `LibSQLStore extends MastraCompositeStore`, so it satisfies the controller's
- * `storage` field directly — no wrapping needed.
+ * `storage` field directly when local trace history is off. When it is on, a
+ * composite routes only the observability domain to a separate database.
  */
-export function createStorage(globalConfigDir: string): MastraCompositeStore {
+export function createStorage(
+  globalConfigDir: string,
+  options: JanetStorageOptions = {},
+): MastraCompositeStore {
   ensureDir(globalConfigDir);
-  const dbPath = join(globalConfigDir, "threads.db");
-  return new LibSQLStore({ id: "agent-knowledge-threads", url: `file:${dbPath}` });
+  const threadStore = new LibSQLStore({
+    id: "agent-knowledge-threads",
+    url: `file:${join(globalConfigDir, "threads.db")}`,
+  });
+  if (!options.localObservability?.enabled) return threadStore;
+
+  const observabilityStore = new LibSQLStore({
+    id: "agent-knowledge-observability",
+    url: `file:${observabilityDbPath(globalConfigDir)}`,
+  });
+  return new JanetCompositeStorage(
+    threadStore,
+    observabilityStore,
+    options.localObservability.retentionDays,
+  );
 }

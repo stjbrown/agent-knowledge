@@ -2,7 +2,6 @@ import { AgentController } from "@mastra/core/agent-controller";
 import type { AgentControllerMode } from "@mastra/core/agent-controller";
 import { z } from "zod";
 import { createJanetAgent } from "./agent.js";
-import { createStorage } from "./storage.js";
 import { createWorkspace } from "./workspace.js";
 import { ensureSkillLinks } from "./skills-paths.js";
 import { resolveProjectPaths, type ProjectPaths } from "./paths.js";
@@ -10,6 +9,12 @@ import { createVertexGateway } from "../gateways/vertex.js";
 import { createBedrockGateway } from "../gateways/bedrock.js";
 import { JANET_ALWAYS_ALLOW_TOOL_RULES, janetToolCategory } from "./permissions.js";
 import { attachHerdrReporter } from "../herdr/reporter.js";
+import { loadSettings } from "../onboarding/settings.js";
+import { resolveObservabilityConfig } from "../observability/config.js";
+import {
+  createObservabilityRuntime,
+  type JanetObservabilityRuntime,
+} from "../observability/runtime.js";
 
 export interface BootOptions {
   /** Working dir override (-C/--dir). Defaults to process.cwd(). */
@@ -32,6 +37,7 @@ export interface JanetSessionBoot {
   paths: ProjectPaths;
   /** Detach the Herdr reporter and release the agent from the pane (no-op outside Herdr). */
   herdrDetach: () => void;
+  observability: JanetObservabilityRuntime;
 }
 
 const policy = z.enum(["allow", "ask", "deny"]);
@@ -90,12 +96,17 @@ export async function resumeThread(
 /**
  * Build and initialize the AgentController, then mint the single per-process
  * session scoped to this project. Mirrors the minimal viable subset of
- * mastracode's `bootLocalAgentController` (no startWorkers, no pubsub, no
- * observability, no subagents/MCP/hooks/plugins).
+ * mastracode's `bootLocalAgentController` (no startWorkers, pubsub,
+ * subagents, MCP, hooks, plugins, or development server).
  */
 export async function bootJanet(opts: BootOptions): Promise<JanetSessionBoot> {
   const paths = resolveProjectPaths({ dir: opts.dir, bundle: opts.bundle });
-  const storage = createStorage(paths.globalConfigDir);
+  const observabilityConfig = resolveObservabilityConfig(loadSettings().observability);
+  const observability = createObservabilityRuntime(
+    paths.globalConfigDir,
+    observabilityConfig,
+  );
+  const storage = observability.storage;
 
   // Symlink the bundled kb-* skills into <project>/.agent-knowledge/skills so
   // the workspace can reference them by a RELATIVE path (Mastra requirement).
@@ -135,9 +146,13 @@ export async function bootJanet(opts: BootOptions): Promise<JanetSessionBoot> {
       permissionRules: permissionRulesFor(opts),
     },
     workspace: () => workspace,
+    ...(observability.observability
+      ? { observability: observability.observability }
+      : {}),
   });
 
   await controller.init();
+  await observability.prune().catch(() => {});
   const session = await controller.createSession({
     resourceId: paths.resourceId,
     ownerId: paths.ownerId,
@@ -149,5 +164,5 @@ export async function bootJanet(opts: BootOptions): Promise<JanetSessionBoot> {
   // Native Herdr reporting when running inside a Herdr pane (no-op otherwise).
   const herdrDetach = attachHerdrReporter(session, { projectPath: paths.projectPath });
 
-  return { controller, session, paths, herdrDetach };
+  return { controller, session, paths, herdrDetach, observability };
 }

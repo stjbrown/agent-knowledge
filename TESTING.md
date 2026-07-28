@@ -23,6 +23,9 @@ release:
 - [ ] Complete one full lifecycle: initialize, ingest, query with citations, lint, and visualize.
 - [ ] Confirm ordinary skill loading, questions, reads, and edits do not display approval gates.
 - [ ] Confirm shell execution still asks for approval and headless mode remains fail closed.
+- [ ] Confirm Esc, Ctrl+C, and `/cancel` stop an active run without exiting Janet.
+- [ ] Confirm observability is off by default with no trace database or OTLP requests.
+- [ ] Test metadata-only local tracing and one Phoenix or custom OTLP export.
 - [ ] Record the commit, package checksum, environment, provider, and result for each run.
 
 Anthropic OAuth, an API-key provider, and Bedrock are valuable additional coverage but do not need
@@ -46,7 +49,7 @@ corepack pnpm install --frozen-lockfile
 corepack pnpm pack:janet
 ```
 
-Node.js 22 or newer is required. `pack:janet` builds the workspace, typechecks Janet, runs all tests,
+Node.js 22.13 or newer is required. `pack:janet` builds the workspace, typechecks Janet, runs all tests,
 checks the in-repo OKF bundle, regenerates the standalone skill scripts, and creates:
 
 ```text
@@ -62,7 +65,7 @@ git status --short
 ```
 
 The working tree should be clean after packaging. Share the tarball and its checksum together using
-your normal file-sharing channel. The recipient needs Node.js 22 or newer, but does not need pnpm or
+your normal file-sharing channel. The recipient needs Node.js 22.13 or newer, but does not need pnpm or
 the source repository.
 
 ## Install the shared tarball
@@ -163,6 +166,15 @@ Expected results:
 - A proposed shell command does ask for approval.
 - Choosing `n` declines it; choosing `a` grants that category only for the current session.
 
+Start a long-running request and cancel it three separate times:
+
+1. Press Esc.
+2. Press Ctrl+C.
+3. Enter `/cancel`.
+
+Each should stop the active turn, remove the spinner, and leave Janet ready for another message.
+Pressing Ctrl+C twice in quick succession should still exit Janet.
+
 ### 4. Complete wiki lifecycle
 
 Use a small source document containing several concrete facts and a date.
@@ -207,6 +219,54 @@ Create a second disposable project and start Janet there. Confirm that:
 - It does not expose the first project's files through workspace tools.
 - The machine-wide OAuth credential remains available, as intended.
 
+### 7. Observability and privacy
+
+Before enabling anything:
+
+- Run `/observability status`; active and saved state should both report `off`.
+- Confirm `~/.agent-knowledge/observability.db` is not created by an off-mode run.
+- Set `OTEL_EXPORTER_OTLP_ENDPOINT` by itself and confirm tracing remains off.
+
+Then run `/observability`, select **Local trace history**, and select **Metadata only**. Restart
+Janet as instructed, send a message that causes at least one tool call, and run `/traces`.
+
+Expected results:
+
+- The TUI status includes `trace:metadata`.
+- `/traces` shows the agent, model, and tool hierarchy.
+- The separate `observability.db` file exists.
+- Trace metadata does not contain prompt text, response text, tool arguments, tool results,
+  absolute project paths, OAuth URLs, or credentials.
+- Export or storage failure does not interrupt Janet's response.
+
+For Phoenix, start Phoenix separately using its official local deployment instructions. Select
+**Phoenix** in `/observability`, restart Janet, and complete a tool-using turn. Confirm Phoenix
+shows one root agent trace with model and tool children under the `janet` project.
+
+The protocol-level integration test can be run without Phoenix. It opens a temporary localhost
+receiver and verifies the OTLP protobuf path, payload, and Phoenix project header:
+
+```bash
+JANET_OTLP_INTEGRATION=1 \
+corepack pnpm --filter @stjbrown/agent-knowledge \
+  exec vitest run test/observability-runtime.test.ts
+```
+
+For headless OTLP configuration, run:
+
+```bash
+JANET_OBSERVABILITY=metadata \
+JANET_OBSERVABILITY_BACKEND=otlp \
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 \
+"$JANET_INSTALL_DIR/node_modules/.bin/janet" \
+  -C "$JANET_PROJECT_DIR" \
+  query "Summarize the bundle with citations" \
+  --print
+```
+
+After testing, use `/observability off`, restart Janet, and confirm no additional traces are
+recorded or exported.
+
 ## Additional provider coverage
 
 Record these independently so one provider failure does not obscure the core workflow:
@@ -247,6 +307,10 @@ Lint and exit codes: PASS | FAIL
 Visualization: PASS | FAIL
 Restart persistence: PASS | FAIL
 Project isolation: PASS | FAIL
+Active-run cancellation: PASS | FAIL
+Default-off observability: PASS | FAIL
+Local metadata tracing: PASS | FAIL
+Phoenix/custom OTLP tracing: PASS | FAIL
 
 Notes:
 Reproduction steps for failures:

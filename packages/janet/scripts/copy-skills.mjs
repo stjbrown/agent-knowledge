@@ -18,7 +18,7 @@ rmSync(dest, { recursive: true, force: true });
 cpSync(src, dest, { recursive: true });
 console.log(`copied ${src} -> ${dest}`);
 
-for (const name of ["README.md", "LICENSE", "NOTICE"]) {
+for (const name of ["README.md", "OBSERVABILITY.md", "LICENSE", "NOTICE"]) {
   copyFileSync(resolve(repoRoot, name), resolve(here, "..", name));
   console.log(`copied ${name} into package`);
 }

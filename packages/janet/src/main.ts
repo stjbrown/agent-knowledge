@@ -127,6 +127,7 @@ async function main(argv: string[]): Promise<number> {
     bundle: bundleOverride,
     modelId,
     threadId,
+    operation: sub,
     ...capabilities,
   });
   return commandExitCode(sub, result.exitCode, conformanceErrors);

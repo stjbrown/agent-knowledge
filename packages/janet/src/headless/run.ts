@@ -1,6 +1,7 @@
 import type { AgentControllerEvent } from "@mastra/core/agent-controller";
 import { bootJanet } from "../agent/controller.js";
 import { messageText, messageToolNames } from "./format.js";
+import type { TraceTurnContext } from "../observability/runtime.js";
 
 export interface HeadlessOptions {
   /** The directive/message to send to Janet. */
@@ -15,6 +16,8 @@ export interface HeadlessOptions {
   allowEdits?: boolean;
   /** Allow shell execution. Defaults to false and should be an explicit user opt-in. */
   allowExec?: boolean;
+  /** Semantic operation attached to the trace root. */
+  operation?: TraceTurnContext["operation"];
 }
 
 export interface HeadlessResult {
@@ -29,7 +32,7 @@ export interface HeadlessResult {
  * `sdk/src/headless/`.
  */
 export async function runHeadless(opts: HeadlessOptions): Promise<HeadlessResult> {
-  const { controller, session, herdrDetach } = await bootJanet({
+  const { controller, session, paths, herdrDetach, observability } = await bootJanet({
     dir: opts.dir,
     bundle: opts.bundle,
     interactive: false,
@@ -53,6 +56,7 @@ export async function runHeadless(opts: HeadlessOptions): Promise<HeadlessResult
         "or run `janet` once to onboard. Checked: JANET_MODEL, and any persisted selection.\n",
     );
     herdrDetach();
+    await observability.flush().catch(() => {});
     await controller.destroy();
     return { exitCode: 2, text: "" };
   }
@@ -147,7 +151,15 @@ export async function runHeadless(opts: HeadlessOptions): Promise<HeadlessResult
       }
     });
 
-    void session.sendMessage({ content: opts.message + nonInteractiveNote }).catch((err: Error) => {
+    void session.sendMessage({
+      content: opts.message + nonInteractiveNote,
+      tracingOptions: observability.tracingOptionsForTurn({
+        interactive: false,
+        operation: opts.operation ?? "chat",
+        resourceId: paths.resourceId,
+        threadId: session.thread.getId() ?? undefined,
+      }),
+    }).catch((err: Error) => {
       process.stderr.write(`\nJanet hit a snag: ${err.message}\n`);
       exitCode = 1;
       unsubscribe();
@@ -157,6 +169,7 @@ export async function runHeadless(opts: HeadlessOptions): Promise<HeadlessResult
 
   process.stdout.write("\n");
   herdrDetach();
+  await observability.flush().catch(() => {});
   await controller.destroy();
   return { exitCode, text: finalText };
 }

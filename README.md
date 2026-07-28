@@ -79,7 +79,9 @@ token-free OKF conformance check before the agent's drift audit, so it is usable
 |---|---|
 | `/models` · `/model [id]` | pick a model from an arrow-key list, or switch by id |
 | `/login <anthropic\|openai-codex> [browser\|device]` · `/logout` · `/auth` | subscription sign-in and status; device mode is available for remote OpenAI login |
-| `/help` · `/quit` | help; exit (or double Ctrl+C) |
+| `/observability` · `/traces` | configure opt-in tracing and browse local trace history |
+| `/cancel` | cancel the active turn; Esc or Ctrl+C does the same while Janet is working |
+| `/help` · `/quit` | help; exit (or press Ctrl+C twice) |
 
 Just type to talk to Janet; ↑/↓ recalls previous prompts.
 
@@ -87,6 +89,32 @@ Just type to talk to Janet; ↑/↓ recalls previous prompts.
 Gemini, via ADC/service account), Amazon Bedrock (AWS credential chain), Anthropic and OpenAI (API
 key **or** subscription OAuth), and Google Gemini (API key). Set the choice once (`--model`,
 `JANET_MODEL`, or the first-run picker) and it persists.
+
+**Observability.** Tracing is strictly off by default. Run `/observability` to choose local trace
+history, Phoenix, or a custom OTLP endpoint. Metadata-only capture records timing, model and tool
+activity, token usage, status, and errors without prompt or response bodies. Full capture requires
+an explicit warning and confirmation. Settings take effect after restarting Janet.
+
+Local history is stored separately at `~/.agent-knowledge/observability.db` and can be inspected
+with `/traces`. Phoenix runs as a separate local or remote service; Janet sends it standard
+OTLP/HTTP protobuf traces and does not run a web or development server. Custom OTLP supports other
+compatible collectors and backends.
+
+Headless runs and automation can use environment configuration:
+
+```bash
+JANET_OBSERVABILITY=metadata \
+JANET_OBSERVABILITY_BACKEND=phoenix \
+PHOENIX_COLLECTOR_ENDPOINT=http://localhost:6006 \
+PHOENIX_PROJECT_NAME=janet \
+janet query "What happened?" --print
+```
+
+Use `JANET_OBSERVABILITY_BACKEND=otlp` with `OTEL_EXPORTER_OTLP_ENDPOINT` for a custom collector.
+Authentication headers can be supplied with `OTEL_EXPORTER_OTLP_HEADERS`; Janet never writes them
+to `settings.json`. Standard `OTEL_*` variables configure an explicitly enabled run but do not
+enable tracing on their own. Janet also does not load a project's `.env` automatically. See
+[`OBSERVABILITY.md`](./OBSERVABILITY.md) for the architecture, privacy model, and eval roadmap.
 
 Janet is built on [Mastra](https://mastra.ai) and lives in
 [`packages/janet`](https://github.com/stjbrown/agent-knowledge/tree/janet-agent/packages/janet)

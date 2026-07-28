@@ -33,6 +33,7 @@ _ingest_plan.md
 # prepack copy of repo-root skills/ into the publishable package (build artifact)
 packages/janet/skills/
 packages/janet/README.md
+packages/janet/OBSERVABILITY.md
 packages/janet/LICENSE
 packages/janet/NOTICE
 

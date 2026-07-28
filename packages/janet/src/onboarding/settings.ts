@@ -1,6 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { appDataDir } from "../agent/paths.js";
+import { normalizeObservabilitySettings } from "../observability/config.js";
+import type { ObservabilitySettings } from "../observability/types.js";
 
 /** Global, machine-wide settings (model default + onboarding marker). */
 export interface JanetSettings {
@@ -9,6 +11,8 @@ export interface JanetSettings {
   defaultModelId?: string;
   /** Model ids the user has used directly — surfaced in the picker afterward. */
   customModels?: string[];
+  /** Opt-in tracing preferences. Secrets are supplied at runtime, never persisted here. */
+  observability?: ObservabilitySettings;
 }
 
 export const ONBOARDING_VERSION = 1;
@@ -19,7 +23,39 @@ function settingsPath(): string {
 
 export function loadSettings(): JanetSettings {
   try {
-    return JSON.parse(readFileSync(settingsPath(), "utf-8")) as JanetSettings;
+    const value: unknown = JSON.parse(readFileSync(settingsPath(), "utf-8"));
+    if (typeof value !== "object" || value === null || Array.isArray(value)) return {};
+    const raw = value as Record<string, unknown>;
+    const settings: JanetSettings = {};
+
+    if (
+      typeof raw["onboarding"] === "object" &&
+      raw["onboarding"] !== null &&
+      !Array.isArray(raw["onboarding"])
+    ) {
+      const onboarding = raw["onboarding"] as Record<string, unknown>;
+      if (
+        typeof onboarding["completedAt"] === "string" &&
+        typeof onboarding["version"] === "number"
+      ) {
+        settings.onboarding = {
+          completedAt: onboarding["completedAt"],
+          version: onboarding["version"],
+        };
+      }
+    }
+    if (typeof raw["defaultModelId"] === "string") {
+      settings.defaultModelId = raw["defaultModelId"];
+    }
+    if (
+      Array.isArray(raw["customModels"]) &&
+      raw["customModels"].every((model) => typeof model === "string")
+    ) {
+      settings.customModels = raw["customModels"];
+    }
+    const observability = normalizeObservabilitySettings(raw["observability"]);
+    if (observability) settings.observability = observability;
+    return settings;
   } catch {
     return {};
   }
@@ -54,5 +90,11 @@ export function rememberModel(modelId: string): void {
   const settings = loadSettings();
   const rest = (settings.customModels ?? []).filter((m) => m !== id);
   settings.customModels = [id, ...rest].slice(0, 20);
+  saveSettings(settings);
+}
+
+export function rememberObservability(observability: ObservabilitySettings): void {
+  const settings = loadSettings();
+  settings.observability = observability;
   saveSettings(settings);
 }

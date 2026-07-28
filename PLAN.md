@@ -32,6 +32,9 @@ plan below is the original design and remains accurate except where noted inline
   persisted `settings.json`. Headless one-shot (`-p`) verified for init/ingest/query/lint/viz.
 - **Phase 2 — Herdr.** Native `HERDR_PANE_ID` state reporting + `janet --thread <id>` resume, both
   verified (stub `herdr` on PATH; two-process thread continuity).
+- **Observability foundation.** Global active-turn cancellation; opt-in local trace history;
+  Phoenix and custom OTLP export; metadata-only privacy mode; TUI configuration and trace browser.
+  The backend-neutral eval roadmap is documented in [`OBSERVABILITY.md`](./OBSERVABILITY.md).
 - **CI + packaging.** `.github/workflows/ci.yml` (build, typecheck, tests, `.mjs` drift, lint,
   tarball smoke). `npm pack` ships `dist` + `skills`, both `janet` + `ding` bins run from the tarball.
 
