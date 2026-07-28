@@ -40,7 +40,6 @@ import {
   NATIVE_PROVIDER_DEFINITIONS,
   availableModels,
   discoverAvailableModels,
-  environmentApiKeyConfigured,
   groupModelsByProvider,
   normalizeModelSelection,
   type ModelChoice,
@@ -58,6 +57,7 @@ import type {
 import { compactConversation } from "../memory/compact.js";
 import { toolActivityLabel, toolErrorLabel } from "./activity.js";
 import { createInterruptController, type InterruptResult } from "./interrupt.js";
+import { MultiSelectList } from "./multi-select.js";
 import { clearConversation } from "./thread.js";
 import { formatTraceTree, traceStatus } from "./traces.js";
 import { c, editorTheme, markdownTheme } from "./theme.js";
@@ -66,9 +66,9 @@ import { c, editorTheme, markdownTheme } from "./theme.js";
 const OAUTH_PROVIDERS = ["anthropic", "openai-codex"] as const;
 
 const HELP_TEXT = `Commands:
-  /models                Pick a provider, then a model
+  /models                Pick one or more providers, then a model
   /model [provider/id]   Open the picker, or switch directly by id
-  /providers             Show detected and available providers
+  /providers             Browse provider status and setup
   /login <provider> [mode]
                          Log in; OpenAI mode is browser or device
   /logout <provider>     Remove stored credentials for a provider
@@ -177,7 +177,7 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
   let pendingApproval: PendingApproval | null = null;
   let pendingQuestion: PendingQuestion | null = null;
   let pendingInput: ((text: string) => void) | null = null;
-  let activeSelect: SelectList | null = null;
+  let activeSelect: SelectList | MultiSelectList | null = null;
   let active: ActiveMessage | null = null;
   let cancelRequested = false;
   let modelPickerLoading = false;
@@ -350,10 +350,15 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
           }));
           const select = new SelectList(items, Math.min(items.length, 8), editorTheme.selectList);
           select.onSelect = (item: SelectItem) => answerQuestion(item.value, item.label);
+          select.onCancel = () => {
+            closeActiveSelect(select);
+            addLine(c.dim("     Picker closed. Type your answer instead."));
+            updateStatus();
+          };
           activeSelect = select;
           pendingQuestion = { toolCallId: event.toolCallId, options, multi: false };
           chat.addChild(select);
-          addLine(c.dim("     Use ↑/↓ and Enter."));
+          addLine(c.dim("     Use ↑/↓ and Enter · Esc to close."));
           ui.setFocus(select);
         } else {
           pendingQuestion = { toolCallId: event.toolCallId, options, multi };
@@ -521,6 +526,11 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
       interrupts.handleCtrlC();
       return { consume: true };
     }
+    // A focused picker owns Escape, even when it represents a suspended
+    // in-flight question. Ctrl+C remains the explicit "cancel the run" path.
+    if (matchesKey(data, "escape") && activeSelect) {
+      return undefined;
+    }
     if (matchesKey(data, "escape") && running) {
       interrupts.handleEscape();
       return { consume: true };
@@ -546,7 +556,9 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
     });
   };
 
-  const closeActiveSelect = (select: SelectList): void => {
+  const closeActiveSelect = (
+    select: SelectList | MultiSelectList,
+  ): void => {
     chat.removeChild(select);
     if (activeSelect === select) activeSelect = null;
     ui.setFocus(editor);
@@ -565,18 +577,27 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
     }
   };
 
-  const showProviderModels = (group: ProviderModelGroup): void => {
+  const showProviderModels = (
+    groups: ProviderModelGroup[],
+    allChoices: ModelChoice[],
+  ): void => {
     const current = session.model.hasSelection() ? session.model.get() : null;
-    const currentChoice = group.models.find((choice) => choice.id === current);
+    const available = groups.flatMap((group) =>
+      group.models.map((choice) => ({ choice, group })),
+    );
+    const currentChoice = available.find(({ choice }) => choice.id === current);
     const ordered = currentChoice
-      ? [currentChoice, ...group.models.filter((choice) => choice.id !== current)]
-      : group.models;
+      ? [currentChoice, ...available.filter(({ choice }) => choice.id !== current)]
+      : available;
     // Large gateways can expose hundreds of models. Keep the arrow list useful
     // and always offer an exact model-id entry path.
     const visible = ordered.slice(0, 29);
-    const items: SelectItem[] = visible.map((choice) => ({
+    const items: SelectItem[] = visible.map(({ choice, group }) => ({
       value: choice.id,
-      label: choice.id === current ? `${choice.label} (current)` : choice.label,
+      label:
+        groups.length > 1
+          ? `${group.label}: ${choice.label}${choice.id === current ? " (current)" : ""}`
+          : `${choice.label}${choice.id === current ? " (current)" : ""}`,
       description: choice.id,
     }));
     items.push({
@@ -585,11 +606,19 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
       description:
         ordered.length > visible.length
           ? `${ordered.length - visible.length} more catalog models; enter the exact id`
-          : `Use any ${group.id}/model supported by Mastra`,
+          : groups.length === 1
+            ? `Use any ${groups[0]!.id}/model supported by Mastra`
+            : "Use any provider/model supported by Mastra",
     });
 
-    addLine(c.accentBold(`  ${group.label} models`));
-    addLine(c.dim("  ↑/↓ to move, enter to choose:"));
+    addLine(
+      c.accentBold(
+        groups.length === 1
+          ? `  ${groups[0]!.label} models`
+          : `  Models from ${groups.length} providers`,
+      ),
+    );
+    addLine(c.dim("  ↑/↓ to move · Enter to choose · Esc to go back:"));
     const select = new SelectList(
       items,
       Math.min(items.length, 10),
@@ -599,17 +628,29 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
       closeActiveSelect(select);
       if (item.value === "__janet_enter_model_id__") {
         void promptInput(
-          `Model id for ${group.label}:`,
-          `${group.id}/model-name`,
+          groups.length === 1
+            ? `Model id for ${groups[0]!.label}:`
+            : "Full model id:",
+          groups.length === 1
+            ? `${groups[0]!.id}/model-name`
+            : "provider/model-name",
         ).then((input) => {
-          const modelId = input.startsWith(`${group.id}/`)
-            ? input
-            : `${group.id}/${input}`;
+          const modelId =
+            groups.length === 1 && !input.includes("/")
+              ? `${groups[0]!.id}/${input}`
+              : normalizeModelSelection(
+                  input,
+                  available.map(({ choice }) => choice),
+                );
           void selectModel(modelId);
         });
         return;
       }
       void selectModel(item.value);
+    };
+    select.onCancel = () => {
+      closeActiveSelect(select);
+      showProviderPicker(allChoices);
     };
     activeSelect = select;
     chat.addChild(select);
@@ -630,8 +671,12 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
       return;
     }
 
-    addLine(c.dim("  ↑/↓ to move, enter to choose a provider:"));
-    const select = new SelectList(
+    addLine(
+      c.dim(
+        "  ↑/↓ to move · Space to toggle · Enter to view models · Esc to close:",
+      ),
+    );
+    const select = new MultiSelectList(
       groups.map((group) => ({
         value: group.id,
         label: group.label,
@@ -639,12 +684,21 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
       })),
       Math.min(groups.length, 10),
       editorTheme.selectList,
+      groups.map((group) => group.id),
     );
-    select.onSelect = (item: SelectItem) => {
+    select.onConfirm = (items: SelectItem[]) => {
+      if (!items.length) {
+        addLine(c.warn("  Select at least one provider."));
+        return;
+      }
       closeActiveSelect(select);
-      const group = groups.find((candidate) => candidate.id === item.value);
-      if (group) showProviderModels(group);
+      const selectedIds = new Set(items.map((item) => item.value));
+      showProviderModels(
+        groups.filter((group) => selectedIds.has(group.id)),
+        choices,
+      );
     };
+    select.onCancel = () => closeActiveSelect(select);
     activeSelect = select;
     chat.addChild(select);
     ui.setFocus(select);
@@ -676,27 +730,96 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
   };
 
   const showProviders = (): void => {
+    if (running) {
+      addLine(c.dim("  Cancel the active run before opening provider setup."));
+      return;
+    }
     addLine(c.accentBold("  Model providers"));
+    addLine(c.dim("  Loading provider status…"));
     void discoverAvailableModels(() => controller.listAvailableModels()).then((choices) => {
       const groups = groupModelsByProvider(choices);
-      if (groups.length) {
-        addLine(c.dim("  Available now:"));
-        for (const group of groups) {
-          addLine(c.dim(`    • ${group.label}: ${group.via}`));
-        }
-      } else {
-        addLine(c.dim("  No provider credentials detected."));
-      }
+      const groupsById = new Map(groups.map((group) => [group.id, group]));
+      const known = [
+        {
+          id: "vertex",
+          label: "Google Vertex AI",
+          setup: "Run gcloud auth application-default login and set GOOGLE_VERTEX_PROJECT.",
+        },
+        {
+          id: "amazon-bedrock",
+          label: "Amazon Bedrock",
+          setup: "Configure an AWS credential chain and region.",
+        },
+        ...NATIVE_PROVIDER_DEFINITIONS.map((provider) => ({
+          id: provider.id,
+          label: provider.label,
+          setup: `Set ${provider.envVars.join(" or ")}.`,
+        })),
+      ];
+      const knownIds = new Set(known.map((provider) => provider.id));
+      const providers = [
+        ...known,
+        ...groups
+          .filter((group) => !knownIds.has(group.id))
+          .map((group) => ({
+            id: group.id,
+            label: group.label,
+            setup: "This provider was discovered through Mastra.",
+          })),
+      ];
 
-      const missing = NATIVE_PROVIDER_DEFINITIONS.filter(
-        (provider) => !environmentApiKeyConfigured(provider.id),
+      addLine(
+        c.dim(
+          "  ↑/↓ to move · Space to select providers · Enter for details · Esc to close:",
+        ),
       );
-      if (missing.length) {
-        addLine(c.dim("  Add another Mastra-native provider:"));
-        for (const provider of missing) {
-          addLine(c.dim(`    • ${provider.label}: ${provider.envVars.join(" or ")}`));
+      const select = new MultiSelectList(
+        providers.map((provider) => {
+          const group = groupsById.get(provider.id);
+          return {
+            value: provider.id,
+            label: provider.label,
+            description: group ? `Ready · ${group.via}` : provider.setup,
+          };
+        }),
+        Math.min(providers.length, 12),
+        editorTheme.selectList,
+      );
+      select.onConfirm = (items: SelectItem[]) => {
+        if (!items.length) {
+          addLine(c.warn("  Select at least one provider, or press Esc to close."));
+          return;
         }
-      }
+        closeActiveSelect(select);
+        addLine(c.accentBold("  Provider details"));
+        for (const item of items) {
+          const provider = providers.find((candidate) => candidate.id === item.value);
+          const group = groupsById.get(item.value);
+          if (!provider) continue;
+          if (group) {
+            addLine(
+              c.accent(`  ✓ ${provider.label}`) +
+                c.dim(` — ready via ${group.via}`),
+            );
+            continue;
+          }
+          addLine(c.bold(`  ${provider.label}`) + c.dim(` — ${provider.setup}`));
+          if (provider.id === "anthropic") {
+            addLine(c.dim("    Or use /login anthropic for a Claude subscription."));
+          } else if (provider.id === "openai") {
+            addLine(c.dim("    Or use /login openai-codex for a ChatGPT subscription."));
+          }
+        }
+        addLine(c.dim("  Reopen /providers at any time; /models shows providers ready now."));
+        updateStatus();
+      };
+      select.onCancel = () => closeActiveSelect(select);
+      activeSelect = select;
+      chat.addChild(select);
+      ui.setFocus(select);
+      updateStatus();
+    }).catch((error: Error) => {
+      addLine(c.error(`  Could not load provider status: ${error.message}`));
       updateStatus();
     });
   };
@@ -738,6 +861,7 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
         "  Full capture includes prompts, responses, and tool payloads. Do not use it with sensitive material.",
       ),
     );
+    addLine(c.dim("  ↑/↓ to move · Enter to choose · Esc to go back:"));
     const select = new SelectList(
       [
         {
@@ -761,6 +885,10 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
         capture: item.value === "yes" ? "full" : "metadata",
       });
     };
+    select.onCancel = () => {
+      closeActiveSelect(select);
+      chooseCaptureMode(base);
+    };
     activeSelect = select;
     chat.addChild(select);
     ui.setFocus(select);
@@ -771,6 +899,7 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
     base: Omit<ObservabilitySettings, "capture">,
   ): void => {
     addLine(c.accentBold("  What may Janet include in traces?"));
+    addLine(c.dim("  ↑/↓ to move · Enter to choose · Esc to go back:"));
     const select = new SelectList(
       [
         {
@@ -796,6 +925,10 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
         persistObservability({ ...base, capture });
       }
     };
+    select.onCancel = () => {
+      closeActiveSelect(select);
+      showObservabilityPicker();
+    };
     activeSelect = select;
     chat.addChild(select);
     ui.setFocus(select);
@@ -810,6 +943,7 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
     addLine(c.accentBold("  Configure observability"));
     addLine(c.dim(`  Active now: ${formatObservabilityStatus(observability.status)}`));
     addLine(c.dim("  Tracing is opt-in and changes apply after restart."));
+    addLine(c.dim("  ↑/↓ to move · Enter to choose · Esc to close:"));
     const select = new SelectList(
       [
         {
@@ -893,6 +1027,7 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
         });
       });
     };
+    select.onCancel = () => closeActiveSelect(select);
     activeSelect = select;
     chat.addChild(select);
     ui.setFocus(select);
@@ -924,6 +1059,7 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
     }
 
     addLine(c.accentBold("  Recent local traces"));
+    addLine(c.dim("  ↑/↓ to move · Enter to open · Esc to close:"));
     const select = new SelectList(
       recent.spans.map((span) => {
         const state = traceStatus(span);
@@ -952,6 +1088,7 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
         addLine(c.error(`  Could not read trace: ${error.message}`));
       });
     };
+    select.onCancel = () => closeActiveSelect(select);
     activeSelect = select;
     chat.addChild(select);
     ui.setFocus(select);
