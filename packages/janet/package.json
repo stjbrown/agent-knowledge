@@ -1,6 +1,6 @@
 {
   "name": "@stjbrown/agent-knowledge",
-  "version": "0.1.0-beta.4",
+  "version": "0.1.0-beta.5",
   "description": "Janet builds and maintains portable LLM wikis in plain Markdown using OKF.",
   "keywords": [
     "agent",
