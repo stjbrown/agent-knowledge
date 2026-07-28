@@ -19,6 +19,12 @@ describe("TUI activity labels", () => {
     expect(toolActivityLabel("mastra_workspace_kill_process")).toBe(
       "Janet is running a check…",
     );
+    expect(toolActivityLabel("janet_read_pdf")).toBe(
+      "Janet is reading the document…",
+    );
+    expect(toolActivityLabel("janet_web_fetch")).toBe(
+      "Janet is reading the page…",
+    );
     expect(toolActivityLabel("unknown_tool")).toBe("Janet is working…");
   });
 

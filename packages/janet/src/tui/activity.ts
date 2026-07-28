@@ -22,11 +22,16 @@ const WORKSPACE_EXECUTE = new Set([
   "mastra_workspace_kill_process",
 ]);
 
+const PDF_READ = new Set(["janet_read_pdf", "janet_read_pdf_chunk"]);
+const WEB_READ = new Set(["janet_web_fetch", "janet_web_fetch_chunk"]);
+
 /** Friendly transient status for routine tool work. */
 export function toolActivityLabel(toolName: string): string {
   if (toolName === "skill" || toolName === "skill_read" || toolName === "skill_search") {
     return "Janet is reading the playbook…";
   }
+  if (PDF_READ.has(toolName)) return "Janet is reading the document…";
+  if (WEB_READ.has(toolName)) return "Janet is reading the page…";
   if (WORKSPACE_READ.has(toolName)) return "Janet is checking the workspace…";
   if (WORKSPACE_WRITE.has(toolName)) return "Janet is updating the bundle…";
   if (WORKSPACE_EXECUTE.has(toolName) || toolName.includes("shell")) {

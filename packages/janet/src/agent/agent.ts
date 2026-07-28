@@ -5,8 +5,11 @@ import type { Workspace } from "@mastra/core/workspace";
 import { PERSONA_INSTRUCTIONS } from "./persona.js";
 import { getDynamicModel } from "./model.js";
 import { janetPdfSkill } from "../skills/janet-pdf.js";
+import { janetWebSkill } from "../skills/janet-web.js";
 import { guardPdfWorkspaceRead } from "../tools/pdf-guard.js";
 import { createPdfTools } from "../tools/pdf.js";
+import { guardWebWorkspaceRead } from "../tools/web-guard.js";
+import { createWebTools } from "../tools/web/index.js";
 import { createSkillTurnGuard } from "./turn-guard.js";
 
 export interface JanetAgentOptions {
@@ -28,6 +31,7 @@ export function createJanetAgent(opts: JanetAgentOptions): Agent {
   const memory = new Memory({ storage: opts.storage });
   const guardSkillLoader = createSkillTurnGuard();
   const pdfTools = createPdfTools({ projectPath: opts.projectPath });
+  const webTools = createWebTools({ projectPath: opts.projectPath });
 
   return new Agent({
     id: "janet",
@@ -36,12 +40,14 @@ export function createJanetAgent(opts: JanetAgentOptions): Agent {
     model: getDynamicModel,
     memory,
     workspace: opts.workspace,
-    skills: [janetPdfSkill],
-    tools: pdfTools,
+    skills: [janetPdfSkill, janetWebSkill],
+    tools: { ...pdfTools, ...webTools },
     hooks: {
       beforeToolCall: ({ toolName, input, context }) => {
         const pdfGuard = guardPdfWorkspaceRead(toolName, input);
         if (pdfGuard) return pdfGuard;
+        const webGuard = guardWebWorkspaceRead(toolName, input);
+        if (webGuard) return webGuard;
         return guardSkillLoader.beforeToolCall(toolName, input, context);
       },
       afterToolCall: ({ toolName, input, context, error }) =>

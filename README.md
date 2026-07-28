@@ -126,6 +126,12 @@ page-delimited text directly; larger documents use a cached Markdown artifact re
 chunks. Raw PDF bytes never enter model history. Visual/OCR fallback remains optional and is not
 enabled yet.
 
+Janet also fetches known public HTTP(S) URLs through a provider-neutral local reader. It validates
+every redirect, blocks private and metadata networks, never executes page JavaScript, and returns
+readable Markdown through the same bounded artifact/chunk pattern. This baseline needs no API key.
+Web search providers (such as Tavily, Firecrawl, or Exa) and interactive browser automation remain
+separate, optional capabilities and are not enabled yet.
+
 ---
 
 ## The skills
