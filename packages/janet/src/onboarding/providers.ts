@@ -4,9 +4,9 @@ import { getAuthStorage } from "../gateways/oauth/claude-max.js";
 import { loadSettings } from "./settings.js";
 
 export interface ModelChoice {
-  /** Full model id, e.g. "vertex/claude-opus-4-8". */
+  /** Full model id, e.g. "vertex/claude-opus-5". */
   id: string;
-  /** Short human label, e.g. "Claude Opus 4.8". */
+  /** Short human label, e.g. "Claude Opus 5". */
   label: string;
   /** How this provider is reached, e.g. "Vertex AI (ADC)". */
   via: string;
@@ -77,6 +77,7 @@ export function availableModels(): ModelChoice[] {
   if (hasGoogleCredentials()) {
     const via = "Vertex AI (ADC)";
     out.push(
+      { id: "vertex/claude-opus-5", label: "Claude Opus 5", via },
       { id: "vertex/claude-opus-4-8", label: "Claude Opus 4.8", via },
       { id: "vertex/claude-sonnet-4-5", label: "Claude Sonnet 4.5", via },
       { id: "vertex/gemini-2.5-pro", label: "Gemini 2.5 Pro", via },

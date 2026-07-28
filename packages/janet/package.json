@@ -46,9 +46,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@ai-sdk/amazon-bedrock": "3.0.106",
-    "@ai-sdk/anthropic": "3.0.97",
-    "@ai-sdk/google-vertex": "3.0.152",
+    "@ai-sdk/amazon-bedrock": "4.0.143",
+    "@ai-sdk/anthropic": "3.0.103",
+    "@ai-sdk/google-vertex": "4.0.173",
     "@ai-sdk/openai": "3.0.85",
     "@ai-sdk/openai-compatible": "2.0.61",
     "@aws-sdk/credential-providers": "3.1088.0",

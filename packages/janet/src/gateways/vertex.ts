@@ -65,7 +65,7 @@ function vertexLocation(): string {
     process.env["GOOGLE_VERTEX_LOCATION"] ||
     process.env["GOOGLE_CLOUD_LOCATION"] ||
     // Default to the `global` endpoint: it serves the newest Claude models
-    // (e.g. claude-opus-4-8) that regional endpoints like us-east5 may not, and
+    // (e.g. claude-opus-5) that regional endpoints like us-east5 may not, and
     // the AI SDK special-cases it to the region-less aiplatform.googleapis.com
     // host. Overridable via env for region-pinned deployments.
     "global"
@@ -151,6 +151,7 @@ export class VertexGateway extends MastraModelGateway {
         apiKeyHeader: "Authorization",
         gateway: this.id,
         models: [
+          "claude-opus-5",
           "claude-opus-4-8",
           "claude-sonnet-4-5",
           "gemini-2.5-pro",

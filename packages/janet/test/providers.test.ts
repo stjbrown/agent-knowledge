@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CODEX_MODELS,
+  availableModels,
   normalizeModelSelection,
   type ModelChoice,
 } from "../src/onboarding/providers.js";
@@ -52,5 +53,26 @@ describe("OpenAI Codex model selection", () => {
         { id: "two/shared", label: "Two", via: "test" },
       ]),
     ).toBe("shared");
+  });
+});
+
+describe("Vertex model selection", () => {
+  it("offers Claude Opus 5 when Vertex credentials are available", () => {
+    const previousProject = process.env.GOOGLE_VERTEX_PROJECT;
+    process.env.GOOGLE_VERTEX_PROJECT = "janet-provider-test";
+
+    try {
+      expect(availableModels()).toContainEqual({
+        id: "vertex/claude-opus-5",
+        label: "Claude Opus 5",
+        via: "Vertex AI (ADC)",
+      });
+    } finally {
+      if (previousProject === undefined) {
+        delete process.env.GOOGLE_VERTEX_PROJECT;
+      } else {
+        process.env.GOOGLE_VERTEX_PROJECT = previousProject;
+      }
+    }
   });
 });
