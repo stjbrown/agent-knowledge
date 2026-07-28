@@ -25,6 +25,7 @@ import {
 } from "@earendil-works/pi-tui";
 import type { Component, SelectItem } from "@earendil-works/pi-tui";
 import type { AgentControllerEvent } from "@mastra/core/agent-controller";
+import type { Memory } from "@mastra/memory";
 import { bootJanet, type BootOptions } from "../agent/controller.js";
 import { messageText } from "../headless/format.js";
 import { GREETING } from "../agent/persona.js";
@@ -54,8 +55,10 @@ import type {
   ObservabilityCaptureMode,
   ObservabilitySettings,
 } from "../observability/types.js";
+import { compactConversation } from "../memory/compact.js";
 import { toolActivityLabel, toolErrorLabel } from "./activity.js";
 import { createInterruptController, type InterruptResult } from "./interrupt.js";
+import { clearConversation } from "./thread.js";
 import { formatTraceTree, traceStatus } from "./traces.js";
 import { c, editorTheme, markdownTheme } from "./theme.js";
 
@@ -72,6 +75,8 @@ const HELP_TEXT = `Commands:
   /auth                  Show which providers are authenticated
   /observability         Configure opt-in tracing
   /traces                Browse recent local traces
+  /compact               Flush this conversation into Observational Memory
+  /clear                 Start a blank conversation (keeps the old thread)
   /cancel                Cancel the active run
   /help                  This help
   /quit                  Exit (double Ctrl+C also works)
@@ -101,6 +106,17 @@ interface ActiveMessage {
   committedLen: number;
   comp: Markdown | null;
   lastText: string;
+}
+
+type OMWindows = Extract<
+  AgentControllerEvent,
+  { type: "om_status" }
+>["windows"];
+
+function shortTokens(tokens: number): string {
+  if (tokens < 1_000) return String(Math.max(0, Math.round(tokens)));
+  const thousands = tokens / 1_000;
+  return `${thousands >= 10 ? Math.round(thousands) : thousands.toFixed(1)}k`;
 }
 
 /** Map a typed answer to ask_user resume data (free-text or multi-select). */
@@ -165,6 +181,9 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
   let active: ActiveMessage | null = null;
   let cancelRequested = false;
   let modelPickerLoading = false;
+  let compacting = false;
+  let omWindows: OMWindows | null = null;
+  let omActivity: "observing" | "reflecting" | null = null;
   const activeTools = new Map<string, string>();
 
   const updateStatus = (): void => {
@@ -172,22 +191,38 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
     const tracing = observability.status.enabled
       ? c.dim(`  ·  trace:${observability.status.capture}`)
       : "";
+    const memory = omWindows
+      ? c.dim(
+          `  ·  mem:${shortTokens(
+            omWindows.active.messages.tokens +
+              omWindows.active.observations.tokens,
+          )}/${shortTokens(
+            omWindows.active.messages.threshold +
+              omWindows.active.observations.threshold,
+          )}`,
+        )
+      : "";
     const state =
       pendingInput
         ? "enter the requested value"
-        : pendingQuestion || activeSelect
-          ? "answer Janet's question"
-          : pendingApproval
-            ? "awaiting approval"
-            : cancelRequested
-              ? "cancelling"
-            : running
-              ? "working · Esc/Ctrl+C cancels"
-              : "idle";
+        : compacting
+          ? "compacting memory"
+          : omActivity
+            ? `${omActivity} memory`
+            : pendingQuestion || activeSelect
+              ? "answer Janet's question"
+              : pendingApproval
+                ? "awaiting approval"
+                : cancelRequested
+                  ? "cancelling"
+                  : running
+                    ? "working · Esc/Ctrl+C cancels"
+                    : "idle";
     status.setText(
       c.dim(`${paths.projectPath}  ·  `) +
         c.accent(model) +
         c.dim(`  ·  ${state}`) +
+        memory +
         tracing,
     );
     ui.requestRender();
@@ -353,6 +388,59 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
         break;
       }
       case "model_changed":
+        updateStatus();
+        break;
+      case "om_status":
+        omWindows = event.windows;
+        updateStatus();
+        break;
+      case "om_buffering_start":
+        omActivity =
+          event.operationType === "reflection" ? "reflecting" : "observing";
+        updateStatus();
+        break;
+      case "om_observation_start":
+      case "om_reflection_start":
+        omActivity =
+          event.type === "om_reflection_start" ||
+          event.operationType === "reflection"
+            ? "reflecting"
+            : "observing";
+        updateStatus();
+        break;
+      case "om_buffering_end":
+      case "om_observation_end":
+      case "om_reflection_end":
+        omActivity = null;
+        updateStatus();
+        break;
+      case "om_buffering_failed":
+      case "om_observation_failed":
+      case "om_reflection_failed":
+        omActivity = null;
+        closeSegment();
+        addLine(
+          c.warn(
+            `  Memory ${
+              event.type === "om_buffering_failed"
+                ? `${event.operationType} buffering`
+                : event.type === "om_reflection_failed"
+                  ? "reflection"
+                  : "observation"
+            } failed: ${event.error}`,
+          ),
+        );
+        updateStatus();
+        break;
+      case "om_activation":
+        omActivity = null;
+        closeSegment();
+        addLine(
+          c.dim(
+            `  Memory compacted ${shortTokens(event.tokensActivated)} into ` +
+              `${shortTokens(event.observationTokens)} observation tokens.`,
+          ),
+        );
         updateStatus();
         break;
       case "agent_end":
@@ -885,6 +973,81 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
           addLine(c.dim("  No active run to cancel."));
         }
         break;
+      case "clear":
+        if (running || compacting) {
+          addLine(c.dim("  Wait for the active work to finish before clearing the conversation."));
+          break;
+        }
+        try {
+          await clearConversation(session.thread);
+          active = null;
+          activeTools.clear();
+          omWindows = null;
+          omActivity = null;
+          chat.clear();
+          addLine(c.accentBold(GREETING));
+          addLine(c.accentBold("  ✓ Conversation cleared."));
+          addLine(c.dim(`  Knowledge bundle: ${paths.bundlePath}`));
+          addLine(c.dim("  The previous conversation is still saved as a separate thread."));
+        } catch (error) {
+          addLine(c.error(`  Could not clear the conversation: ${(error as Error).message}`));
+        } finally {
+          updateStatus();
+        }
+        break;
+      case "compact": {
+        if (running || compacting) {
+          addLine(c.dim("  Wait for the active work to finish before compacting memory."));
+          break;
+        }
+        if (!session.model.hasSelection()) {
+          addLine(c.dim("  Pick a model before compacting memory."));
+          break;
+        }
+        const threadId = session.thread.getId();
+        if (!threadId) {
+          addLine(c.dim("  There is no active conversation to compact."));
+          break;
+        }
+
+        compacting = true;
+        loader.setMessage("Janet is compacting memory…");
+        setLoader(true);
+        updateStatus();
+        try {
+          const requestContext = await session.machinery.buildRequestContext();
+          const agent = controller.getCurrentAgent(session);
+          const memory = await agent.getMemory({ requestContext });
+          if (!memory) throw new Error("Janet memory is unavailable.");
+          const result = await compactConversation({
+            memory: memory as Memory,
+            agent,
+            threadId,
+            resourceId: session.identity.getResourceId(),
+            requestContext,
+          });
+          if (!result.buffered && !result.activated && !result.reflected) {
+            addLine(c.dim("  Memory is already compact."));
+          } else {
+            const reflected = result.reflected ? " and reflected" : "";
+            addLine(
+              c.accentBold(
+                `  ✓ Compacted ~${result.pendingTokensBefore.toLocaleString()} message tokens into ` +
+                  `~${result.observationTokens.toLocaleString()} memory tokens${reflected}.`,
+              ),
+            );
+            addLine(c.dim("  Raw messages remain available to Janet through memory recall."));
+          }
+        } catch (error) {
+          addLine(c.error(`  Could not compact memory: ${(error as Error).message}`));
+        } finally {
+          compacting = false;
+          loader.setMessage("Janet is thinking…");
+          setLoader(false);
+          updateStatus();
+        }
+        break;
+      }
       case "observability": {
         const action = rest[0]?.trim().toLowerCase();
         if (action === "status") {
@@ -1046,6 +1209,11 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
         return;
       }
       addLine(c.dim("  Answer y (yes), n (no), or a (always allow) first."));
+      return;
+    }
+
+    if (compacting) {
+      addLine(c.dim("  Janet is still compacting memory; try again in a moment."));
       return;
     }
 

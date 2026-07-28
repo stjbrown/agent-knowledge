@@ -52,6 +52,10 @@ describe("Janet permission policy", () => {
     expect(janetToolCategory("janet_web_fetch")).toBe("read");
     expect(janetToolCategory("janet_web_fetch_chunk")).toBe("read");
   });
+
+  it("classifies observational-memory recall as a read operation", () => {
+    expect(janetToolCategory("recall")).toBe("read");
+  });
 });
 
 describe("resumeThread", () => {

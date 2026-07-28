@@ -17,10 +17,11 @@ and used under those terms.
 
 ------------------------------------------------------------------------
 
-Portions of packages/janet/src (the Amazon Bedrock gateway, and — when added —
-the OAuth auth subsystem under src/auth) are adapted from MastraCode
-(https://github.com/mastra-ai/mastra, the mastracode package), licensed under
-the Apache License, Version 2.0. Adapted and used under those terms.
+Portions of packages/janet/src (the Amazon Bedrock gateway, the OAuth auth
+subsystem under src/auth, and the Observational Memory configuration) are
+adapted from MastraCode (https://github.com/mastra-ai/mastra, the mastracode
+package), licensed under the Apache License, Version 2.0. Adapted and used under
+those terms.
 
 ------------------------------------------------------------------------
 

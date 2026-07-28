@@ -31,6 +31,7 @@ const CATEGORY: Record<string, ToolCategory> = {
   janet_read_pdf_chunk: "read",
   janet_web_fetch: "read",
   janet_web_fetch_chunk: "read",
+  recall: "read",
   mastra_workspace_read_file: "read",
   mastra_workspace_list_files: "read",
   mastra_workspace_file_stat: "read",

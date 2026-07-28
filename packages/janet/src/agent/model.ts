@@ -32,13 +32,7 @@ function hasOAuthCredential(authProviderId: string): boolean {
  * which pick up API keys from the environment. Special providers that need
  * explicit construction are handled by their gateways via `handlesModel`.
  */
-export function getDynamicModel({ requestContext }: { requestContext: RequestContext }): MastraModelConfig {
-  const controller = requestContext.get("controller") as AgentControllerRequestContext<unknown> | undefined;
-  const modelId = controller?.session?.modelId;
-  if (!modelId) {
-    throw new Error("No model selected. Use /models (or --model) to select a model first.");
-  }
-
+export function resolveJanetModel(modelId: string): MastraModelConfig {
   // Special-case providers that need explicit construction (ADC/credential-chain
   // auth, no bearer key), mirroring mastracode's resolveModel. Everything else
   // is a `provider/model` id resolved through core's default gateways using env
@@ -69,4 +63,13 @@ export function getDynamicModel({ requestContext }: { requestContext: RequestCon
     return openaiCodexProvider(bareModelId);
   }
   return modelId;
+}
+
+export function getDynamicModel({ requestContext }: { requestContext: RequestContext }): MastraModelConfig {
+  const controller = requestContext.get("controller") as AgentControllerRequestContext<unknown> | undefined;
+  const modelId = controller?.session?.modelId;
+  if (!modelId) {
+    throw new Error("No model selected. Use /models (or --model) to select a model first.");
+  }
+  return resolveJanetModel(modelId);
 }

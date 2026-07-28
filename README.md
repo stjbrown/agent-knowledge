@@ -81,6 +81,8 @@ token-free OKF conformance check before the agent's drift audit, so it is usable
 | `/providers` | show detected providers and the environment variables that enable more |
 | `/login <anthropic\|openai-codex> [browser\|device]` · `/logout` · `/auth` | subscription sign-in and status; device mode is available for remote OpenAI login |
 | `/observability` · `/traces` | configure opt-in tracing and browse local trace history |
+| `/compact` | flush the current conversation into Observational Memory now |
+| `/clear` | start a blank conversation; the previous thread stays saved and recallable |
 | `/cancel` | cancel the active turn; Esc or Ctrl+C does the same while Janet is working |
 | `/help` · `/quit` | help; exit (or press Ctrl+C twice) |
 
@@ -98,6 +100,19 @@ OAuth. An explicitly exported `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` takes prec
 OAuth for that process; unset it to return to subscription authentication. Any other configured
 Mastra-native provider remains usable through `/model provider/model` or `--model provider/model`
 even when it is not in the initial cohort. The selected model persists across restarts.
+
+**Memory.** Janet uses Mastra Observational Memory (OM) by default. The Observer compresses older
+messages and noisy tool output into durable observations as the conversation grows; the Reflector
+condenses those observations over longer sessions. Raw messages remain in local storage and OM's
+recall tool can recover exact details when a compressed observation is insufficient.
+
+Memory work stays on the provider you already authenticated: Vertex and Google use Gemini Flash,
+Anthropic uses Claude Haiku, OpenAI uses a mini model, and Bedrock uses Claude Haiku. Providers
+without a dependable fast default use the selected model itself. To override this policy, set
+`JANET_MEMORY_MODEL=provider/model`, or set `JANET_OBSERVER_MODEL` and
+`JANET_REFLECTOR_MODEL` independently. `/compact` forces the current unobserved tail through the
+same OM pipeline; automatic buffering and compaction remain active either way. `/clear` rotates to
+a blank thread without deleting the old one or changing the knowledge bundle.
 
 **Observability.** Tracing is strictly off by default. Run `/observability` to choose local trace
 history, Phoenix, or a custom OTLP endpoint. Metadata-only capture records timing, model and tool
@@ -259,4 +274,5 @@ can run `pnpm pack:janet` to execute the release checks and write the package to
 
 [MIT](./LICENSE). The vendored OKF specification (`skills/kb/references/SPEC.md`) is from
 GoogleCloudPlatform/knowledge-catalog under Apache-2.0; portions of `packages/janet` (the auth
-subsystem and Bedrock gateway) are adapted from MastraCode under Apache-2.0. See [NOTICE](./NOTICE).
+subsystem, Bedrock gateway, and Observational Memory configuration) are adapted from MastraCode
+under Apache-2.0. See [NOTICE](./NOTICE).

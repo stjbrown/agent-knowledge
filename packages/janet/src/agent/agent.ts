@@ -1,5 +1,4 @@
 import { Agent } from "@mastra/core/agent";
-import { Memory } from "@mastra/memory";
 import type { MastraCompositeStore } from "@mastra/core/storage";
 import type { Workspace } from "@mastra/core/workspace";
 import { PERSONA_INSTRUCTIONS } from "./persona.js";
@@ -10,6 +9,7 @@ import { guardPdfWorkspaceRead } from "../tools/pdf-guard.js";
 import { createPdfTools } from "../tools/pdf.js";
 import { guardWebWorkspaceRead } from "../tools/web-guard.js";
 import { createWebTools } from "../tools/web/index.js";
+import { createJanetMemory } from "../memory/index.js";
 import { createSkillTurnGuard } from "./turn-guard.js";
 
 export interface JanetAgentOptions {
@@ -28,7 +28,7 @@ export interface JanetAgentOptions {
  * procedures.
  */
 export function createJanetAgent(opts: JanetAgentOptions): Agent {
-  const memory = new Memory({ storage: opts.storage });
+  const memory = createJanetMemory(opts.storage);
   const guardSkillLoader = createSkillTurnGuard();
   const pdfTools = createPdfTools({ projectPath: opts.projectPath });
   const webTools = createWebTools({ projectPath: opts.projectPath });

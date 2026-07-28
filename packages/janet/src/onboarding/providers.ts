@@ -51,7 +51,10 @@ export const NATIVE_PROVIDER_DEFINITIONS: readonly NativeProviderDefinition[] = 
     id: "openai",
     label: "OpenAI",
     envVars: ["OPENAI_API_KEY"],
-    fallbackModels: [{ id: "gpt-5.5", label: "GPT-5.5" }],
+    fallbackModels: [
+      { id: "gpt-5.5", label: "GPT-5.5" },
+      { id: "gpt-5.4-mini", label: "GPT-5.4 Mini" },
+    ],
   },
   {
     id: "anthropic",
@@ -60,13 +63,17 @@ export const NATIVE_PROVIDER_DEFINITIONS: readonly NativeProviderDefinition[] = 
     fallbackModels: [
       { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
       { id: "claude-sonnet-4-5", label: "Claude Sonnet 4.5" },
+      { id: "claude-haiku-4-5", label: "Claude Haiku 4.5" },
     ],
   },
   {
     id: "google",
     label: "Google AI Studio",
     envVars: ["GOOGLE_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY"],
-    fallbackModels: [{ id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" }],
+    fallbackModels: [
+      { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+      { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
+    ],
   },
   {
     id: "deepseek",
@@ -272,6 +279,11 @@ export function availableModels(): ModelChoice[] {
   if (hasAwsCredentials()) {
     const via = "Amazon Bedrock (AWS)";
     out.push(
+      {
+        id: "amazon-bedrock/anthropic.claude-haiku-4-5-20251001-v1:0",
+        label: "Claude Haiku 4.5",
+        via,
+      },
       { id: "amazon-bedrock/anthropic.claude-opus-4-1-20250805-v1:0", label: "Claude Opus 4.1", via },
       { id: "amazon-bedrock/anthropic.claude-sonnet-4-20250514-v1:0", label: "Claude Sonnet 4", via },
     );
