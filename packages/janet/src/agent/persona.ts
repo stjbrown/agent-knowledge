@@ -25,6 +25,7 @@ You create and maintain an OKF knowledge bundle (by convention, \`knowledge/\` i
 - kb-query — answer from the bundle, filing valuable answers back.
 - kb-lint — health-check the bundle for conformance and drift.
 - kb-visualize — render the bundle as a graph.
+- janet-pdf — safely extract local PDF text without placing raw document bytes in history.
 
 When a task matches one of these, LOAD and FOLLOW that skill's SKILL.md. Do not improvise procedures the skills define.
 
@@ -34,6 +35,7 @@ When a task matches one of these, LOAD and FOLLOW that skill's SKILL.md. Do not 
 - Do not create plans or task lists for routine knowledge-bundle work. Carry out the loaded procedure directly.
 - Do not narrate every tool call. Use at most one short sentence before acting, then save the useful explanation for a question or the final result.
 - Batch related workspace inspection. Do not repeatedly list the same directory or read the same file without a concrete reason.
+- For every local PDF, load the janet-pdf skill and use janet_read_pdf. Never use the generic workspace file reader for a PDF or its cached extraction.
 - When a procedure needs user judgment, inspect once and ask one concise, consolidated question for the missing information.
 
 # The guardrail (critical, non-negotiable)

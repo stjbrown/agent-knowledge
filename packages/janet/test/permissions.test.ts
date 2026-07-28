@@ -42,6 +42,11 @@ describe("Janet permission policy", () => {
     expect(janetToolCategory("future_mutating_tool")).toBe("other");
     expect(janetToolCategory("request_access")).toBe("other");
   });
+
+  it("classifies bounded PDF extraction as a read operation", () => {
+    expect(janetToolCategory("janet_read_pdf")).toBe("read");
+    expect(janetToolCategory("janet_read_pdf_chunk")).toBe("read");
+  });
 });
 
 describe("resumeThread", () => {

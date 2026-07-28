@@ -1,4 +1,5 @@
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readlinkSync,
@@ -44,6 +45,7 @@ describe("ensureSkillLinks", () => {
     expect(readlinkSync(join(links, "kb-query"))).toBe(userQuery);
     expect(readlinkSync(join(links, "kb-init"))).toBe(userInit);
     expect(readlinkSync(join(links, "kb-ingest"))).toContain("/skills/kb-ingest");
+    expect(existsSync(join(links, "janet-pdf"))).toBe(false);
     expect(mount.allowedPaths).toEqual(expect.arrayContaining([projectKb, userQuery, userInit]));
   });
 

@@ -3,10 +3,10 @@
  *
  * Mastra workspace `skills` paths must be RELATIVE to the workspace root
  * (LocalFilesystem basePath) — absolute paths are rejected with "path is
- * outside the workspace". Janet's kb-* skills ship inside the npm package,
- * outside any user project, so we mount them into the project by SYMLINKING
- * each skill dir into `<project>/.agent-knowledge/skills/` and configuring the
- * workspace with that relative root.
+ * outside the workspace". Janet's portable kb-* skills ship inside the npm
+ * package, outside any user project, so we mount them into the project by
+ * SYMLINKING each skill dir into `<project>/.agent-knowledge/skills/` and
+ * configuring the workspace with that relative root.
  *
  * Layering (local shadows bundled) is resolved independently for each skill:
  * project `.agents/skills` → project `.claude/skills` → user equivalents →
@@ -19,8 +19,15 @@ import os from "node:os";
 import path from "node:path";
 import { CONFIG_DIR_NAME, bundledSkillsDir, ensureDir } from "./paths.js";
 
-/** The kb-* skills janet ships and knows how to drive. */
-const JANET_SKILL_NAMES = ["kb", "kb-init", "kb-ingest", "kb-query", "kb-lint", "kb-visualize"];
+/** Portable skills exposed through Janet's workspace for local override. */
+const WORKSPACE_SKILL_NAMES = [
+  "kb",
+  "kb-init",
+  "kb-ingest",
+  "kb-query",
+  "kb-lint",
+  "kb-visualize",
+];
 
 function isSkillDir(dir: string): boolean {
   return fs.existsSync(path.join(dir, "SKILL.md"));
@@ -34,7 +41,7 @@ export interface SkillMount {
 }
 
 /**
- * Ensure `<project>/.agent-knowledge/skills/<kb-*>` links exist and return the
+ * Ensure Janet's project-local skill links exist and return the
  * workspace-relative skills root plus the absolute paths reads must be allowed
  * to resolve through.
  */
@@ -53,7 +60,7 @@ export function ensureSkillLinks(projectPath: string, homeDir: string = os.homed
   ensureDir(linkRoot);
   const allowedPaths = new Set<string>([linkRoot]);
 
-  for (const name of JANET_SKILL_NAMES) {
+  for (const name of WORKSPACE_SKILL_NAMES) {
     const dest = path.join(linkRoot, name);
 
     let st: fs.Stats | undefined;

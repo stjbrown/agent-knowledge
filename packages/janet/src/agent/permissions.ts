@@ -27,6 +27,8 @@ export const JANET_ALWAYS_ALLOW_TOOL_RULES = Object.fromEntries(
 ) as Record<string, "allow">;
 
 const CATEGORY: Record<string, ToolCategory> = {
+  janet_read_pdf: "read",
+  janet_read_pdf_chunk: "read",
   mastra_workspace_read_file: "read",
   mastra_workspace_list_files: "read",
   mastra_workspace_file_stat: "read",

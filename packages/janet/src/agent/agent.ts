@@ -4,24 +4,30 @@ import type { MastraCompositeStore } from "@mastra/core/storage";
 import type { Workspace } from "@mastra/core/workspace";
 import { PERSONA_INSTRUCTIONS } from "./persona.js";
 import { getDynamicModel } from "./model.js";
+import { janetPdfSkill } from "../skills/janet-pdf.js";
+import { guardPdfWorkspaceRead } from "../tools/pdf-guard.js";
+import { createPdfTools } from "../tools/pdf.js";
 import { createSkillTurnGuard } from "./turn-guard.js";
 
 export interface JanetAgentOptions {
   storage: MastraCompositeStore;
-  /** The workspace providing filesystem/sandbox tools AND the kb-* skills. */
+  /** Workspace providing filesystem/sandbox tools and portable kb-* skills. */
   workspace: Workspace;
+  /** Absolute workspace root used to constrain Janet's local PDF tools. */
+  projectPath: string;
 }
 
 /**
- * Build the Janet agent. The workspace carries the kb-* skills (mounted at a
- * workspace-relative path — see skills-paths.ts), which gives the agent the
- * `skill` / `skill_read` / `skill_search` tools automatically and lists the
- * skills in its system message. Instructions layer Janet's persona + guardrail
- * over the procedures the skills define.
+ * Build the Janet agent. Portable kb-* skills come from the workspace, while
+ * Janet-only procedures are inline agent skills. Mastra merges both sources,
+ * exposes the skill tools, and lists the available metadata in the system
+ * message. Instructions layer Janet's persona + guardrail over those
+ * procedures.
  */
 export function createJanetAgent(opts: JanetAgentOptions): Agent {
   const memory = new Memory({ storage: opts.storage });
   const guardSkillLoader = createSkillTurnGuard();
+  const pdfTools = createPdfTools({ projectPath: opts.projectPath });
 
   return new Agent({
     id: "janet",
@@ -30,9 +36,14 @@ export function createJanetAgent(opts: JanetAgentOptions): Agent {
     model: getDynamicModel,
     memory,
     workspace: opts.workspace,
+    skills: [janetPdfSkill],
+    tools: pdfTools,
     hooks: {
-      beforeToolCall: ({ toolName, input, context }) =>
-        guardSkillLoader.beforeToolCall(toolName, input, context),
+      beforeToolCall: ({ toolName, input, context }) => {
+        const pdfGuard = guardPdfWorkspaceRead(toolName, input);
+        if (pdfGuard) return pdfGuard;
+        return guardSkillLoader.beforeToolCall(toolName, input, context);
+      },
       afterToolCall: ({ toolName, input, context, error }) =>
         guardSkillLoader.afterToolCall(toolName, input, context, error),
     },

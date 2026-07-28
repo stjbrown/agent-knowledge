@@ -121,6 +121,11 @@ Janet is built on [Mastra](https://mastra.ai) and lives in
 (published as `@stjbrown/agent-knowledge`, bins `janet` + `ding`). She also reports lifecycle state
 natively to [Herdr](https://herdr.dev) when run inside a Herdr pane.
 
+Janet reads local PDFs through a dedicated TypeScript extractor. Small documents return
+page-delimited text directly; larger documents use a cached Markdown artifact read in bounded
+chunks. Raw PDF bytes never enter model history. Visual/OCR fallback remains optional and is not
+enabled yet.
+
 ---
 
 ## The skills
@@ -211,7 +216,7 @@ the interactive view. Start at
 ## Layout
 
 ```
-skills/                 # source of truth for both Janet and the skills.sh / plugin installs
+skills/                 # source of truth for the portable skills.sh / plugin collection
   kb/                   # hub: SKILL.md + references/ (SPEC, glossary, trust-model) + templates/ + example-bundle/
   kb-init/  kb-ingest/  kb-query/
   kb-lint/              # + scripts/conformance.mjs  (deterministic §9 check, zero-dep)
@@ -219,6 +224,8 @@ skills/                 # source of truth for both Janet and the skills.sh / plu
 knowledge/              # this project's own OKF bundle (self-documenting)
 packages/
   janet/                # the standalone agent (published as "agent-knowledge")
+    src/skills/         # Janet-only inline skills (not exposed to skills installers)
+    src/tools/          # Janet-only deterministic tools
   kb-tools/             # deterministic TS conformance + graph (compiles the committed skill .mjs)
 .claude-plugin/         # plugin manifest
 ```

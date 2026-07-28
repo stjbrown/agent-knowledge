@@ -108,7 +108,7 @@ export async function bootJanet(opts: BootOptions): Promise<JanetSessionBoot> {
   );
   const storage = observability.storage;
 
-  // Symlink the bundled kb-* skills into <project>/.agent-knowledge/skills so
+  // Symlink the portable kb-* skills into <project>/.agent-knowledge/skills so
   // the workspace can reference them by a RELATIVE path (Mastra requirement).
   const skills = ensureSkillLinks(paths.projectPath);
 
@@ -117,7 +117,11 @@ export async function bootJanet(opts: BootOptions): Promise<JanetSessionBoot> {
     projectPath: paths.projectPath,
     skills,
   });
-  const agent = createJanetAgent({ storage, workspace });
+  const agent = createJanetAgent({
+    storage,
+    workspace,
+    projectPath: paths.projectPath,
+  });
 
   const controller = new AgentController<JanetState>({
     id: "agent-knowledge",

@@ -104,9 +104,11 @@ export function appDataDir(): string {
  */
 export function bundledSkillsDir(): string {
   const here = dirname(fileURLToPath(import.meta.url));
-  // Built layout: packages/janet/dist/main.js → ../skills
-  const shipped = resolve(here, "..", "skills");
-  if (existsSync(shipped)) return shipped;
-  // Dev layout: packages/janet/src/agent/paths.ts → repo-root/skills
-  return resolve(here, "..", "..", "..", "..", "skills");
+  // Dev layout: packages/janet/src/agent/paths.ts → repo-root/skills. Check
+  // for an actual portable skill because packages/janet/src/skills contains
+  // Janet-owned inline skill definitions and is not a filesystem skill root.
+  const repoSkills = resolve(here, "..", "..", "..", "..", "skills");
+  if (existsSync(join(repoSkills, "kb", "SKILL.md"))) return repoSkills;
+  // Built layout: packages/janet/dist/main.js → ../skills.
+  return resolve(here, "..", "skills");
 }

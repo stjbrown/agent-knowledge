@@ -40,9 +40,12 @@ thing will be routed.
 ## 2. Read and classify the source
 
 Identify what to ingest (an argument, a path, or content the user dropped). Read it in full —
-markdown, text, PDF, image (view it), transcript, web page. Classify it (e.g. transcript, email,
-note, document, media) since that shapes extraction. **Ground everything in what the source actually
-says** — never invent entities, claims, or attribution not present in it (trust model §2).
+markdown, text, image (view it), transcript, web page. In Janet, load and follow the `janet-pdf`
+skill for a PDF; never use Janet's generic workspace file reader on the PDF or its cached
+extraction. In another host, use its supported native PDF-reading workflow. Classify the source
+(e.g. transcript, email, note, document, media) since that shapes extraction. **Ground everything
+in what the source actually says** — never invent entities, claims, or attribution not present in
+it (trust model §2).
 
 **Completion criterion:** the source is read in full and classified; you can summarize its key
 signal.
