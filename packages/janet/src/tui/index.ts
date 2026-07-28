@@ -30,12 +30,21 @@ import { messageText } from "../headless/format.js";
 import { GREETING } from "../agent/persona.js";
 import { getAuthStorage } from "../gateways/oauth/claude-max.js";
 import {
-  loadSettings,
   completeOnboarding,
+  loadSettings,
   rememberModel,
   rememberObservability,
 } from "../onboarding/settings.js";
-import { availableModels, normalizeModelSelection } from "../onboarding/providers.js";
+import {
+  NATIVE_PROVIDER_DEFINITIONS,
+  availableModels,
+  discoverAvailableModels,
+  environmentApiKeyConfigured,
+  groupModelsByProvider,
+  normalizeModelSelection,
+  type ModelChoice,
+  type ProviderModelGroup,
+} from "../onboarding/providers.js";
 import { resolveObservabilityConfig } from "../observability/config.js";
 import {
   formatObservabilityStatus,
@@ -54,8 +63,9 @@ import { c, editorTheme, markdownTheme } from "./theme.js";
 const OAUTH_PROVIDERS = ["anthropic", "openai-codex"] as const;
 
 const HELP_TEXT = `Commands:
-  /models                Pick a model from a list (arrow keys)
+  /models                Pick a provider, then a model
   /model [provider/id]   Open the picker, or switch directly by id
+  /providers             Show detected and available providers
   /login <provider> [mode]
                          Log in; OpenAI mode is browser or device
   /logout <provider>     Remove stored credentials for a provider
@@ -154,6 +164,7 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
   let activeSelect: SelectList | null = null;
   let active: ActiveMessage | null = null;
   let cancelRequested = false;
+  let modelPickerLoading = false;
   const activeTools = new Map<string, string>();
 
   const updateStatus = (): void => {
@@ -447,45 +458,159 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
     });
   };
 
-  // Interactive model picker: an arrow-key list of models from the providers
-  // reachable right now. Selecting one switches the session and persists it as
-  // the default. Shared by /models, /model (no arg), and first-run onboarding.
-  const showModelPicker = (intro?: string): void => {
-    const choices = availableModels();
-    if (intro) addLine(c.accentBold(intro));
-    if (!choices.length) {
-      addLine(c.dim("  No providers are configured yet. Set one up, then try again:"));
-      addLine(c.dim("    • Vertex AI:   gcloud auth application-default login  (+ GOOGLE_VERTEX_PROJECT)"));
-      addLine(c.dim("    • Anthropic:   set ANTHROPIC_API_KEY, or /login anthropic"));
-      addLine(c.dim("    • OpenAI:      set OPENAI_API_KEY, or /login openai-codex"));
-      addLine(c.dim("    • Bedrock:     configure AWS credentials"));
+  const closeActiveSelect = (select: SelectList): void => {
+    chat.removeChild(select);
+    if (activeSelect === select) activeSelect = null;
+    ui.setFocus(editor);
+  };
+
+  const selectModel = async (modelId: string): Promise<void> => {
+    try {
+      await session.model.switch({ modelId });
+      completeOnboarding(modelId, new Date().toISOString());
+      rememberModel(modelId);
+      addLine(c.accentBold(`  ✓ Using ${modelId}.`) + c.dim("  (saved as your default)"));
+    } catch (error) {
+      addLine(c.error(`  Could not select ${modelId}: ${(error as Error).message}`));
+    } finally {
       updateStatus();
-      return;
     }
+  };
+
+  const showProviderModels = (group: ProviderModelGroup): void => {
     const current = session.model.hasSelection() ? session.model.get() : null;
+    const currentChoice = group.models.find((choice) => choice.id === current);
+    const ordered = currentChoice
+      ? [currentChoice, ...group.models.filter((choice) => choice.id !== current)]
+      : group.models;
+    // Large gateways can expose hundreds of models. Keep the arrow list useful
+    // and always offer an exact model-id entry path.
+    const visible = ordered.slice(0, 29);
+    const items: SelectItem[] = visible.map((choice) => ({
+      value: choice.id,
+      label: choice.id === current ? `${choice.label} (current)` : choice.label,
+      description: choice.id,
+    }));
+    items.push({
+      value: "__janet_enter_model_id__",
+      label: "Enter another model ID…",
+      description:
+        ordered.length > visible.length
+          ? `${ordered.length - visible.length} more catalog models; enter the exact id`
+          : `Use any ${group.id}/model supported by Mastra`,
+    });
+
+    addLine(c.accentBold(`  ${group.label} models`));
     addLine(c.dim("  ↑/↓ to move, enter to choose:"));
     const select = new SelectList(
-      choices.map((ch) => ({
-        value: ch.id,
-        label: ch.id === current ? `${ch.label} (current)` : ch.label,
-        description: ch.via,
-      })),
-      Math.min(choices.length, 10),
+      items,
+      Math.min(items.length, 10),
       editorTheme.selectList,
     );
     select.onSelect = (item: SelectItem) => {
-      chat.removeChild(select);
-      activeSelect = null;
-      ui.setFocus(editor);
-      void session.model.switch({ modelId: item.value });
-      completeOnboarding(item.value, new Date().toISOString());
-      addLine(c.accentBold(`  ✓ Using ${item.value}.`) + c.dim("  (saved as your default)"));
-      updateStatus();
+      closeActiveSelect(select);
+      if (item.value === "__janet_enter_model_id__") {
+        void promptInput(
+          `Model id for ${group.label}:`,
+          `${group.id}/model-name`,
+        ).then((input) => {
+          const modelId = input.startsWith(`${group.id}/`)
+            ? input
+            : `${group.id}/${input}`;
+          void selectModel(modelId);
+        });
+        return;
+      }
+      void selectModel(item.value);
     };
     activeSelect = select;
     chat.addChild(select);
     ui.setFocus(select);
     updateStatus();
+  };
+
+  const showProviderPicker = (choices: ModelChoice[]): void => {
+    const groups = groupModelsByProvider(choices);
+    if (!groups.length) {
+      addLine(c.dim("  No providers are configured yet. Set one up, then try again:"));
+      addLine(c.dim("    • Vertex AI:   gcloud auth application-default login  (+ GOOGLE_VERTEX_PROJECT)"));
+      addLine(c.dim("    • Anthropic:   set ANTHROPIC_API_KEY, or /login anthropic"));
+      addLine(c.dim("    • OpenAI:      set OPENAI_API_KEY, or /login openai-codex"));
+      addLine(c.dim("    • Bedrock:     configure AWS credentials"));
+      addLine(c.dim("    • More:        /providers lists native Mastra environment variables"));
+      updateStatus();
+      return;
+    }
+
+    addLine(c.dim("  ↑/↓ to move, enter to choose a provider:"));
+    const select = new SelectList(
+      groups.map((group) => ({
+        value: group.id,
+        label: group.label,
+        description: `${group.models.length} model${group.models.length === 1 ? "" : "s"} · ${group.via}`,
+      })),
+      Math.min(groups.length, 10),
+      editorTheme.selectList,
+    );
+    select.onSelect = (item: SelectItem) => {
+      closeActiveSelect(select);
+      const group = groups.find((candidate) => candidate.id === item.value);
+      if (group) showProviderModels(group);
+    };
+    activeSelect = select;
+    chat.addChild(select);
+    ui.setFocus(select);
+    updateStatus();
+  };
+
+  // Mastra supplies the native provider catalog and auth status. Janet layers
+  // its ADC/AWS/OAuth choices over that catalog and retains local fallbacks for
+  // offline startup.
+  const showModelPicker = (intro?: string): void => {
+    if (modelPickerLoading) {
+      addLine(c.dim("  The provider catalog is already loading."));
+      return;
+    }
+    if (intro) addLine(c.accentBold(intro));
+    addLine(c.dim("  Loading configured providers…"));
+    modelPickerLoading = true;
+    updateStatus();
+    void discoverAvailableModels(() => controller.listAvailableModels())
+      .then(showProviderPicker)
+      .catch((error: Error) => {
+        addLine(c.error(`  Could not load providers: ${error.message}`));
+        showProviderPicker(availableModels());
+      })
+      .finally(() => {
+        modelPickerLoading = false;
+        updateStatus();
+      });
+  };
+
+  const showProviders = (): void => {
+    addLine(c.accentBold("  Model providers"));
+    void discoverAvailableModels(() => controller.listAvailableModels()).then((choices) => {
+      const groups = groupModelsByProvider(choices);
+      if (groups.length) {
+        addLine(c.dim("  Available now:"));
+        for (const group of groups) {
+          addLine(c.dim(`    • ${group.label}: ${group.via}`));
+        }
+      } else {
+        addLine(c.dim("  No provider credentials detected."));
+      }
+
+      const missing = NATIVE_PROVIDER_DEFINITIONS.filter(
+        (provider) => !environmentApiKeyConfigured(provider.id),
+      );
+      if (missing.length) {
+        addLine(c.dim("  Add another Mastra-native provider:"));
+        for (const provider of missing) {
+          addLine(c.dim(`    • ${provider.label}: ${provider.envVars.join(" or ")}`));
+        }
+      }
+      updateStatus();
+    });
   };
 
   const savedObservabilitySummary = (): string => {
@@ -515,12 +640,6 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
     addLine(c.dim(`  Saved: ${savedObservabilitySummary()}`));
     addLine(c.dim("  Restart Janet to apply the new setting."));
     updateStatus();
-  };
-
-  const closeActiveSelect = (select: SelectList): void => {
-    chat.removeChild(select);
-    if (activeSelect === select) activeSelect = null;
-    ui.setFocus(editor);
   };
 
   const confirmFullCapture = (
@@ -862,15 +981,14 @@ export async function runTui(opts: Omit<BootOptions, "interactive">): Promise<nu
           break;
         }
         const id = normalizeModelSelection(inputId, availableModels());
-        await session.model.switch({ modelId: id });
-        completeOnboarding(id, new Date().toISOString());
-        rememberModel(id); // so a hand-typed model shows up in the picker next time
-        addLine(c.dim(`Model set to ${id}.`));
-        updateStatus();
+        await selectModel(id);
         break;
       }
       case "models":
         showModelPicker();
+        break;
+      case "providers":
+        showProviders();
         break;
       default:
         addLine(c.dim(`Unknown command /${cmd}. Try /help.`));

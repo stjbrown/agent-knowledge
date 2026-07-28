@@ -3,6 +3,8 @@ import { hasAwsCredentials } from "../gateways/bedrock.js";
 import { getAuthStorage } from "../gateways/oauth/claude-max.js";
 import { loadSettings } from "./settings.js";
 
+export type ProviderAuthRoute = "api-key" | "oauth";
+
 export interface ModelChoice {
   /** Full model id, e.g. "vertex/claude-opus-5". */
   id: string;
@@ -11,6 +13,126 @@ export interface ModelChoice {
   /** How this provider is reached, e.g. "Vertex AI (ADC)". */
   via: string;
 }
+
+export interface ProviderModelGroup {
+  /** Mastra model-router provider prefix. */
+  id: string;
+  /** Human-readable provider name. */
+  label: string;
+  /** Authentication routes represented by the group's models. */
+  via: string;
+  models: ModelChoice[];
+}
+
+export interface NativeCatalogModel {
+  id: string;
+  provider: string;
+  modelName: string;
+  hasApiKey: boolean;
+  apiKeyEnvVar?: string;
+}
+
+interface NativeProviderDefinition {
+  id: string;
+  label: string;
+  envVars: readonly string[];
+  /** Small offline fallback; the live catalog supplies the complete model list. */
+  fallbackModels: ReadonlyArray<{ id: string; label: string }>;
+}
+
+/**
+ * The first provider cohort Janet advertises explicitly. These all resolve
+ * through Mastra's native models.dev gateway; no Janet gateway or provider
+ * package is required. The live catalog can still expose any other configured
+ * Mastra-native provider automatically.
+ */
+export const NATIVE_PROVIDER_DEFINITIONS: readonly NativeProviderDefinition[] = [
+  {
+    id: "openai",
+    label: "OpenAI",
+    envVars: ["OPENAI_API_KEY"],
+    fallbackModels: [{ id: "gpt-5.5", label: "GPT-5.5" }],
+  },
+  {
+    id: "anthropic",
+    label: "Anthropic",
+    envVars: ["ANTHROPIC_API_KEY"],
+    fallbackModels: [
+      { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
+      { id: "claude-sonnet-4-5", label: "Claude Sonnet 4.5" },
+    ],
+  },
+  {
+    id: "google",
+    label: "Google AI Studio",
+    envVars: ["GOOGLE_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY"],
+    fallbackModels: [{ id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" }],
+  },
+  {
+    id: "deepseek",
+    label: "DeepSeek",
+    envVars: ["DEEPSEEK_API_KEY"],
+    fallbackModels: [{ id: "deepseek-chat", label: "DeepSeek Chat" }],
+  },
+  {
+    id: "groq",
+    label: "Groq",
+    envVars: ["GROQ_API_KEY"],
+    fallbackModels: [
+      { id: "llama-3.3-70b-versatile", label: "Llama 3.3 70B Versatile" },
+    ],
+  },
+  {
+    id: "mistral",
+    label: "Mistral",
+    envVars: ["MISTRAL_API_KEY"],
+    fallbackModels: [{ id: "mistral-large-latest", label: "Mistral Large" }],
+  },
+  {
+    id: "xai",
+    label: "xAI",
+    envVars: ["XAI_API_KEY"],
+    fallbackModels: [{ id: "grok-4.3", label: "Grok 4.3" }],
+  },
+  {
+    id: "openrouter",
+    label: "OpenRouter",
+    envVars: ["OPENROUTER_API_KEY"],
+    fallbackModels: [{ id: "~openai/gpt-latest", label: "OpenAI GPT Latest" }],
+  },
+  {
+    id: "togetherai",
+    label: "Together AI",
+    envVars: ["TOGETHER_API_KEY"],
+    fallbackModels: [
+      {
+        id: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        label: "Llama 3.3 70B Instruct Turbo",
+      },
+    ],
+  },
+  {
+    id: "fireworks-ai",
+    label: "Fireworks AI",
+    envVars: ["FIREWORKS_API_KEY"],
+    fallbackModels: [
+      {
+        id: "accounts/fireworks/models/deepseek-v4-flash",
+        label: "DeepSeek V4 Flash",
+      },
+    ],
+  },
+  {
+    id: "cerebras",
+    label: "Cerebras",
+    envVars: ["CEREBRAS_API_KEY"],
+    fallbackModels: [{ id: "gpt-oss-120b", label: "GPT OSS 120B" }],
+  },
+] as const;
+
+const NATIVE_PROVIDERS_BY_ID = new Map(
+  NATIVE_PROVIDER_DEFINITIONS.map((provider) => [provider.id, provider]),
+);
 
 /**
  * Models offered when signed in to a ChatGPT/Codex subscription (OAuth). The
@@ -62,8 +184,42 @@ function hasOAuth(provider: string): boolean {
   }
 }
 
-function hasEnv(...vars: string[]): boolean {
-  return vars.some((v) => !!process.env[v]);
+export function environmentApiKeyConfigured(
+  providerId: string,
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  return NATIVE_PROVIDERS_BY_ID.get(providerId)?.envVars.some((name) => !!env[name]) ?? false;
+}
+
+/**
+ * Environment variables are an explicit per-process choice, so they win over a
+ * stored subscription credential. Unset the key to return to OAuth.
+ */
+export function providerAuthRoute(
+  providerId: string,
+  oauthConfigured: boolean,
+  env: NodeJS.ProcessEnv = process.env,
+): ProviderAuthRoute | undefined {
+  if (environmentApiKeyConfigured(providerId, env)) return "api-key";
+  return oauthConfigured ? "oauth" : undefined;
+}
+
+export function providerDisplayName(providerId: string): string {
+  if (providerId === "vertex") return "Google Vertex AI";
+  if (providerId === "amazon-bedrock") return "Amazon Bedrock";
+  const known = NATIVE_PROVIDERS_BY_ID.get(providerId);
+  if (known) return known.label;
+  return providerId
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function catalogModelVia(model: NativeCatalogModel): string {
+  if (model.provider === "vertex") return "Vertex AI (ADC)";
+  if (model.provider === "amazon-bedrock") return "Amazon Bedrock (AWS)";
+  return `${providerDisplayName(model.provider)} (API key)`;
 }
 
 /**
@@ -83,29 +239,42 @@ export function availableModels(): ModelChoice[] {
       { id: "vertex/gemini-2.5-pro", label: "Gemini 2.5 Pro", via },
     );
   }
-  if (hasEnv("ANTHROPIC_API_KEY") || hasOAuth("anthropic")) {
-    const via = hasOAuth("anthropic") ? "Anthropic (Claude Max)" : "Anthropic (API key)";
-    out.push(
-      { id: "anthropic/claude-opus-4-6", label: "Claude Opus 4.6", via },
-      { id: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5", via },
-    );
+
+  const anthropicOAuth = hasOAuth("anthropic");
+  const openaiOAuth = hasOAuth("openai-codex");
+  for (const provider of NATIVE_PROVIDER_DEFINITIONS) {
+    if (environmentApiKeyConfigured(provider.id)) {
+      const via = `${provider.label} (API key)`;
+      for (const model of provider.fallbackModels) {
+        out.push({
+          id: `${provider.id}/${model.id}`,
+          label: model.label,
+          via,
+        });
+      }
+      continue;
+    }
+    if (provider.id === "anthropic" && anthropicOAuth) {
+      const via = "Anthropic (Claude Max)";
+      out.push(
+        { id: "anthropic/claude-opus-4-6", label: "Claude Opus 4.6", via },
+        { id: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5", via },
+      );
+    }
   }
-  if (hasOAuth("openai-codex")) {
+
+  if (providerAuthRoute("openai", openaiOAuth) === "oauth") {
     // Signed in to a ChatGPT/Codex subscription — offer the full Codex lineup.
     const via = "OpenAI (ChatGPT/Codex)";
     for (const m of CODEX_MODELS) out.push({ id: `openai/${m.id}`, label: m.label, via });
-  } else if (hasEnv("OPENAI_API_KEY")) {
-    out.push({ id: "openai/gpt-5.5", label: "GPT-5.5", via: "OpenAI (API key)" });
   }
+
   if (hasAwsCredentials()) {
     const via = "Amazon Bedrock (AWS)";
     out.push(
       { id: "amazon-bedrock/anthropic.claude-opus-4-1-20250805-v1:0", label: "Claude Opus 4.1", via },
       { id: "amazon-bedrock/anthropic.claude-sonnet-4-20250514-v1:0", label: "Claude Sonnet 4", via },
     );
-  }
-  if (hasEnv("GOOGLE_GENERATIVE_AI_API_KEY")) {
-    out.push({ id: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro", via: "Google (API key)" });
   }
 
   // Models the user has used directly (via /model or --model) that aren't
@@ -120,4 +289,77 @@ export function availableModels(): ModelChoice[] {
   }
 
   return out;
+}
+
+/**
+ * Merge Janet's credential-aware local fallback with Mastra's live model
+ * catalog. Only authenticated catalog providers are shown. If models.dev is
+ * unavailable, the local choices and saved model IDs remain usable.
+ */
+export async function discoverAvailableModels(
+  loadCatalog: () => Promise<ReadonlyArray<NativeCatalogModel>>,
+  timeoutMs = 5_000,
+): Promise<ModelChoice[]> {
+  const choices = new Map(availableModels().map((choice) => [choice.id, choice]));
+  try {
+    const catalog = await new Promise<ReadonlyArray<NativeCatalogModel>>(
+      (resolve, reject) => {
+        const timer = setTimeout(
+          () => reject(new Error("Provider catalog timed out")),
+          timeoutMs,
+        );
+        void Promise.resolve()
+          .then(loadCatalog)
+          .then(
+            (models) => {
+              clearTimeout(timer);
+              resolve(models);
+            },
+            (error: unknown) => {
+              clearTimeout(timer);
+              reject(error);
+            },
+          );
+      },
+    );
+    for (const model of catalog) {
+      if (!model.hasApiKey) continue;
+      const choice: ModelChoice = {
+        id: model.id,
+        label: model.modelName,
+        via: catalogModelVia(model),
+      };
+      const existing = choices.get(model.id);
+      if (!existing || existing.via === "saved") choices.set(model.id, choice);
+    }
+  } catch {
+    // Catalog discovery is a convenience. Model resolution and saved/manual
+    // selections must continue to work while offline.
+  }
+  return [...choices.values()];
+}
+
+export function groupModelsByProvider(
+  choices: ReadonlyArray<ModelChoice>,
+): ProviderModelGroup[] {
+  const groups = new Map<string, ProviderModelGroup>();
+  for (const choice of choices) {
+    const slash = choice.id.indexOf("/");
+    if (slash <= 0) continue;
+    const providerId = choice.id.slice(0, slash);
+    let group = groups.get(providerId);
+    if (!group) {
+      group = {
+        id: providerId,
+        label: providerDisplayName(providerId),
+        via: choice.via,
+        models: [],
+      };
+      groups.set(providerId, group);
+    } else if (!group.via.split(" / ").includes(choice.via)) {
+      group.via += ` / ${choice.via}`;
+    }
+    group.models.push(choice);
+  }
+  return [...groups.values()];
 }

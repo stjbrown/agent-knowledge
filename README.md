@@ -77,7 +77,8 @@ token-free OKF conformance check before the agent's drift audit, so it is usable
 
 | Command | |
 |---|---|
-| `/models` · `/model [id]` | pick a model from an arrow-key list, or switch by id |
+| `/models` · `/model [id]` | pick a configured provider and model, or switch directly by id |
+| `/providers` | show detected providers and the environment variables that enable more |
 | `/login <anthropic\|openai-codex> [browser\|device]` · `/logout` · `/auth` | subscription sign-in and status; device mode is available for remote OpenAI login |
 | `/observability` · `/traces` | configure opt-in tracing and browse local trace history |
 | `/cancel` | cancel the active turn; Esc or Ctrl+C does the same while Janet is working |
@@ -85,10 +86,18 @@ token-free OKF conformance check before the agent's drift audit, so it is usable
 
 Just type to talk to Janet; ↑/↓ recalls previous prompts.
 
-**Models & providers.** No default provider — you choose. Janet supports Google Vertex AI (Claude +
-Gemini, via ADC/service account), Amazon Bedrock (AWS credential chain), Anthropic and OpenAI (API
-key **or** subscription OAuth), and Google Gemini (API key). Set the choice once (`--model`,
-`JANET_MODEL`, or the first-run picker) and it persists.
+**Models & providers.** No default provider — you choose. Janet discovers configured providers and
+their current model catalogs through Mastra's native model router. The first provider cohort is
+OpenAI, Anthropic, Google AI Studio, DeepSeek, Groq, Mistral, xAI, OpenRouter, Together AI,
+Fireworks AI, and Cerebras. Set the provider's standard environment variable, restart Janet, and
+use `/models`; `/providers` shows the exact variable names without revealing their values.
+
+Vertex AI (ADC/service account) and Amazon Bedrock (AWS credential chain) use Janet's dedicated
+cloud gateways. OpenAI and Anthropic additionally support ChatGPT/Codex and Claude Max subscription
+OAuth. An explicitly exported `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` takes precedence over stored
+OAuth for that process; unset it to return to subscription authentication. Any other configured
+Mastra-native provider remains usable through `/model provider/model` or `--model provider/model`
+even when it is not in the initial cohort. The selected model persists across restarts.
 
 **Observability.** Tracing is strictly off by default. Run `/observability` to choose local trace
 history, Phoenix, or a custom OTLP endpoint. Metadata-only capture records timing, model and tool

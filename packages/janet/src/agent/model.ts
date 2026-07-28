@@ -5,6 +5,7 @@ import { VERTEX_GATEWAY_ID, createVertexModel } from "../gateways/vertex.js";
 import { BEDROCK_GATEWAY_ID, createBedrockModel } from "../gateways/bedrock.js";
 import { getAuthStorage, opencodeClaudeMaxProvider } from "../gateways/oauth/claude-max.js";
 import { openaiCodexProvider } from "../gateways/oauth/openai-codex.js";
+import { providerAuthRoute } from "../onboarding/providers.js";
 
 /** True when a Claude Max / Codex OAuth credential is stored for a provider. */
 function hasOAuthCredential(authProviderId: string): boolean {
@@ -52,12 +53,19 @@ export function getDynamicModel({ requestContext }: { requestContext: RequestCon
   if (providerId === BEDROCK_GATEWAY_ID) {
     return createBedrockModel(bareModelId) as MastraModelConfig;
   }
-  // OAuth (Claude Max / Codex): only when a subscription credential is stored;
-  // otherwise fall through to the API-key path via core's default gateways.
-  if (providerId === "anthropic" && hasOAuthCredential("anthropic")) {
+  // OAuth (Claude Max / Codex): use a stored subscription credential only when
+  // the matching environment key is absent. An explicit per-process key falls
+  // through to Mastra's native API-key gateway.
+  if (
+    providerId === "anthropic" &&
+    providerAuthRoute("anthropic", hasOAuthCredential("anthropic")) === "oauth"
+  ) {
     return opencodeClaudeMaxProvider(bareModelId);
   }
-  if (providerId === "openai" && hasOAuthCredential("openai-codex")) {
+  if (
+    providerId === "openai" &&
+    providerAuthRoute("openai", hasOAuthCredential("openai-codex")) === "oauth"
+  ) {
     return openaiCodexProvider(bareModelId);
   }
   return modelId;
