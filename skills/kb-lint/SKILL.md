@@ -2,6 +2,8 @@
 name: kb-lint
 description: Health-check a knowledge bundle for conformance and drift; optionally auto-fix safe issues.
 disable-model-invocation: true
+version: 0.1.0
+tags: [knowledge, okf, lint, conformance]
 ---
 
 # kb-lint — health-check the bundle
@@ -13,13 +15,15 @@ scripted) and a **drift audit** (fuzzy, judgment). Run both; report findings by 
 
 ## 1. Conformance (deterministic)
 
-Run the bundled checker against the target bundle (default `knowledge/`):
+Run the bundled checker against the target bundle (default `knowledge/`). It is a zero-dependency
+Node script (`node >=18`); `<skill-dir>` is this skill's directory — `${CLAUDE_SKILL_DIR}` under
+Claude Code, or whatever path your host exposes for the skill:
 
 ```
-python3 "${CLAUDE_SKILL_DIR}/scripts/conformance.py" <bundle-dir>
+node "<skill-dir>/scripts/conformance.mjs" <bundle-dir>
 ```
 
-It reports **ERROR** (a hard [SPEC](../kb/reference/SPEC.md) §9 failure — no parseable frontmatter,
+It reports **ERROR** (a hard [SPEC](../kb/references/SPEC.md) §9 failure — no parseable frontmatter,
 or a missing/empty `type`) and **warn** (soft: broken links, non-ISO log dates). Broken links are
 explicitly tolerated by the spec (§5.3) — never a conformance failure.
 
@@ -34,12 +38,15 @@ the legwork that makes lint worth running. Cover every check:
 - **Contradictions** — concepts asserting conflicting facts that aren't linked `conflicts_with`.
 - **Stale claims** — statements a newer source has superseded but that were never marked
   `superseded_by`; overviews behind their children.
-- **Orphans** — concepts with zero inbound [cross-links](../kb/reference/glossary.md) (index/log
+- **Orphans** — concepts with zero inbound [cross-links](../kb/references/glossary.md) (index/log
   exempt; overviews exempt).
 - **Missing cross-references** — concepts about the same entity/theme that don't link to each other.
 - **Coverage gaps** — entities named repeatedly across concepts but lacking their own concept; data
   gaps a source or web search could fill.
 - **Provenance gaps** — concepts making external claims with no `# Citations` / Reference.
+- **Schema drift** — types used but absent from `spec/types.md`; documented types that no longer
+  describe their concepts; spelling/case variants; or one overloaded type hiding several recurring,
+  materially distinct entity kinds. Treat unused documented types as Info, not an error.
 
 **Completion criterion:** every check above has been run across the whole bundle and its findings
 recorded — not a sample.
@@ -66,8 +73,10 @@ vs. what needs a human:
 - **Safe to auto-fix:** stale overviews (regenerate from children), missing cross-links, malformed
   log dates, broken links with an obvious target, index entries out of sync with files.
 - **Never auto-fix:** anything that changes a claim's meaning. A contradiction or a stale *claim* is
-  resolved by [ingest](../kb-ingest/SKILL.md) under the [trust model](../kb/reference/trust-model.md)
-  (**supersede**/**conflict**) — never by editing meaning in place here. Flag these for the user.
+  resolved by [ingest](../kb-ingest/SKILL.md) under the [trust model](../kb/references/trust-model.md)
+  (**supersede**/**conflict**) — never by editing meaning in place here. Type renames, merges,
+  splits, deprecations, and migrations also require user confirmation; report the proposed schema
+  change and affected concepts together.
 
 **Completion criterion:** every safe issue is fixed and every meaning-level issue is flagged (not
 touched); the re-report distinguishes the two.

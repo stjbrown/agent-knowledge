@@ -7,12 +7,14 @@
 
 # node / python build output
 node_modules/
+.pnpm-store/
 __pycache__/
 *.pyc
 .venv/
 venv/
 dist/
 build/
+artifacts/
 
 # env / secrets
 .env
@@ -22,6 +24,15 @@ build/
 # local Claude Code settings (personal permissions, not shared)
 .claude/settings.local.json
 
+# Legacy Janet project state may remain in existing checkouts after the split
+.agent-knowledge/
+
 # kb-ingest scratch (temporary plans and raw-source drop zones)
 _ingest_plan.md
 **/raw/processed/
+
+# firecrawl scrape scratch (fetched docs / working cache)
+.firecrawl/
+
+# vitest snapshots scratch
+*.tsbuildinfo

@@ -5,6 +5,8 @@ description: >-
   start a wiki, ingest a source, query project knowledge with citations, lint for drift, or
   visualize connections; whenever a repo has a knowledge/ bundle that should inform the task; and
   when another kb-* skill needs the shared spec, glossary, templates, or trust model.
+version: 0.1.0
+tags: [knowledge, okf, bundle, hub]
 ---
 
 # kb — bundles
@@ -15,16 +17,21 @@ skill that does.
 
 ## Key terms
 
-[reference/glossary.md](reference/glossary.md) defines the vocabulary. Minimum before routing:
+[references/glossary.md](references/glossary.md) defines the vocabulary. Minimum before routing:
 **Bundle**, **Ingest**, **Progressive disclosure**, **Trust model** (see
-[trust-model.md](reference/trust-model.md)).
+[trust-model.md](references/trust-model.md)).
 
 ## The one hard rule
 
 A bundle is **conformant** iff every non-reserved `.md` file has parseable YAML frontmatter with a
 non-empty `type`. Everything else is soft guidance — consumers MUST tolerate missing optional fields,
 unknown types, and broken links. Never reject a bundle over them. Full rules:
-[reference/SPEC.md](reference/SPEC.md) §9.
+[references/SPEC.md](references/SPEC.md) §9.
+
+The domain portion of `spec/types.md` is a living, producer-chosen vocabulary, not a validation
+enum. Keep the workflow conventions `Reference` and `Spec Section`; start the domain types small
+and evolve them through [`kb-ingest`](../kb-ingest/SKILL.md) when the domain reveals a durable new
+kind of entity. Use [`kb-lint`](../kb-lint/SKILL.md) to detect schema drift.
 
 ## Route to the right skill
 
@@ -44,9 +51,9 @@ explicit knowledge question.
 
 Every `kb-*` skill reads these rather than restating them, so the family stays consistent:
 
-- [reference/SPEC.md](reference/SPEC.md) — OKF v0.1, vendored verbatim.
-- [reference/glossary.md](reference/glossary.md) — leading words and definitions.
-- [reference/trust-model.md](reference/trust-model.md) — the maintenance rules.
+- [references/SPEC.md](references/SPEC.md) — OKF v0.1, vendored verbatim.
+- [references/glossary.md](references/glossary.md) — leading words and definitions.
+- [references/trust-model.md](references/trust-model.md) — the maintenance rules.
 - [templates/](templates/) — `concept.md`, `index.md`, `log.md` starters.
 - [example-bundle/](example-bundle/) — a tiny conformant bundle: a worked example, and the seed
   `kb-init` copies from.

@@ -6,6 +6,8 @@ description: >-
   knowledge/ bundle — and when any task would be informed by an existing bundle, consult it here
   before answering from scratch. Navigates by progressive disclosure and files valuable answers
   back so the bundle compounds.
+version: 0.1.0
+tags: [knowledge, okf, query, retrieval]
 ---
 
 # kb-query — answer from the bundle
@@ -13,7 +15,7 @@ description: >-
 Answer a question from a [knowledge bundle](../kb/SKILL.md), or surface relevant bundle context for
 another task. Because synthesis was front-loaded at [ingest](../kb-ingest/SKILL.md) time, this is
 mostly **navigation and assembly**, not rediscovery. Read
-[../kb/reference/glossary.md](../kb/reference/glossary.md) for terms.
+[../kb/references/glossary.md](../kb/references/glossary.md) for terms.
 
 Two modes, same procedure:
 
@@ -41,7 +43,7 @@ following the index and links rather than scanning.
 
 ## 3. Read with currency and conflict awareness
 
-Apply the reading side of the [trust model](../kb/reference/trust-model.md):
+Apply the reading side of the [trust model](../kb/references/trust-model.md):
 
 - If a concept's frontmatter says `status: superseded`, follow `superseded_by` to the current version
   and answer from **that** (use the old one only if the user asks how something evolved).
@@ -69,7 +71,7 @@ This is how queries **compound** — do not let a good answer evaporate into cha
 filing it as a new concept: tell the user what you'd add and where; on agreement, write it with the
 [concept template](../kb/templates/concept.md) (non-empty `type`, relative cross-links, `# Citations`
 to the concepts it draws on), update the section `index.md`, and append a
-[log](../kb/reference/trust-model.md) entry. Follow the trust model — a new synthesis is a normal
+[log](../kb/references/trust-model.md) entry. Follow the trust model — a new synthesis is a normal
 concept (append-only; refine later by superseding, not editing).
 
 A simple factual lookup does **not** need to become a concept — only file back what adds durable

@@ -30,7 +30,7 @@ by whatever it supports.
 
 ## Maintenance
 
-Follow the trust model (see the `kb` skill's `reference/trust-model.md`): append-only on meaning,
+Follow the trust model (see the `kb` skill's `references/trust-model.md`): append-only on meaning,
 supersede with provenance, `conflicts_with` over silent overwrite, events additive, every change
 logged. Keep each directory's `index.md` current; regenerate any `_overview` after its children
 change.

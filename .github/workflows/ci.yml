@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify-skills:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.13.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build, test, check generated scripts, and lint example bundle
+        run: pnpm verify
+
+      - name: Package smoke
+        run: |
+          npm pack --silent --pack-destination "$RUNNER_TEMP"
+          tarball="$(find "$RUNNER_TEMP" -maxdepth 1 -name 'stjbrown-agent-knowledge-skills-*.tgz' -print -quit)"
+          test -n "$tarball"
+
+          for skill in kb kb-init kb-ingest kb-query kb-lint kb-visualize; do
+            tar tzf "$tarball" | grep -q "package/skills/$skill/SKILL.md"
+          done
+          tar tzf "$tarball" | grep -q 'package/skills/kb-lint/scripts/conformance.mjs'
+          tar tzf "$tarball" | grep -q 'package/skills/kb-visualize/scripts/graph.mjs'
+          tar tzf "$tarball" | grep -q 'package/README.md'
+          tar tzf "$tarball" | grep -q 'package/LICENSE'
+          tar tzf "$tarball" | grep -q 'package/NOTICE'
+
+          if tar tzf "$tarball" | grep -Eq 'package/(knowledge|packages|src|dist)/'; then
+            echo "::error::Skills tarball contains a repository-only or Janet path."
+            exit 1
+          fi
+
+          mkdir -p "$RUNNER_TEMP/agent-knowledge-skills-smoke"
+          npm install --ignore-scripts --prefix "$RUNNER_TEMP/agent-knowledge-skills-smoke" "$tarball"
+          node -e '
+            const path = require.resolve("@stjbrown/agent-knowledge-skills/package.json", {
+              paths: [process.argv[1]],
+            });
+            const pkg = require(path);
+            if (pkg.name !== "@stjbrown/agent-knowledge-skills" || pkg.version !== "0.1.0") {
+              process.exit(1);
+            }
+            if (pkg.bin || pkg.dependencies) process.exit(1);
+          ' "$RUNNER_TEMP/agent-knowledge-skills-smoke"

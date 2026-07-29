@@ -19,5 +19,6 @@ grows.
 | `order` | A purchase made by a customer. | `concepts/` |
 | `Reference` | A mirror of external source material (points at it via `resource`). | `references/` |
 
-Replace these with your own domain's entities (e.g. `person`, `deal`, `metric`, `character`,
-`chapter`).
+Keep the workflow types `Spec Section` and `Reference`. Replace `customer` and `order` with a small,
+provisional set of domain entities (e.g. `person`, `deal`, `metric`, `character`, `chapter`) and
+extend that set as the domain becomes clearer.
