@@ -2,7 +2,7 @@
 name: kb-lint
 description: Health-check a knowledge bundle for conformance and drift; optionally auto-fix safe issues.
 disable-model-invocation: true
-version: 0.1.0
+version: 0.2.0
 tags: [knowledge, okf, lint, conformance]
 ---
 
@@ -44,6 +44,11 @@ the legwork that makes lint worth running. Cover every check:
 - **Coverage gaps** — entities named repeatedly across concepts but lacking their own concept; data
   gaps a source or web search could fill.
 - **Provenance gaps** — concepts making external claims with no `# Citations` / Reference.
+- **Repository drift** — for living repository documentation, missing paths in `sources`, evidence
+  that no longer supports the documented behavior, or source changes since `documented_revision`
+  that affect a concept without a corresponding update. A lingering `documented_worktree: true`
+  requires comparison with the current working tree. Skip this check for bundles that do not use
+  repository evidence or when Git history is unavailable.
 - **Schema drift** — types used but absent from `spec/types.md`; documented types that no longer
   describe their concepts; spelling/case variants; or one overloaded type hiding several recurring,
   materially distinct entity kinds. Treat unused documented types as Info, not an error.
@@ -60,8 +65,9 @@ Present findings grouped by check, each tagged:
 - **Info** — suggestions (coverage gaps, new concepts or sources worth adding).
 
 Turn coverage gaps into concrete next moves: questions to investigate, sources to
-[ingest](../kb-ingest/SKILL.md). Append a dated summary (counts + notable findings) to the bundle's
-`log.md` — append-only.
+[ingest](../kb-ingest/SKILL.md), or repository evidence to inspect through
+[kb-document](../kb-document/SKILL.md). Append a dated summary (counts + notable findings) to the
+bundle's `log.md` — append-only.
 
 **Completion criterion:** a severity-grouped report is delivered and a `log.md` summary appended.
 
@@ -76,7 +82,9 @@ vs. what needs a human:
   resolved by [ingest](../kb-ingest/SKILL.md) under the [trust model](../kb/references/trust-model.md)
   (**supersede**/**conflict**) — never by editing meaning in place here. Type renames, merges,
   splits, deprecations, and migrations also require user confirmation; report the proposed schema
-  change and affected concepts together.
+  change and affected concepts together. Route living repository behavior that needs a meaning
+  update to [kb-document](../kb-document/SKILL.md), which applies the trust model's narrow
+  versioned-repository exception with source evidence and a revision log.
 
 **Completion criterion:** every safe issue is fixed and every meaning-level issue is flagged (not
 touched); the re-report distinguishes the two.

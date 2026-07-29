@@ -2,10 +2,11 @@
 name: kb
 description: >-
   Portable OKF knowledge bundle for coding-agent memory and LLM wikis. Use when the user wants to
-  start a wiki, ingest a source, query project knowledge with citations, lint for drift, or
-  visualize connections; whenever a repo has a knowledge/ bundle that should inform the task; and
-  when another kb-* skill needs the shared spec, glossary, templates, or trust model.
-version: 0.1.0
+  start a wiki, ingest a source, document a repository, query project knowledge with citations,
+  lint for drift, or visualize connections; whenever a repo has a knowledge/ bundle that should
+  inform the task; and when another kb-* skill needs the shared spec, glossary, templates, or trust
+  model.
+version: 0.2.0
 tags: [knowledge, okf, bundle, hub]
 ---
 
@@ -30,8 +31,9 @@ unknown types, and broken links. Never reject a bundle over them. Full rules:
 
 The domain portion of `spec/types.md` is a living, producer-chosen vocabulary, not a validation
 enum. Keep the workflow conventions `Reference` and `Spec Section`; start the domain types small
-and evolve them through [`kb-ingest`](../kb-ingest/SKILL.md) when the domain reveals a durable new
-kind of entity. Use [`kb-lint`](../kb-lint/SKILL.md) to detect schema drift.
+and evolve them through [`kb-ingest`](../kb-ingest/SKILL.md) or
+[`kb-document`](../kb-document/SKILL.md) when the domain reveals a durable new kind of entity. Use
+[`kb-lint`](../kb-lint/SKILL.md) to detect schema drift.
 
 ## Route to the right skill
 
@@ -39,6 +41,7 @@ kind of entity. Use [`kb-lint`](../kb-lint/SKILL.md) to detect schema drift.
 |---|---|
 | Start a new bundle | [`kb-init`](../kb-init/SKILL.md) |
 | Capture, ingest, file, or process a source (note, transcript, PDF, image, URL) | [`kb-ingest`](../kb-ingest/SKILL.md) |
+| Document a repository, explain its architecture/workflows, or refresh knowledge after code changes | [`kb-document`](../kb-document/SKILL.md) |
 | Ask what the bundle knows; look something up; explore connections | [`kb-query`](../kb-query/SKILL.md) |
 | Health-check the bundle (**drift**, orphans, contradictions, conformance) | [`kb-lint`](../kb-lint/SKILL.md) |
 | See the bundle as a graph | [`kb-visualize`](../kb-visualize/SKILL.md) |

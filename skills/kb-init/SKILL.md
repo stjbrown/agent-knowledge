@@ -2,7 +2,7 @@
 name: kb-init
 description: Scaffold a new OKF knowledge bundle in this project — run when starting a wiki or adding a bundle under knowledge/.
 disable-model-invocation: true
-version: 0.1.0
+version: 0.2.0
 tags: [knowledge, okf, init, scaffold]
 ---
 
@@ -23,7 +23,8 @@ Default to a bundle at **`knowledge/`**. Accept overrides from the user's reques
   bundles (create it if missing; add this bundle to it).
 
 If the target directory already contains a bundle (a root `index.md`), stop and report it — do not
-overwrite. Offer [kb-ingest](../kb-ingest/SKILL.md) instead.
+overwrite. Offer [kb-document](../kb-document/SKILL.md) for repository documentation or
+[kb-ingest](../kb-ingest/SKILL.md) for captured sources.
 
 **Completion criterion:** the target path and bundle name are fixed, and confirmed not to collide
 with an existing bundle.
@@ -31,13 +32,18 @@ with an existing bundle.
 ## 2. Understand the domain before scaffolding
 
 The scaffold is deterministic; the **schema layer** needs judgment, so gather it first. Inspect the
-workspace for signal (README, existing docs, the code, any notes the user points at) and ask the
-user only what you still can't infer:
+workspace for signal (README, existing docs, the code, any notes the user points at), determine
+whether this is a repository-documentation or captured-source bundle, and ask the user only what you
+still can't infer:
 
 - What kind of knowledge will this bundle hold? (work context — people, deals, product; a research corpus you keep adding papers to; a codebase or product handbook; competitive landscape; a book/course you're studying; a spec or pattern you're documenting, like this repo's OKF bundle, …)
 - What are the main **entities** — the recurring things worth a concept each? These become the
   `type` vocabulary (e.g. `person`, `deal`, `metric`; or `character`, `chapter`, `theme`).
-- What raw **sources** will be ingested, and how should they route to those entities?
+- For a captured-source bundle: what raw **sources** will be ingested, how should they route to
+  those entities, and which intake locations are explicitly managed?
+- For repository documentation: which parts of the repository are in scope, and how should
+  components, workflows, interfaces, operations, and decisions route? Repository files remain
+  evidence in place and are not raw intake.
 
 Keep it short — a few **provisional** types and a one-line routing rule is enough to start. This is
 an initial vocabulary, not a closed enum; the schema layer co-evolves as ingest reveals the domain.
@@ -53,8 +59,9 @@ Interaction contract:
 - If you propose a schema for confirmation, accept the user's answer once. After approval, scaffold
   without restating or replanning it.
 
-**Completion criterion:** you can name the bundle's initial `type` values, its raw sources, and a
-one-line ingest routing rule.
+**Completion criterion:** you can name the bundle's initial `type` values and either its raw sources
+plus a one-line ingest routing rule, or its repository scope plus a one-line documentation routing
+rule.
 
 ## 3. Write the adapted seed and schema layer
 
@@ -72,7 +79,7 @@ read-before-write failure blindly or dismiss it as a false alarm.
 | `index.md` | Keep `okf_version: "0.1"` frontmatter; replace the body with this bundle's title and section list. |
 | `log.md` | Start fresh with a single dated `**Creation**` entry. |
 | `spec/types.md` | Keep `Spec Section` and `Reference`; replace only the example domain types with the provisional vocabulary from step 2. |
-| `spec/conventions.md` | Replace with folder taxonomy, naming, ingest routing rule, and a trust-model pointer. |
+| `spec/conventions.md` | Replace with folder taxonomy, naming, the applicable ingest/documentation routing and source-custody rule, and a trust-model pointer. |
 | `concepts/*` | Remove example entities (`customers`, `orders`); leave `concepts/` empty or create domain starter folders. |
 | `knowledge/index.md` | If multi-bundle (step 1): create or update the catalog entry for this bundle. |
 
@@ -91,7 +98,8 @@ Run [kb-lint](../kb-lint/SKILL.md) if available; otherwise verify the bundle is 
 
 ## 5. Hand off
 
-Tell the user the bundle is ready, where it lives, and the two next moves:
-[kb-ingest](../kb-ingest/SKILL.md) to add knowledge, [kb-query](../kb-query/SKILL.md) to ask it
-questions. If this project uses `CLAUDE.md`/`AGENTS.md`, offer to add a one-line pointer so agents
-read the bundle's root `index.md` before relevant tasks.
+Tell the user the bundle is ready and where it lives. For a codebase bundle, hand off to
+[kb-document](../kb-document/SKILL.md); otherwise hand off to
+[kb-ingest](../kb-ingest/SKILL.md). In both cases, [kb-query](../kb-query/SKILL.md) answers from the
+result. If this project uses `CLAUDE.md`/`AGENTS.md`, offer to add a one-line pointer so agents read
+the bundle's root `index.md` before relevant tasks; never add it without agreement.

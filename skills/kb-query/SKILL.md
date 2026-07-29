@@ -6,15 +6,16 @@ description: >-
   knowledge/ bundle — and when any task would be informed by an existing bundle, consult it here
   before answering from scratch. Navigates by progressive disclosure and files valuable answers
   back so the bundle compounds.
-version: 0.1.0
+version: 0.2.0
 tags: [knowledge, okf, query, retrieval]
 ---
 
 # kb-query — answer from the bundle
 
 Answer a question from a [knowledge bundle](../kb/SKILL.md), or surface relevant bundle context for
-another task. Because synthesis was front-loaded at [ingest](../kb-ingest/SKILL.md) time, this is
-mostly **navigation and assembly**, not rediscovery. Read
+another task. Because synthesis was front-loaded during [ingest](../kb-ingest/SKILL.md) or
+[repository documentation](../kb-document/SKILL.md), this is mostly **navigation and assembly**,
+not rediscovery. Read
 [../kb/references/glossary.md](../kb/references/glossary.md) for terms.
 
 Two modes, same procedure:

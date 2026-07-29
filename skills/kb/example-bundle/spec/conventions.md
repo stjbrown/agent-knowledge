@@ -15,7 +15,7 @@ domain.
 
 - `concepts/` — the domain entities (`customer`, `order`).
 - `spec/` — this schema layer ([types](types.md) + conventions).
-- `references/` — mirrored external sources as `type: Reference` concepts (none yet).
+- `references/` — captured sources as `type: Reference` concepts (none yet).
 
 ## Naming
 
@@ -26,7 +26,9 @@ stable (supersede rather than rename when meaning changes).
 
 When ingesting a source, extract entities and route them: people → `concepts/` as `customer`;
 purchases → `concepts/` as `order`; the source document itself → `references/` as `Reference`, cited
-by whatever it supports.
+by whatever it supports. Only files explicitly placed in a managed intake may be moved to a
+processed location. Project files remain in place; external artifacts are copied only with
+authorization.
 
 ## Maintenance
 

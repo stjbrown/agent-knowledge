@@ -7,8 +7,8 @@ fails quietly otherwise: bad synthesis, stale claims surviving new evidence, and
 accumulate invisibly (the ecosystem's central critique). The defense is provenance and
 append-only-on-meaning, not the agent's own sense of what's true.
 
-Adapted from a private OKF-native agent implementation. Use judgment within these principles; prefer the
-least-destructive option; when unsure, ask.
+Adapted from a private OKF-native agent implementation. Use judgment within these principles; prefer
+the least-destructive option; when unsure, ask.
 
 ## 1. Never rewrite a claim — supersede it
 
@@ -26,13 +26,33 @@ The test for any edit: **does it change what the document asserts?**
 
 Keeping the original is the point: it records that the claim was once true, and when it changed.
 
+### Versioned repository documentation
+
+One narrow exception applies to a concept that documents the **current behavior of the same
+version-controlled repository that contains the bundle**. That concept may be updated in place when:
+
+1. its `sources` name the repository paths or symbols supporting the behavior;
+2. the repository diff or inspected current source establishes the change;
+3. the bundle root records `documented_revision` when available and marks whether uncommitted
+   repository evidence was included; and
+4. `log.md` records what documentation changed and why.
+
+Git preserves the prior text and source revision, so creating a new concept for every implementation
+change would obscure the stable subject the concept represents. The exception does **not** apply to
+durable decisions, historical claims, user-originated knowledge, external claims, or a bundle that
+is separate from the source repository. Those still use supersede/conflict rules above.
+
 ## 2. Never lose provenance
 
 Every concept either **cites a source** or is explicitly marked user-originated. Never invent a
-source. Store each source **once** as a `type: Reference` concept (with `resource:` set) and cite it
-from the many concepts it supports (N:1) — never duplicate source material. Pasted text with no
-source: ask for one; if there truly is none, record it honestly as user-originated (e.g.
-`type: Note`, no `resource`).
+source. Store a captured source **once** as a `type: Reference` concept and cite it from the many
+concepts it supports (N:1) — never duplicate source material. Use `resource:` when the source has a
+stable canonical URI; otherwise describe its origin honestly in the Reference body.
+
+Living repository documentation uses the exception above: repository files remain in place and are
+named in `sources` plus `# Repository evidence`; do not create one Reference or copy per code file.
+Pasted text with no source: ask for one; if there truly is none, record it honestly as
+user-originated (e.g. `type: Note`, no `resource`).
 
 ## 3. Conflict vs. supersede
 
@@ -73,6 +93,7 @@ supersedes: <concept-id>             # on the new concept
 superseded_by: <concept-id>          # on the retired concept
 conflicts_with: [<concept-id>, …]    # mutual, on both concepts
 confidence: high | medium | low      # optional epistemic hedge
+sources: [<repo-path#symbol>, …]      # living repository documentation only
 ```
 
 These align with the trust/provenance axis emerging in the OKF spec itself (proposed `reliability`,
