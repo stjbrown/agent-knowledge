@@ -43,6 +43,12 @@ What conflicts with our current deployment strategy?
 The npm package, `@stjbrown/agent-knowledge-skills`, is a build artifact for applications that
 embed the skills. Most people should install from this repository through their agent host.
 
+## Migration from the former CLI package
+
+Before the repository split, Janet was published as `@stjbrown/agent-knowledge`. That legacy
+package has been withdrawn. Install `janet-agent@next` for the Janet CLI; applications that embed
+the portable skills should depend on `@stjbrown/agent-knowledge-skills`.
+
 ## The skills
 
 The family splits on who invokes each skill.
