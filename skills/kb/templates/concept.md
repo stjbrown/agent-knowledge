@@ -6,6 +6,7 @@ description: <One sentence summarizing this concept.>
 tags: [<tag>, <tag>]
 timestamp: <YYYY-MM-DDThh:mm:ssZ>
 # status: active              # add `status: superseded` + `superseded_by:` only when retiring
+# sources: [<repo-path#symbol>] # optional; living repository documentation only
 ---
 
 <Opening sentence: what this concept is, in prose. Link related concepts inline with relative
@@ -16,6 +17,9 @@ prose, not the link.>
 
 <Body content. Favor structural markdown — headings, lists, tables, fenced code — over freeform
 prose. Conventional headings when applicable: `# Schema`, `# Examples`, `# Citations`.>
+
+<!-- For living repository documentation, use `# Repository evidence` with project-relative links
+instead of creating one Reference concept per source file. -->
 
 # Citations
 

@@ -6,7 +6,7 @@ description: >-
   a knowledge/ bundle, or drops content for processing. Reads the source once, extracts its signal,
   and integrates it across the bundle under the trust model so knowledge compounds instead of being
   re-derived per query.
-version: 0.1.0
+version: 0.2.0
 tags: [knowledge, okf, ingest, capture]
 ---
 
@@ -43,12 +43,22 @@ Identify what to ingest (an argument, a path, or content the user dropped). Read
 markdown, text, image (view it), transcript, web page. In Janet, load and follow the `janet-pdf`
 skill for a PDF; never use Janet's generic workspace file reader on the PDF or its cached
 extraction. In another host, use its supported native PDF-reading workflow. Classify the source
-(e.g. transcript, email, note, document, media) since that shapes extraction. **Ground everything
-in what the source actually says** — never invent entities, claims, or attribution not present in
-it (trust model §2).
+(e.g. transcript, email, note, document, media) since that shapes extraction, and classify its
+**custody**:
 
-**Completion criterion:** the source is read in full and classified; you can summarize its key
-signal.
+- **Managed intake** — the user explicitly placed it in an inbox/raw workflow or explicitly
+  authorized this run to retire it after processing.
+- **In-place project source** — a repository file, project document, or other working file whose
+  location is authoritative. It must remain untouched.
+- **External artifact** — a URL, attachment, or outside file that this workflow does not control.
+
+**Ground everything in what the source actually says** — never invent entities, claims, or
+attribution not present in it (trust model §2). If the request is to document a repository or keep
+architecture/current behavior synchronized with code, route to
+[kb-document](../kb-document/SKILL.md) instead of treating the repository as raw intake.
+
+**Completion criterion:** the source is read in full and classified by content and custody; you can
+summarize its key signal and state whether this workflow has authority to copy or retire it.
 
 ## 3. Plan the integration (discover before writing)
 
@@ -57,8 +67,9 @@ Before writing anything, draft a plan — the discovery-before-synthesis guard. 
 - **Entities/signals extracted**, each routed to a `type` and target path per the schema layer.
 - For each: **create** a new concept, or **update** an existing one — search the bundle first to find
   what already exists (avoid duplicates).
-- **Source handling**: the source becomes one `type: Reference` concept, stored once, cited by every
-  concept it supports (N:1).
+- **Source handling**: the source becomes one `type: Reference` concept, cited by every concept it
+  supports (N:1). Record whether its content will be mirrored, linked in place, or represented by a
+  faithful extract; follow the custody classification and bundle conventions.
 - **Trust-model flags**: does any extracted claim *change the meaning* of an existing concept? Mark
   it **supersede** or **conflict** (step 5) — never a silent in-place rewrite.
 - **Open questions** the source raises but doesn't answer.
@@ -84,18 +95,27 @@ describe cleanly. Do not force-fit it or create an undocumented type.
   concepts and indexes together; never leave two undocumented vocabularies in parallel.
 
 **Completion criterion:** a written plan exists listing every entity, its route (create/update), the
-Reference for the source, any supersede/conflict flags, and any schema addition or proposed
-migration.
+Reference and custody-safe handling for the source, any supersede/conflict flags, and any schema
+addition or proposed migration.
 
 ## 4. Store the source as a Reference (provenance)
 
-Create one `type: Reference` concept for the source (store the asset under `references/` when it's a
-file — PDF, image — per SPEC §8), with `resource:` set to its origin and a faithful extract/summary
-in the body. **Never invent a source**; if the source is user-originated with no external origin,
-record it honestly as such. Every concept written in step 5 cites this Reference.
+Create one `type: Reference` concept with honest origin and a faithful extract/summary. Set
+`resource:` only when a stable canonical URI exists; otherwise describe the origin in the body.
+Handle bytes according to custody:
 
-**Completion criterion:** the source is captured as a single Reference concept with honest
-provenance; the original asset (if any) is stored, not just linked to a URL that may rot.
+- **Managed intake:** preserve the immutable source in the bundle's configured source/archive
+  location when the conventions call for it.
+- **In-place project source:** link to its existing project-relative path. Never copy, move, rename,
+  edit, or delete it.
+- **External artifact:** mirror it only when the user or bundle conventions request a durable copy
+  and doing so is permitted; otherwise retain the origin link and an adequate extract.
+
+**Never invent a source.** If it is user-originated with no external origin, record that honestly.
+Every concept written in step 5 cites this Reference.
+
+**Completion criterion:** the source is represented once with honest provenance and custody-safe
+handling; any mirrored bytes are an authorized copy, never a relocated project or external file.
 
 ## 5. Integrate — execute the plan
 
@@ -132,14 +152,19 @@ entries.
 
 **Completion criterion:** a `log.md` entry records this run.
 
-## 9. Retire the source and commit
+## 9. Close the intake
 
-Move the raw source to a processed location (e.g. `raw/processed/`) — raw sources are **immutable**:
-move, never modify. If the bundle is a git repo, commit with a message summarizing what was ingested
-and which concepts changed. Delete the temporary `_ingest_plan.md` if you made one.
+Delete the temporary `_ingest_plan.md` if you made one. Retire a raw source to its configured
+processed location only when it was classified as **managed intake** and that lifecycle was
+explicitly established; move the immutable source without modifying it. Leave in-place project
+sources and external artifacts exactly where they were.
 
-**Completion criterion:** the source is retired to processed; changes committed (if git); no
-temporary plan file left behind; **every item in the step-3 plan is accounted for.**
+Do not create a Git commit unless the user explicitly asked for one. When asked, commit only the
+bundle changes and any authorized managed-intake move.
+
+**Completion criterion:** no temporary plan remains; managed intake is retired when authorized;
+every other source remains untouched; commit status matches the user's request; **every item in the
+step-3 plan is accounted for.**
 
 ## Supervision
 

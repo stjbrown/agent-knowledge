@@ -31,7 +31,7 @@ jobs:
           tarball="$(find "$RUNNER_TEMP" -maxdepth 1 -name 'stjbrown-agent-knowledge-skills-*.tgz' -print -quit)"
           test -n "$tarball"
 
-          for skill in kb kb-init kb-ingest kb-query kb-lint kb-visualize; do
+          for skill in kb kb-init kb-ingest kb-document kb-query kb-lint kb-visualize; do
             tar tzf "$tarball" | grep -q "package/skills/$skill/SKILL.md"
           done
           tar tzf "$tarball" | grep -q 'package/skills/kb-lint/scripts/conformance.mjs'
@@ -52,7 +52,8 @@ jobs:
               paths: [process.argv[1]],
             });
             const pkg = require(path);
-            if (pkg.name !== "@stjbrown/agent-knowledge-skills" || pkg.version !== "0.1.0") {
+            const expected = require("./package.json");
+            if (pkg.name !== expected.name || pkg.version !== expected.version) {
               process.exit(1);
             }
             if (pkg.bin || pkg.dependencies) process.exit(1);

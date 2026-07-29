@@ -27,13 +27,17 @@ invocation reliable.
 - **Recommended** — `title`, `description`, `resource` (a canonical URI, for concepts bound to a real
   asset), `tags`, `timestamp` (ISO 8601).
 - **Extension keys** — any additional keys are allowed and preserved. The trust model uses
-  `status`, `supersedes`, `superseded_by`, `conflicts_with`.
+  `status`, `supersedes`, `superseded_by`, `conflicts_with`; living repository documentation may use
+  `sources` plus root-level `documented_revision` and `documented_worktree`.
 
 ## Content types
 
-- **Reference** — a concept (`type: Reference`) that mirrors external **source** material and points
-  at it via `resource`, keeping the source *in* the bundle. Distinct from synthesis: a Reference is
-  a faithful pointer + extract, not our opinion.
+- **Reference** — a concept (`type: Reference`) that records captured **source** material once with
+  honest provenance. It may point to a stable origin, contain a faithful extract, or mirror an
+  authorized copy. Distinct from synthesis: a Reference records the source, not our opinion.
+- **Repository evidence** — source code, project documentation, configuration, and tests cited in
+  place by living technical concepts. Repository evidence is not raw intake and does not become one
+  Reference per file.
 - **Synthesis** — a concept that is *our* analysis, comparison, or roll-up. It cites references; it
   is not one.
 - **Overview** — a synthesized roll-up of a section, regenerated from its child concepts.
@@ -52,6 +56,8 @@ invocation reliable.
 ## Maintenance (trust model)
 
 - **Ingest** — read a raw source, extract its signal, and integrate it across the bundle.
+- **Document** — inspect repository evidence in place and maintain concepts about the system's
+  current responsibilities, behavior, boundaries, and operations.
 - **Supersede** — replace a claim by writing a *new* concept and marking the old one
   `status: superseded` with `superseded_by`, keeping it on disk for history. Never rewrite a claim
   in place.
