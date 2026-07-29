@@ -1,16 +1,48 @@
 {
-  "name": "agent-knowledge-monorepo",
-  "private": true,
+  "name": "@stjbrown/agent-knowledge-skills",
+  "version": "0.1.0",
+  "description": "Portable Agent Skills for building and maintaining Open Knowledge Format knowledge bundles",
+  "license": "MIT",
   "type": "module",
+  "files": [
+    "skills/",
+    "README.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "exports": {
+    "./package.json": "./package.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stjbrown/agent-knowledge.git"
+  },
+  "homepage": "https://github.com/stjbrown/agent-knowledge#readme",
+  "bugs": {
+    "url": "https://github.com/stjbrown/agent-knowledge/issues"
+  },
+  "keywords": [
+    "agent-skills",
+    "knowledge-base",
+    "llm",
+    "okf",
+    "open-knowledge-format"
+  ],
   "engines": {
     "node": ">=22.13.0"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build": "pnpm -r build",
-    "test": "pnpm -r test",
+    "build": "pnpm --filter @agent-knowledge/kb-tools build",
+    "test": "pnpm --filter @agent-knowledge/kb-tools test",
     "build:skill-scripts": "node packages/kb-tools/scripts/build-skill-scripts.mjs",
-    "verify:janet": "pnpm -r build && pnpm --filter @stjbrown/agent-knowledge typecheck && pnpm -r test && node skills/kb-lint/scripts/conformance.mjs knowledge",
-    "pack:janet": "pnpm verify:janet && pnpm build:skill-scripts && node scripts/pack-janet.mjs"
+    "check:skill-scripts": "pnpm build:skill-scripts && git diff --exit-code -- skills/kb-lint/scripts/conformance.mjs skills/kb-visualize/scripts/graph.mjs",
+    "lint:bundle": "node skills/kb-lint/scripts/conformance.mjs knowledge",
+    "verify": "pnpm build && pnpm test && pnpm check:skill-scripts && pnpm lint:bundle",
+    "prepack": "pnpm check:skill-scripts",
+    "pack:skills": "pnpm verify && node scripts/pack-skills.mjs"
   },
   "packageManager": "pnpm@11.13.1"
 }

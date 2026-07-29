@@ -7,6 +7,7 @@
 
 # node / python build output
 node_modules/
+.pnpm-store/
 __pycache__/
 *.pyc
 .venv/
@@ -23,22 +24,15 @@ artifacts/
 # local Claude Code settings (personal permissions, not shared)
 .claude/settings.local.json
 
+# Legacy Janet project state may remain in existing checkouts after the split
+.agent-knowledge/
+
 # kb-ingest scratch (temporary plans and raw-source drop zones)
 _ingest_plan.md
 **/raw/processed/
 
 # firecrawl scrape scratch (fetched docs / working cache)
 .firecrawl/
-
-# prepack copy of repo-root skills/ into the publishable package (build artifact)
-packages/janet/skills/
-packages/janet/README.md
-packages/janet/OBSERVABILITY.md
-packages/janet/LICENSE
-packages/janet/NOTICE
-
-# janet project-local config (thread scope, skill symlinks)
-.agent-knowledge/
 
 # vitest snapshots scratch
 *.tsbuildinfo

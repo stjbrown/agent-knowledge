@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  build-test:
+  verify-skills:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,37 +22,38 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Build all packages
-        run: pnpm -r build
+      - name: Build, test, check generated scripts, and lint example bundle
+        run: pnpm verify
 
-      - name: Typecheck janet
-        run: pnpm --filter @stjbrown/agent-knowledge typecheck
-
-      - name: Parity + unit tests
-        run: pnpm -r test
-
-      - name: Committed skill .mjs are in sync with source
+      - name: Package smoke
         run: |
-          pnpm build:skill-scripts
-          if ! git diff --quiet -- skills/kb-lint/scripts/conformance.mjs skills/kb-visualize/scripts/graph.mjs; then
-            echo "::error::Committed skill .mjs differ from a fresh build. Run 'pnpm build:skill-scripts' and commit the result."
-            git --no-pager diff -- skills/kb-lint/scripts/conformance.mjs skills/kb-visualize/scripts/graph.mjs
+          npm pack --silent --pack-destination "$RUNNER_TEMP"
+          tarball="$(find "$RUNNER_TEMP" -maxdepth 1 -name 'stjbrown-agent-knowledge-skills-*.tgz' -print -quit)"
+          test -n "$tarball"
+
+          for skill in kb kb-init kb-ingest kb-query kb-lint kb-visualize; do
+            tar tzf "$tarball" | grep -q "package/skills/$skill/SKILL.md"
+          done
+          tar tzf "$tarball" | grep -q 'package/skills/kb-lint/scripts/conformance.mjs'
+          tar tzf "$tarball" | grep -q 'package/skills/kb-visualize/scripts/graph.mjs'
+          tar tzf "$tarball" | grep -q 'package/README.md'
+          tar tzf "$tarball" | grep -q 'package/LICENSE'
+          tar tzf "$tarball" | grep -q 'package/NOTICE'
+
+          if tar tzf "$tarball" | grep -Eq 'package/(knowledge|packages|src|dist)/'; then
+            echo "::error::Skills tarball contains a repository-only or Janet path."
             exit 1
           fi
 
-      - name: Deterministic lint on the in-repo bundle
-        run: node skills/kb-lint/scripts/conformance.mjs knowledge
-
-      - name: Package smoke (tarball ships dist + skills, both bins)
-        run: |
-          cd packages/janet
-          npm pack --silent
-          tarball="$PWD/$(find . -maxdepth 1 -name 'stjbrown-agent-knowledge-*.tgz' -print -quit)"
-          tar tzf "$tarball" | grep -q 'package/dist/main.js'
-          tar tzf "$tarball" | grep -q 'package/skills/kb-query/SKILL.md'
-          tar tzf "$tarball" | grep -q 'package/LICENSE'
-          tar tzf "$tarball" | grep -q 'package/NOTICE'
-          node -e 'const p=require("./package.json"); if(p.bin.janet!==p.bin.ding) process.exit(1)'
-          mkdir -p "$RUNNER_TEMP/janet-package-smoke"
-          npm install --ignore-scripts --prefix "$RUNNER_TEMP/janet-package-smoke" "$tarball"
-          "$RUNNER_TEMP/janet-package-smoke/node_modules/.bin/janet" --help >/dev/null
+          mkdir -p "$RUNNER_TEMP/agent-knowledge-skills-smoke"
+          npm install --ignore-scripts --prefix "$RUNNER_TEMP/agent-knowledge-skills-smoke" "$tarball"
+          node -e '
+            const path = require.resolve("@stjbrown/agent-knowledge-skills/package.json", {
+              paths: [process.argv[1]],
+            });
+            const pkg = require(path);
+            if (pkg.name !== "@stjbrown/agent-knowledge-skills" || pkg.version !== "0.1.0") {
+              process.exit(1);
+            }
+            if (pkg.bin || pkg.dependencies) process.exit(1);
+          ' "$RUNNER_TEMP/agent-knowledge-skills-smoke"

@@ -15,16 +15,6 @@ skills/kb/references/SPEC.md is a verbatim copy of the Open Knowledge Format
 That file is licensed under the Apache License, Version 2.0, and is included
 and used under those terms.
 
-------------------------------------------------------------------------
-
-Portions of packages/janet/src (the Amazon Bedrock gateway, the OAuth auth
-subsystem under src/auth, and the Observational Memory configuration) are
-adapted from MastraCode (https://github.com/mastra-ai/mastra, the mastracode
-package), licensed under the Apache License, Version 2.0. Adapted and used under
-those terms.
-
-------------------------------------------------------------------------
-
 The generated conformance and graph tools bundle `yaml` by Eemeli Aro
 (https://github.com/eemeli/yaml), licensed under the ISC License:
 
