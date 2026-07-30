@@ -5,31 +5,34 @@
  * artifacts (`node …conformance.mjs <dir>`), so the skills stay host-neutral
  * and self-contained — no Python, no install step.
  *
- * Run from the repo root: `node packages/kb-tools/scripts/build-skill-scripts.mjs`
+ * Run from the repo root: `node scripts/build-skill-scripts.mjs`
  * A CI drift check should fail if the committed `.mjs` differ from a fresh build.
  */
 import { build } from "esbuild";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const repoRoot = resolve(here, "../../..");
+const repoRoot = resolve(here, "..");
+const check = process.argv.slice(2).includes("--check");
 
 const targets = [
   {
-    entry: resolve(here, "../src/cli/conformance-cli.ts"),
+    entry: resolve(repoRoot, "src/cli/conformance-cli.ts"),
     out: resolve(repoRoot, "skills/kb-lint/scripts/conformance.mjs"),
   },
   {
-    entry: resolve(here, "../src/cli/graph-cli.ts"),
+    entry: resolve(repoRoot, "src/cli/graph-cli.ts"),
     out: resolve(repoRoot, "skills/kb-visualize/scripts/graph.mjs"),
   },
 ];
 
 for (const t of targets) {
-  await build({
+  const result = await build({
     entryPoints: [t.entry],
     outfile: t.out,
+    write: !check,
     bundle: true,
     platform: "node",
     format: "esm",
@@ -41,5 +44,19 @@ for (const t of targets) {
     },
     legalComments: "none",
   });
-  console.log(`built ${t.out}`);
+
+  if (!check) {
+    console.log(`built ${t.out}`);
+    continue;
+  }
+
+  const generated = result.outputFiles?.[0]?.contents;
+  if (!generated) throw new Error(`esbuild returned no output for ${t.entry}`);
+  const current = readFileSync(t.out);
+  if (!current.equals(generated)) {
+    console.error(`stale ${t.out}`);
+    process.exitCode = 1;
+  } else {
+    console.log(`current ${t.out}`);
+  }
 }

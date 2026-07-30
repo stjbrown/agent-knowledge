@@ -8,7 +8,7 @@ import { extractGraph } from "../src/graph.js";
 import { pythonJson } from "../src/shared.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const repoRoot = resolve(here, "../../..");
+const repoRoot = resolve(here, "..");
 const bundle = resolve(repoRoot, "knowledge");
 const fixtures = resolve(here, "fixtures");
 

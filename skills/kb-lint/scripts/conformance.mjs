@@ -7360,11 +7360,11 @@ var require_dist = __commonJS({
   }
 });
 
-// packages/kb-tools/src/conformance.ts
+// src/conformance.ts
 import { existsSync, readFileSync, statSync as statSync2 } from "node:fs";
 import { dirname, join as join2 } from "node:path";
 
-// packages/kb-tools/src/shared.ts
+// src/shared.ts
 var import_yaml = __toESM(require_dist(), 1);
 import { readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
@@ -7437,7 +7437,7 @@ function normalizePosix(p) {
   return joined === "" ? "." : joined;
 }
 
-// packages/kb-tools/src/conformance.ts
+// src/conformance.ts
 var HEADING_LOG_RE = /^##\s+(.+?)\s*$/gm;
 var ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 var LINK_RE = /\]\(([^)#\s]+\.md)(#[^)]*)?\)/g;
@@ -7533,5 +7533,5 @@ function runCli(argv) {
   return r.errors.length ? 1 : 0;
 }
 
-// packages/kb-tools/src/cli/conformance-cli.ts
+// src/cli/conformance-cli.ts
 process.exit(runCli(process.argv.slice(2)));

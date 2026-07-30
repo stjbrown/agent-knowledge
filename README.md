@@ -123,12 +123,14 @@ skills/                 source of truth for the portable skills
   kb-query/
   kb-lint/              deterministic conformance script
   kb-visualize/         deterministic graph script
+src/                    TypeScript source for the generated scripts
+test/                   conformance, graph, and parity tests
+scripts/                build and package scripts
 knowledge/              this project's self-documenting OKF bundle
-packages/kb-tools/      TypeScript sources and parity tests for the generated scripts
 .claude-plugin/         Claude Code plugin manifest
 ```
 
-The repository is a pnpm workspace:
+The repository uses pnpm:
 
 ```bash
 pnpm install
@@ -136,9 +138,9 @@ pnpm verify
 pnpm pack:skills
 ```
 
-`pnpm verify` builds and tests `kb-tools`, rebuilds both committed zero-dependency scripts and
-checks for drift, then validates the in-repository knowledge bundle. `pnpm pack:skills` writes a
-release candidate to `artifacts/`.
+`pnpm verify` typechecks and tests the internal tooling, rebuilds both committed zero-dependency
+scripts and checks for drift, then validates the in-repository knowledge bundle.
+`pnpm pack:skills` writes a release candidate to `artifacts/`.
 
 ## License
 

@@ -36,14 +36,21 @@
     "access": "public"
   },
   "scripts": {
-    "build": "pnpm --filter @agent-knowledge/kb-tools build",
-    "test": "pnpm --filter @agent-knowledge/kb-tools test",
-    "build:skill-scripts": "node packages/kb-tools/scripts/build-skill-scripts.mjs",
-    "check:skill-scripts": "pnpm build:skill-scripts && git diff --exit-code -- skills/kb-lint/scripts/conformance.mjs skills/kb-visualize/scripts/graph.mjs",
+    "build": "tsc --noEmit",
+    "test": "vitest run",
+    "build:skill-scripts": "node scripts/build-skill-scripts.mjs",
+    "check:skill-scripts": "node scripts/build-skill-scripts.mjs --check",
     "lint:bundle": "node skills/kb-lint/scripts/conformance.mjs knowledge",
     "verify": "pnpm build && pnpm test && pnpm check:skill-scripts && pnpm lint:bundle",
     "prepack": "pnpm check:skill-scripts",
     "pack:skills": "pnpm verify && node scripts/pack-skills.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0",
+    "yaml": "2.9.0"
   },
   "packageManager": "pnpm@11.13.1"
 }

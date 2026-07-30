@@ -7360,11 +7360,11 @@ var require_dist = __commonJS({
   }
 });
 
-// packages/kb-tools/src/graph.ts
+// src/graph.ts
 import { readFileSync, statSync as statSync2 } from "node:fs";
 import { dirname, join as join2 } from "node:path";
 
-// packages/kb-tools/src/shared.ts
+// src/shared.ts
 var import_yaml = __toESM(require_dist(), 1);
 import { readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
@@ -7436,7 +7436,7 @@ function normalizePosix(p) {
   return joined === "" ? "." : joined;
 }
 
-// packages/kb-tools/src/graph.ts
+// src/graph.ts
 var LINK_RE = /\[[^\]]*\]\(([^)#\s]+\.md)(?:#[^)]*)?\)/g;
 function parseFrontmatter(fm) {
   return parseYamlFrontmatter(fm).data ?? {};
@@ -7516,5 +7516,5 @@ function runCli(argv) {
   return 0;
 }
 
-// packages/kb-tools/src/cli/graph-cli.ts
+// src/cli/graph-cli.ts
 process.exit(runCli(process.argv.slice(2)));
