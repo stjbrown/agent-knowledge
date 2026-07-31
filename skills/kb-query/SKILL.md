@@ -46,13 +46,14 @@ following the index and links rather than scanning.
 
 Apply the reading side of the [trust model](../kb/references/trust-model.md):
 
-- If a concept's frontmatter says `status: superseded`, follow `superseded_by` to the current version
-  and answer from **that** (use the old one only if the user asks how something evolved).
+- If a concept is retired (`status: deprecated` in OKF v0.2 or legacy `status: superseded`), follow
+  `superseded_by` to the current version and answer from **that** (use the old one only if the user
+  asks how something evolved).
 - If concepts are linked by `conflicts_with`, read the anchor and all linked signals and answer with
   **nuance** — separate what authoritative sources confirm from what softer signals suggest, with
   dates and sources. Do not flatten a contested question into a single yes/no.
 
-**Completion criterion:** no answer rests on a superseded concept; any conflict touching the question
+**Completion criterion:** no answer rests on a retired concept; any conflict touching the question
 is represented, not hidden.
 
 ## 4. Synthesize with citations

@@ -28,6 +28,11 @@ It prints JSON: `nodes` (each with `id`, `type`, `title`, `description`, `tags`,
 edges are already computed from the cross-links in concept bodies. If the user scoped the request to
 one concept/area, filter the model to that node plus its neighbors.
 
+The renderer MUST consume the model produced by **this extractor invocation**. Do not reuse a
+previous run's cached graph JSON or a generator hard-coded to another cache filename. If the host
+requires scratch files, overwrite one explicit model path, pass that same path to the renderer, and
+remove it after verification.
+
 **Completion criterion:** you have the graph model, and (if scoped) filtered it to the requested
 subgraph.
 
@@ -60,8 +65,12 @@ For the HTML form, a proven stack is Cytoscape.js (graph) + marked (markdown) fr
 graph model inlined as a JSON literal so the file is self-contained and nothing leaves the page. All
 node data is already in the model from step 1 — do not re-read the bundle.
 
+Verify the output against the fresh model: node and edge counts match, and every concept added or
+superseded in the current run appears by ID. A rendered file that merely exists is not sufficient.
+
 **Completion criterion:** the rendered view shows the graph (colored by type), a working detail panel
-with in-view link navigation, backlinks, search, and type filter.
+with in-view link navigation, backlinks, search, and type filter; its node/edge counts and changed
+concept IDs match the freshly extracted model.
 
 ## 4. Deliver
 

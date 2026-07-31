@@ -28,21 +28,25 @@ The ideas behind the pattern — what an LLM Wiki is and why it works.
 
 ## Spec
 
-The OKF v0.1 specification, one page per section.
+The OKF v0.2 specification, one page per section. (This bundle documents v0.2 but is still authored in v0.1 — see [Changes from v0.1](./spec/changes_from_v01.md).)
 
 * [OKF Specification Overview](./spec/index.md) - what OKF is and how these pages map to the spec.
 * [Motivation](./spec/motivation.md) - why standardize on markdown + frontmatter.
-* [Terminology](./spec/terminology.md) - bundle, concept, concept ID, frontmatter, body, link, citation.
+* [Terminology](./spec/terminology.md) - bundle, concept, frontmatter, body, link, source, actor, trust tier.
 * [Bundle Structure](./spec/bundle_structure.md) - a directory tree of markdown files.
 * [Reserved Filenames](./spec/reserved_filenames.md) - `index.md` and `log.md`.
-* [Frontmatter](./spec/frontmatter.md) - required and recommended keys.
+* [Frontmatter](./spec/frontmatter.md) - required, recommended, and optional families.
 * [Body](./spec/body.md) - conventional headings, no required sections.
-* [Cross-linking](./spec/cross_linking.md) - absolute and relative markdown links as edges.
+* [Provenance, Trust & Lifecycle](./spec/provenance_trust_lifecycle.md) - `sources`, `generated`, `verified`, `status`, `stale_after` (§5).
+* [Provenance (sources)](./spec/citations.md) - the `sources` list and per-claim footnote attribution (§5.1).
+* [Actor Convention](./spec/actor_convention.md) - `<producer>/<version>`, `human:<id>`, `process:<id>` (§7).
+* [Cross-linking & Paths](./spec/cross_linking.md) - markdown links as edges; path-valued fields; `references/` (§6).
 * [Index Files](./spec/index_files.md) - directory listings for progressive disclosure.
 * [Log Files](./spec/log_files.md) - date-grouped change history.
-* [Citations](./spec/citations.md) - external sources under a numbered heading.
+* [Attested Computations](./spec/attested_computations.md) - a sanctioned, checkable way to compute a value (§10).
 * [Conformance](./spec/conformance.md) - what makes a bundle conformant.
 * [Versioning](./spec/versioning.md) - `<major>.<minor>` and `okf_version`.
+* [Changes from v0.1](./spec/changes_from_v01.md) - the v0.1 → v0.2 delta.
 
 ## Operations
 
@@ -79,7 +83,7 @@ Our own analysis informing the build — synthesis about the format, not source 
 
 External source material this bundle is compiled from.
 
-* [OKF Specification (SPEC.md)](./references/okf_spec.md) - the OKF v0.1 spec on GitHub.
+* [OKF Specification (SPEC.md)](./references/okf_spec.md) - the OKF v0.2 spec on GitHub.
 * [OKF README & Reference Agent](./references/okf_readme.md) - the reference agent, enrich, and visualize commands.
 * [Karpathy — LLM Wiki gist](./references/karpathy_llm_wiki.md) - the idea file that originated the pattern.
 * [qmd](./references/qmd.md) - local markdown search engine (BM25 + vector + LLM re-rank).

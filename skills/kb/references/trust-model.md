@@ -18,13 +18,16 @@ The test for any edit: **does it change what the document asserts?**
   index.
 - **NOT OK:** changing a claim's meaning. Instead **supersede**, atomically:
   1. write the new concept;
-  2. set `supersedes: <old-id>` on the new and `superseded_by: <new-id>` + `status: superseded` on
-     the old;
+  2. set `supersedes: <old-id>` on the new and `superseded_by: <new-id>` on the old; retire the old
+     with `status: deprecated` in OKF v0.2 or legacy `status: superseded` in a v0.1 bundle;
   3. remove the old one from its `index.md` (a *tombstone*, not a delete — the file stays on disk,
      reachable via the link);
   4. append a `log.md` entry with the reason.
 
 Keeping the original is the point: it records that the claim was once true, and when it changed.
+This whole-concept history rule is this project's opinionated trust-model extension, not an OKF
+conformance requirement. For OKF v0.2, retire the original with `status: deprecated`; retain
+`supersedes` and `superseded_by` as portable extension keys.
 
 ### Versioned repository documentation
 
@@ -57,7 +60,7 @@ user-originated (e.g. `type: Note`, no `resource`).
 ## 3. Conflict vs. supersede
 
 - New info that merely **disagrees** with existing knowledge → link them with `conflicts_with` and
-  leave **both active**. Disagreement is not replacement.
+  leave both current. Disagreement is not replacement.
 - **Supersede only on a high-confidence, provenance-based change signal** — the same `resource`
   re-fetched now says something different, an official changelog/announcement, or a fresh first-party
   datapoint on the same thing. Confidence comes from the **source's authority and corroboration**,
@@ -88,13 +91,15 @@ plus git history, not from the content vouching for itself.
 Extension keys (all optional, tolerated by any consumer):
 
 ```yaml
-status: active | superseded          # default active; omit when active
+status: draft | stable | deprecated  # OKF v0.2 lifecycle; omit when unnecessary
 supersedes: <concept-id>             # on the new concept
 superseded_by: <concept-id>          # on the retired concept
 conflicts_with: [<concept-id>, …]    # mutual, on both concepts
-confidence: high | medium | low      # optional epistemic hedge
-sources: [<repo-path#symbol>, …]      # living repository documentation only
+sources:                              # OKF v0.2 provenance
+  - id: <stable-source-id>
+    resource: <url-or-bundle-path>
 ```
 
-These align with the trust/provenance axis emerging in the OKF spec itself (proposed `reliability`,
-`sources`, `confidence` fields) — prefer these names over inventing new ones.
+OKF v0.2 defines `status` and `sources`; it does not define a stored confidence score or the
+supersession/conflict keys. Credibility is inferred from `sources` signals, while the extension keys
+above preserve this bundle's stronger history policy.

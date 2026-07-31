@@ -5,7 +5,7 @@ description: <One sentence summarizing this concept.>
 # resource: <canonical URI>   # only for concepts bound to a real external asset; omit if abstract
 tags: [<tag>, <tag>]
 timestamp: <YYYY-MM-DDThh:mm:ssZ>
-# status: active              # add `status: superseded` + `superseded_by:` only when retiring
+# status: active              # retire with v0.2 `deprecated` (legacy v0.1: `superseded`) + `superseded_by`
 # sources: [<repo-path#symbol>] # optional; living repository documentation only
 ---
 

@@ -9,7 +9,7 @@ timestamp: 2026-07-01
 # Skill Design — the `kb-*` family
 
 The build plan for this project's skills, designed against the
-[competitor comparison](../ecosystem/competitor_comparison.md) (what to build vs. reuse) and the
+[current competitor comparison](../ecosystem/competitor_comparison_v2.md) (what to build vs. reuse) and the
 `writing-great-skills` framework (predictability as the root virtue). Naming is `kb-` — "knowledge
 bundle" is OKF's own term ([SPEC §2](../references/okf_spec.md)) for the `knowledge/` package the
 skills operate on, and `kb` reads universally as "knowledge base." Nothing user-facing says "okf";
@@ -86,8 +86,8 @@ sequence only if the rush persists.
 
 ### Techniques to borrow for `kb-ingest` (from openwiki)
 
-LangChain's [openwiki](../ecosystem/openwiki_langchain.md) is in the adjacent code-docs lane (not
-OKF), but its agent prompt is proven and directly applicable to `kb-ingest`:
+LangChain's [openwiki](../ecosystem/openwiki_langchain_v2.md) (now an OKF-emitting CLI) has a proven
+agent prompt directly applicable to `kb-ingest`:
 
 - **Ground every claim** in an inspected source / git evidence — never invent. Operationalizes the
   trust model's "never lose provenance."
@@ -100,10 +100,11 @@ OKF), but its agent prompt is proven and directly applicable to `kb-ingest`:
 
 ## Build vs. reuse (from the competitor comparison)
 
-**Build** (differentiated): `kb-init` (schema-layer scaffold), `kb-ingest` (trust-modeled raw-source
-loop — nobody has this), `kb-query` (light), `kb-visualize` (adaptive, LLM-generated — not a fixed
-`viz.html`). **Reuse:** the deterministic §9 validator inside `kb-lint` rather than rebuilding it.
-See [competitor comparison](../ecosystem/competitor_comparison.md).
+**Build** (differentiated): `kb-init` (schema-layer scaffold), `kb-ingest` (portable, trust-modeled
+integration with successor history and an exhaustive impact sweep), `kb-query` (light), and
+`kb-visualize` (adaptive, LLM-generated rather than a fixed `viz.html`). OpenWiki now proves that
+connector-backed general ingest is a competitive feature, so the differentiation is the maintenance
+semantics rather than ingest alone. See the [current competitor comparison](../ecosystem/competitor_comparison_v2.md).
 
 ## Decisions (settled 2026-07-01)
 
@@ -134,5 +135,5 @@ it.
 # Citations
 
 1. `writing-great-skills` framework (user-invoked skill, consulted 2026-07-01).
-2. [Competitor Comparison](../ecosystem/competitor_comparison.md)
+2. [Current Competitor Comparison](../ecosystem/competitor_comparison_v2.md)
 3. [OKF Spec Evolution](./spec_evolution.md)

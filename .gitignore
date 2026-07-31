@@ -27,6 +27,9 @@ artifacts/
 # Legacy Janet project state may remain in existing checkouts after the split
 .agent-knowledge/
 
+# Janet project-local skills, web artifacts, and generated scratch
+.janet/
+
 # kb-ingest scratch (temporary plans and raw-source drop zones)
 _ingest_plan.md
 **/raw/processed/

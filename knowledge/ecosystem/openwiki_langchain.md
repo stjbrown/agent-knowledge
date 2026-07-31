@@ -3,9 +3,16 @@ type: Reference
 title: openwiki (langchain-ai)
 description: LangChain's CLI that writes and maintains agent-facing documentation for a codebase (DeepAgents-based, auto-updated via a daily GitHub Action). A code-documentation generator — not OKF, not general-knowledge — but a strong brand signal and a source of ingest techniques.
 resource: https://github.com/langchain-ai/openwiki
+superseded_by: openwiki_langchain_v2
+status: deprecated
 tags: [ecosystem, competitor, langchain, code-docs, not-okf]
 timestamp: 2026-07-01
 ---
+
+> **Superseded by [openwiki (langchain-ai) — v2](./openwiki_langchain_v2.md)** (2026-07-31).
+> openwiki now emits OKF bundles and has a general-knowledge "Personal mode," making the "Not OKF" and
+> "codebase docs only" assessments below out of date. This page is kept as the record of what was true
+> on 2026-07-01.
 
 # openwiki (langchain-ai)
 

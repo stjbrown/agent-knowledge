@@ -75,12 +75,14 @@ The notable dissent from the file-based approach — see [critiques](./critiques
 
 ## 7. Codebase-doc generators (adjacent lane)
 
-Auto-document a *codebase* for agents — generated from the repo, not ingested from arbitrary
-sources. Overlaps in spirit (agent-maintained, `AGENTS.md` pointer, scheduled updates) but is a
-different product than an OKF general-knowledge bundle.
+Auto-document a *codebase* for agents. Most projects in this category generate from a repository
+rather than ingesting general sources, although openwiki now crosses that boundary with Personal
+mode. The category overlaps in agent maintenance, `AGENTS.md` pointers, and scheduled updates.
 
-* [openwiki (langchain-ai)](./openwiki_langchain.md) — LangChain/DeepAgents CLI; daily-PR updates.
-  Not OKF, no trust model — but a strong category signal and a source of
+* [openwiki (langchain-ai)](./openwiki_langchain_v2.md) — LangChain/DeepAgents CLI; scheduled-PR
+  updates. As of 2026-07 it emits OKF v0.1 bundles and adds a general-knowledge "Personal mode," so it
+  now spans this lane *and* the general-knowledge lane; its README still documents no equivalent
+  truth-maintenance model. A source of
   [ingest techniques](../design/skill_design.md). Peers: DeepWiki, `garrytan/gbrain`.
 
 ## Where OKF sits
@@ -91,18 +93,19 @@ A handful of projects target [OKF](../spec/index.md) explicitly, and the cohort 
 * [openknowledge (openknowledge-sh)](./openknowledge_cli.md) — a Go CLI with a registry, viewer, exporters, and agent maintenance loop (the most tooling-complete).
 * [kiso (oak-invest)](./kiso.md) — a Java engine that publishes bundles as static sites (the *consumer* side).
 * [okf-harness (pumblus)](./okf_harness.md) — an agent-first local harness for OKF wikis.
+* [openwiki (langchain-ai)](./openwiki_langchain_v2.md) — an OKF v0.1 producer spanning code
+  documentation and connector-backed personal knowledge.
 * `equationalapplications/expo-llm-wiki` — cites the OKF SPEC; SQLite-backed memory.
 * Our sibling [the OKF-native agent](../implementations/okf_native_agent.md) — OKF-native deployable agent.
 
 The vast majority of the ecosystem still reinvents a bespoke on-disk convention. But the OKF-native
 cohort is now real and moving fast — [okf-skills](./okf_skills_scaccogatto.md) (skills),
-[openknowledge](./openknowledge_cli.md) (CLI + registry), and [kiso](./kiso.md)
-(publisher) already bracket authoring, tooling, and consumption. The remaining gap our project aims
-at: **portable skills that incrementally produce and *maintain* a conformant bundle from raw
-sources, with a [trust model](./critiques.md)** — the living-wiki
-[ingest](../operations/ingest.md) loop, which the authoring/validation/publishing tools largely leave
-to the human. A caution worth noting: with several teams shipping OKF tooling in mid-2026, our value
-has to be the *maintenance loop and portability seam*, not another author/validate/visualize trio.
+[openknowledge](./openknowledge_cli.md) (CLI + registry), [openwiki](./openwiki_langchain_v2.md)
+(code/personal producer), and [kiso](./kiso.md) (publisher) bracket authoring, ingestion, tooling,
+and consumption. Our remaining gap is narrower and stronger: **portable skills that maintain a
+conformant bundle with explicit provenance, successor history, conflicts, and exhaustive propagation
+into derived knowledge**. With several teams shipping OKF tooling, our value has to be the
+*truth-maintenance loop and portability seam*, not another author/validate/visualize trio.
 
 # Citations
 

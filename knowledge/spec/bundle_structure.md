@@ -3,7 +3,7 @@ type: Spec Section
 title: "OKF §3 — Bundle Structure"
 description: A bundle is a directory tree of markdown files, distributable as a git repo, an archive, or a subdirectory; its internal organization is domain-independent.
 tags: [okf, spec, structure]
-timestamp: 2026-07-01
+timestamp: 2026-07-31
 ---
 
 # Bundle Structure

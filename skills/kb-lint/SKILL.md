@@ -43,7 +43,8 @@ the legwork that makes lint worth running. Cover every check:
 - **Missing cross-references** — concepts about the same entity/theme that don't link to each other.
 - **Coverage gaps** — entities named repeatedly across concepts but lacking their own concept; data
   gaps a source or web search could fill.
-- **Provenance gaps** — concepts making external claims with no `# Citations` / Reference.
+- **Provenance gaps** — concepts making external claims with neither OKF v0.2 `sources` nor a legacy
+  `# Citations` / Reference trail.
 - **Repository drift** — for living repository documentation, missing paths in `sources`, evidence
   that no longer supports the documented behavior, or source changes since `documented_revision`
   that affect a concept without a corresponding update. A lingering `documented_worktree: true`

@@ -13,10 +13,10 @@ contrast this bundle argues in prose. Captured from social media; provenance is 
 [below](#provenance)). Kept here as an explainer/marketing asset for the published repository, and
 because it is a crisp, self-contained statement of the core value proposition.
 
-This is exactly the pattern SPEC §8 sanctions: external material (the images) is mirrored **inside**
-the bundle under [`assets/`](../spec/citations.md#where-a-citation-may-point) and wrapped as a
+This is exactly the pattern SPEC §6.3 (and §5.1) sanctions: external material (the images) is mirrored **inside**
+the bundle under [`assets/`](../spec/citations.md#where-a-sources-resource-may-point) and wrapped as a
 first-class `Reference` concept, with the canonical asset kept alongside derived text (the
-descriptive alt text and prose below) — see [citations](../spec/citations.md#canonical-source-vs-derived-text).
+descriptive alt text and prose below) — see [provenance](../spec/citations.md#canonical-source-vs-derived-text).
 
 ## Panel 1 — Without OKF (traditional RAG)
 

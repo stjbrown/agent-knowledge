@@ -8,7 +8,7 @@ rather than list every link: a survey, a few featured projects most relevant to 
 
 * [Landscape](./landscape.md) - the categories of implementations and where the energy is.
 * [Critiques & Open Problems](./critiques.md) - truth maintenance, token cost, and the "markdown vs. database" debate.
-* [Competitor Comparison](./competitor_comparison.md) - okf-skills vs. openknowledge vs. our plan; what to build vs. reuse.
+* [Competitor Comparison](./competitor_comparison_v2.md) - current comparison of okf-skills, openknowledge, openwiki, and agent-knowledge/Janet.
 
 ## Featured projects
 
@@ -23,4 +23,4 @@ Selected for scale, quality, or direct relevance to the OKF + portable-skills di
 * [okf-harness (pumblus)](./okf_harness.md) - an explicitly OKF-compatible local harness — on our exact format.
 * [synthadoc](./synthadoc.md) - a no-tools, self-managed compilation engine (~0.5k★).
 * [commonplace (zby)](./commonplace.md) - theory-forward, review-gated; also maintains an agent-curated list of related systems.
-* [openwiki (langchain-ai)](./openwiki_langchain.md) - LangChain's codebase-doc generator; adjacent code-docs lane, not OKF — a brand signal + ingest technique source.
+* [openwiki (langchain-ai)](./openwiki_langchain_v2.md) - LangChain's CLI; now emits OKF bundles in both code and general-knowledge "Personal" modes — a direct peer with no truth-maintenance model documented in its README.

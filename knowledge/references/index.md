@@ -4,7 +4,7 @@ External source material this bundle is compiled from. Each concept elsewhere in
 the references it draws on, so the bundle records its own provenance (see
 [Citations](../spec/citations.md)).
 
-* [OKF Specification (SPEC.md)](./okf_spec.md) - the authoritative OKF v0.1 spec.
+* [OKF Specification (SPEC.md)](./okf_spec.md) - the authoritative OKF v0.2 spec.
 * [OKF README & Reference Agent](./okf_readme.md) - the reference agent, `enrich`, and `visualize`.
 * [Karpathy — LLM Wiki gist](./karpathy_llm_wiki.md) - the idea file that originated the pattern.
 * [qmd](./qmd.md) - local markdown search engine used when a bundle outgrows index files.

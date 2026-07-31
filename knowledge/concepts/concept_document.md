@@ -26,9 +26,13 @@ are referenced and how [cross-links](../spec/cross_linking.md) resolve.
 ## Anatomy
 
 * **Frontmatter** — machine-readable metadata. Only [`type`](../spec/frontmatter.md) is required;
-  `title`, `description`, `resource`, `tags`, and `timestamp` are recommended.
+  `title`, `description`, `resource`, and `tags` are recommended, and OKF v0.2 adds optional
+  [provenance/trust/lifecycle](../spec/provenance_trust_lifecycle.md) families (`sources`,
+  `generated`, `verified`, `status`, `stale_after`).
 * **Body** — human- and agent-readable markdown prose, with conventional headings such as
-  `# Schema`, `# Examples`, and `# Citations` when applicable. See [Body](../spec/body.md).
+  `# Schema`, `# Examples`, and `# Computation` when applicable. See [Body](../spec/body.md).
+  Per-claim [provenance](../spec/citations.md) uses footnotes keyed to `sources` entries in v0.2
+  (superseding v0.1's `# Citations` body list).
 
 A concept may be **bound to a resource** (e.g. a database table, with a `resource` URI) or
 **abstract** (e.g. a playbook or, as here, an idea) with no `resource`. Every concept in this

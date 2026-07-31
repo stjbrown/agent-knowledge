@@ -4,9 +4,15 @@ title: Competitor Comparison — okf-skills vs. openknowledge vs. our plan
 description: A feature-by-feature comparison of the two most direct OKF-native competitors against what this project should build, isolating the differentiated surface.
 tags: [ecosystem, competitor, design-input, strategy]
 timestamp: 2026-07-01
+superseded_by: competitor_comparison_v2
+status: deprecated
 ---
 
 # Competitor Comparison
+
+> **Superseded by the [current competitor comparison](./competitor_comparison_v2.md)**
+> (2026-07-31). This snapshot predates openwiki's OKF and Personal-mode expansion and predates the
+> completed `agent-knowledge` skills and Janet CLI.
 
 A feature-by-feature read of the two most direct [OKF](../spec/index.md)-native competitors —
 [okf-skills (scaccogatto)](./okf_skills_scaccogatto.md) and

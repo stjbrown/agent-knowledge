@@ -59,8 +59,8 @@ invocation reliable.
 - **Document** — inspect repository evidence in place and maintain concepts about the system's
   current responsibilities, behavior, boundaries, and operations.
 - **Supersede** — replace a claim by writing a *new* concept and marking the old one
-  `status: superseded` with `superseded_by`, keeping it on disk for history. Never rewrite a claim
-  in place.
+  `status: deprecated` in OKF v0.2 (legacy `status: superseded` in a v0.1 bundle), with
+  `superseded_by`, keeping it on disk for history. Never rewrite a claim in place.
 - **Conflict** — when new information merely disagrees, link the two with `conflicts_with` and keep
   both active; do not silently pick a winner.
 - **Drift** — the decay a compounding bundle accumulates (stale claims, orphans, contradictions,

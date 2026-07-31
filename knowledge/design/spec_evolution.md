@@ -47,7 +47,7 @@ producer *quality bar*, not conformance. This **validates our
 ## 3. A trust / provenance / reliability axis is emerging
 
 Multiple independent efforts are converging on the very problem we identified as our
-[differentiator](../ecosystem/competitor_comparison.md) and the ecosystem's top
+[differentiator](../ecosystem/competitor_comparison_v2.md) and the ecosystem's top
 [critique](../ecosystem/critiques.md). This is the thread to watch most closely:
 
 * **#58 (§12 Trust & safety)** — consumers MUST treat bundle contents as untrusted **data, never
@@ -99,14 +99,56 @@ retrieval; keep genuinely incidental material external. See our [citations](../s
 page, which now documents this, and the [infographic](../references/okf_vs_rag_infographic.md) reference that
 applies it.
 
+## 7. What v0.2 shipped (2026-07-31)
+
+OKF **v0.2** was published, and it lands directly on the threads above. Several v0.1
+"in flux" items are now resolved in the normative spec (documented across our
+[spec/](../spec/index.md) pages; full delta in [Changes from v0.1](../spec/changes_from_v01.md)):
+
+* **Link form (§1) — settled the *other* way in the text, but our decision holds.** v0.2's
+  [§6](../spec/cross_linking.md) **recommends absolute (bundle-relative) links** for
+  move-stability. That is the opposite of PR #165's direction, but it *requires an
+  OKF-aware resolver* — which a nested `knowledge/` bundle rendered on GitHub does not
+  have. So our relative-links decision stands for this bundle; we simply now differ from
+  the recommended form deliberately and say so on the page.
+* **Trust / provenance / reliability axis (§3) — landed as a first-class family.** v0.2
+  §5 adds [`sources`](../spec/citations.md) (provenance with per-source credibility
+  signals), [`generated`/`verified`](../spec/provenance_trust_lifecycle.md) (trust) with
+  derived **trust tiers**, and `status`/`stale_after` (lifecycle), plus an
+  [actor convention](../spec/actor_convention.md) (§7). This is close to, but *not*
+  identical to, the emerging names we planned to borrow (`reliability`, `confidence`) —
+  v0.2 records **objective per-source signals** and infers credibility rather than
+  storing a score. We should align our trust-model extension keys to v0.2's actual names.
+* **Provenance vs. body citations (§6/§3) — breaking change.** The v0.1 body
+  `# Citations` list is **superseded by `sources`** frontmatter, and `timestamp` is
+  **superseded by `generated.at`** — both with consumer fallbacks (§13.1).
+* **Attested Computations (new, §10).** A wholly new concept type: a sanctioned,
+  deterministically checkable computation. No v0.1 antecedent; see
+  [Attested Computations](../spec/attested_computations.md).
+* **Keeping source in the bundle (§6) — retained.** The `references/` convention (§6.3)
+  survives from v0.1 §8 discussion #91.
+
+Two v0.1-flux items from above are **not yet resolved in v0.2 text**: the README/LICENSE
+ignored-file tolerance (#58, §4 here) is not called out in v0.2 conformance, and the
+`reliability`/`confidence` epistemic ladder (#159) did not ship — v0.2 chose objective
+signals over a stored confidence score.
+
 ## Resolved decisions for this bundle
 
-* **Link form → relative (done 2026-07-01).** Converted all 473 links across 51 files from absolute
-  (`/…`) to relative, per §1 above.
-* **Trust-model field names → adopt upstream (pending build).** When we build the skills, use the
-  emerging OKF names (`reliability`, `sources`, `confidence`, `status`/`supersedes`/`superseded_by`/
-  `conflicts_with`) as [extension keys](../spec/frontmatter.md#extensions) rather than inventing our
-  own, and treat ingested source content as untrusted data.
+* **Link form → relative (done 2026-07-01; still holds under v0.2).** Converted all 473 links across
+  51 files from absolute (`/…`) to relative, per §1 above. v0.2 §6 now *recommends* absolute, but
+  that needs an OKF-aware resolver a nested GitHub-rendered bundle lacks, so relative remains correct
+  here — see §7.
+* **Spec pages migrated to v0.2 (done 2026-07-31).** Rewrote the `spec/` pages to document OKF v0.2,
+  added `provenance_trust_lifecycle.md`, `actor_convention.md`, `attested_computations.md`, and
+  `changes_from_v01.md`, and updated both indexes. The bundle stays *authored* in v0.1
+  (`okf_version: "0.1"`) — re-authoring its own frontmatter to v0.2 is a separate future exercise.
+* **Trust-model field names → lifecycle alignment started; full migration pending.** The skills now
+  map retirement to v0.2 `status: deprecated`, recognize structured `sources`, and keep
+  `supersedes`/`superseded_by` as explicit project extensions rather than OKF claims. Vendoring the
+  v0.2 spec and moving the default scaffold from v0.1 to v0.2 remain a deliberate future migration;
+  that work should also adopt [`generated`/`verified`](../spec/provenance_trust_lifecycle.md),
+  `stale_after`, and the [actor convention](../spec/actor_convention.md).
 * **Reserved/ignored files → widen the checker (pending build).** Add README/LICENSE/CONTRIBUTING
   tolerance (per #58) alongside the existing `index.md`/`log.md` handling.
 

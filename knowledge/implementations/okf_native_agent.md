@@ -34,8 +34,8 @@ are the strongest input to our [operations](../operations/index.md) design:
 
 * **Append-only on meaning.** OK to fix typos/links/metadata; never change what a document *asserts*.
   If a claim changes, write a new concept and **supersede** the old (`supersedes:` / `superseded_by:` /
-  `status: superseded`), remove it from the index but keep it on disk. Removal from an index is a
-  *tombstone, not a delete*.
+  legacy `status: superseded`; use `status: deprecated` in OKF v0.2), remove it from the index but
+  keep it on disk. Removal from an index is a *tombstone, not a delete*.
 * **Never lose provenance.** Every concept cites a source or is explicitly marked user-originated
   (`type: Note`, no `resource`). Sources are stored **once** as `type: Reference` and cited many
   times (N:1) — one source can spawn many concepts.
