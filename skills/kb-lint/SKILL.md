@@ -2,7 +2,7 @@
 name: kb-lint
 description: Health-check a knowledge bundle for conformance and drift; optionally auto-fix safe issues.
 disable-model-invocation: true
-version: 0.2.0
+version: 0.3.0
 tags: [knowledge, okf, lint, conformance]
 ---
 
@@ -23,9 +23,10 @@ Claude Code, or whatever path your host exposes for the skill:
 node "<skill-dir>/scripts/conformance.mjs" <bundle-dir>
 ```
 
-It reports **ERROR** (a hard [SPEC](../kb/references/SPEC.md) §9 failure — no parseable frontmatter,
-or a missing/empty `type`) and **warn** (soft: broken links, non-ISO log dates). Broken links are
-explicitly tolerated by the spec (§5.3) — never a conformance failure.
+It reports **ERROR** for a hard [SPEC](../kb/references/SPEC.md) §11 failure and **warn** for
+producer-profile defects in optional v0.2 fields, broken links, non-ISO log dates, and stale dates.
+Optional-family warnings never make the bundle non-conformant. Broken links are explicitly
+tolerated by §6.1.
 
 **Completion criterion:** the checker has run and every ERROR it reported is listed for the report
 (and fixed, if in `fix` mode).
@@ -45,11 +46,14 @@ the legwork that makes lint worth running. Cover every check:
   gaps a source or web search could fill.
 - **Provenance gaps** — concepts making external claims with neither OKF v0.2 `sources` nor a legacy
   `# Citations` / Reference trail.
-- **Repository drift** — for living repository documentation, missing paths in `sources`, evidence
-  that no longer supports the documented behavior, or source changes since `documented_revision`
-  that affect a concept without a corresponding update. A lingering `documented_worktree: true`
-  requires comparison with the current working tree. Skip this check for bundles that do not use
-  repository evidence or when Git history is unavailable.
+- **v0.2 metadata drift** — `sources` entries without `resource`, footnote labels without a matching
+  `sources[].id`, malformed `generated`/`verified` actors or dates, invalid lifecycle values, and
+  Attested Computations missing their required runtime or computation contract.
+- **Repository drift** — for living repository documentation, missing paths in
+  `sources[].resource`, evidence that no longer supports the documented behavior, or source changes
+  since `spec/repository_state.md`'s `documented_revision` that affect a concept without a
+  corresponding update. A lingering `documented_worktree: true` there requires comparison with the
+  current working tree. Skip this check when repository evidence or Git history is unavailable.
 - **Schema drift** — types used but absent from `spec/types.md`; documented types that no longer
   describe their concepts; spelling/case variants; or one overloaded type hiding several recurring,
   materially distinct entity kinds. Treat unused documented types as Info, not an error.
@@ -61,7 +65,7 @@ recorded — not a sample.
 
 Present findings grouped by check, each tagged:
 
-- **Error** — §9 conformance failures. The bundle is non-conformant until fixed.
+- **Error** — §11 conformance failures. The bundle is non-conformant until fixed.
 - **Warning** — drift that degrades trust (contradictions, stale claims, orphans, broken links).
 - **Info** — suggestions (coverage gaps, new concepts or sources worth adding).
 

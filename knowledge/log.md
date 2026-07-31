@@ -2,6 +2,13 @@
 
 ## 2026-07-31
 
+**Update** — Migrated the distributed `kb-*` skill family to an OKF v0.2 producer/consumer profile:
+vendored the authoritative v0.2 spec, made new scaffolds emit v0.2, replaced legacy producer
+`timestamp`/`# Citations` guidance with `generated`/structured `sources` and keyed footnotes, added
+trust/freshness/attestation consumption, extended deterministic lint and graph output, and retained
+declared v0.1 maintenance through the §13 compatibility fallbacks. The package is now `0.3.0`; this
+repository's own bundle remains intentionally authored in v0.1 pending a separate dogfooding migration.
+
 **Ingest** — Re-assessed [openwiki (langchain-ai)](./ecosystem/openwiki_langchain_v2.md) from a re-fetch of its GitHub README. The 2026-07-01 assessment is now materially wrong: openwiki **emits OKF v0.1 bundles** in both modes (was "Not OKF") and has a general-knowledge **"Personal mode"** ingesting connectors — git-repo, Gmail, Notion, X, Web Search, Hacker News (was "codebase docs only"). High-confidence supersede (same `resource`, trust model §1/§3): wrote new concept [openwiki_langchain_v2](./ecosystem/openwiki_langchain_v2.md) (`supersedes: openwiki_langchain`), tombstoned [the old page](./ecosystem/openwiki_langchain.md) (`status: superseded`, `superseded_by`), and relinked [ecosystem index](./ecosystem/index.md), [landscape](./ecosystem/landscape.md), and [skill design](./design/skill_design.md). openwiki is now a **direct OKF-emitting peer and plausible interop target**; its remaining gap is **no trust model**, which sharpens our v0.2 provenance/trust differentiation. Open question: openwiki targets OKF v0.1 while this bundle documents v0.2 — worth watching whether it adopts the v0.2 provenance/trust families.
 
 **Update** — Completed the OpenWiki impact sweep that the initial ingest missed: superseded the stale [2026-07-01 competitor comparison](./ecosystem/competitor_comparison.md) with a [current four-way comparison](./ecosystem/competitor_comparison_v2.md), linked it from the OpenWiki successor and ecosystem index, narrowed unsupported claims about OpenWiki's trust model to what its README documents, and adopted OKF v0.2 `status: deprecated` on retired concepts.

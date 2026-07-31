@@ -24,11 +24,14 @@ invocation reliable.
 
 - **type** *(required)* — a short, producer-chosen string naming the kind of concept (e.g. `person`,
   `deal`, `metric`, `Reference`). The only required field.
-- **Recommended** — `title`, `description`, `resource` (a canonical URI, for concepts bound to a real
-  asset), `tags`, `timestamp` (ISO 8601).
-- **Extension keys** — any additional keys are allowed and preserved. The trust model uses
-  `status`, `supersedes`, `superseded_by`, `conflicts_with`; living repository documentation may use
-  `sources` plus root-level `documented_revision` and `documented_worktree`.
+- **Recommended** — `title`, `description`, `resource` (a canonical URI for concepts bound to a real
+  asset), and `tags`.
+- **v0.2 optional families** — structured `sources` provenance; `generated`/`verified` trust;
+  `status`/`stale_after` lifecycle; and the Attested Computation contract. See the
+  [version profile](version-profile.md).
+- **Extension keys** — any additional keys are allowed and preserved. The trust model adds
+  `supersedes`, `superseded_by`, and `conflicts_with`; a repository-state concept may add
+  `documented_revision` and `documented_worktree`.
 
 ## Content types
 

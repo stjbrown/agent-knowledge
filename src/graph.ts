@@ -1,11 +1,11 @@
 /**
  * Extract the graph model of an OKF bundle — the deterministic half of
- * kb-visualize. A TypeScript port of skills/kb-visualize/scripts/graph.py,
- * behaviour-identical. The agent renders this model into a view.
+ * kb-visualize. This is the canonical implementation bundled into the
+ * kb-visualize skill at build time. The agent renders this model into a view.
  *
  * Node id = concept id = path within the bundle minus `.md`. Reserved
  * index.md/log.md are excluded. Links are resolved to concept ids; links whose
- * target is not a concept in the bundle are dropped (SPEC §5.3 tolerates them).
+ * target is not a concept in the bundle are dropped (SPEC §6.1 tolerates them).
  */
 import { readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -30,6 +30,14 @@ export interface GraphNode {
   tags: string[];
   resource: string;
   status: string;
+  generated: { by: string; at: string } | null;
+  verified: { by: string; at: string }[];
+  trust_tier: "unverified" | "machine-confirmed" | "human-reviewed";
+  last_changed: string;
+  stale_after: string;
+  is_stale: boolean;
+  sources: Record<string, unknown>[];
+  attested_computation: Record<string, unknown> | null;
   body: string;
   links: string[];
   cited_by: string[];
@@ -53,6 +61,21 @@ function scalar(data: FrontmatterData, k: string, dflt: string): string {
   const v = data[k];
   if (v === undefined) return dflt;
   return typeof v === "string" ? v : dflt;
+}
+
+function record(value: unknown): Record<string, unknown> | null {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function actorEvent(value: unknown): { by: string; at: string } | null {
+  const event = record(value);
+  if (!event || typeof event["by"] !== "string") return null;
+  return {
+    by: event["by"],
+    at: typeof event["at"] === "string" ? event["at"] : "",
+  };
 }
 
 /** Resolve a markdown link target (relative or bundle-absolute) to a concept id. */
@@ -90,12 +113,48 @@ export function extractGraph(bundle: string): GraphModel {
       if (ids.has(rid) && rid !== cid && !links.includes(rid)) links.push(rid);
     }
 
+    const rawSources = fm["sources"];
+    const sources = Array.isArray(rawSources)
+      ? rawSources.map(record).filter((source): source is Record<string, unknown> => source !== null)
+      : [];
+    for (const source of sources) {
+      const resource = source["resource"];
+      if (typeof resource !== "string") continue;
+      const sourcePath = resource.replace(/#.*$/, "");
+      if (!sourcePath.endsWith(".md")) continue;
+      const rid = resolve(rel, sourcePath);
+      if (ids.has(rid) && rid !== cid && !links.includes(rid)) links.push(rid);
+    }
+
     const rawTags = fm["tags"];
     const tags = Array.isArray(rawTags)
       ? rawTags.filter((tag): tag is string => typeof tag === "string")
       : typeof rawTags === "string"
         ? [rawTags]
         : [];
+
+    const generated = actorEvent(fm["generated"]);
+    const rawVerified = fm["verified"];
+    const verified = (Array.isArray(rawVerified) ? rawVerified : rawVerified === undefined ? [] : [rawVerified])
+      .map(actorEvent)
+      .filter((event): event is { by: string; at: string } => event !== null);
+    const trustTier = verified.some((event) => event.by.startsWith("human:"))
+      ? "human-reviewed"
+      : verified.length
+        ? "machine-confirmed"
+        : "unverified";
+    const staleAfter = scalar(fm, "stale_after", "");
+    const isStale = Boolean(staleAfter && new Date().toISOString().slice(0, 10) >= staleAfter);
+    const isAttested = fm["type"] === "Attested Computation";
+    const attestedComputation = isAttested
+      ? {
+          runtime: fm["runtime"] ?? null,
+          parameters: fm["parameters"] ?? [],
+          computation: fm["computation"] ?? null,
+          executor: fm["executor"] ?? null,
+          attester: fm["attester"] ?? null,
+        }
+      : null;
 
     nodes.set(cid, {
       id: cid,
@@ -105,7 +164,15 @@ export function extractGraph(bundle: string): GraphModel {
       description: scalar(fm, "description", ""),
       tags,
       resource: scalar(fm, "resource", ""),
-      status: scalar(fm, "status", "active"),
+      status: scalar(fm, "status", "stable"),
+      generated,
+      verified,
+      trust_tier: trustTier,
+      last_changed: generated?.at || scalar(fm, "timestamp", ""),
+      stale_after: staleAfter,
+      is_stale: isStale,
+      sources,
+      attested_computation: attestedComputation,
       body: body.trim(),
       links,
       cited_by: [],

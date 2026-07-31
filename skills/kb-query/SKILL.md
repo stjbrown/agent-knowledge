@@ -6,7 +6,7 @@ description: >-
   knowledge/ bundle — and when any task would be informed by an existing bundle, consult it here
   before answering from scratch. Navigates by progressive disclosure and files valuable answers
   back so the bundle compounds.
-version: 0.2.0
+version: 0.3.0
 tags: [knowledge, okf, query, retrieval]
 ---
 
@@ -44,7 +44,8 @@ following the index and links rather than scanning.
 
 ## 3. Read with currency and conflict awareness
 
-Apply the reading side of the [trust model](../kb/references/trust-model.md):
+Apply the reading side of the [trust model](../kb/references/trust-model.md) and the
+[version profile](../kb/references/version-profile.md):
 
 - If a concept is retired (`status: deprecated` in OKF v0.2 or legacy `status: superseded`), follow
   `superseded_by` to the current version and answer from **that** (use the old one only if the user
@@ -52,9 +53,19 @@ Apply the reading side of the [trust model](../kb/references/trust-model.md):
 - If concepts are linked by `conflicts_with`, read the anchor and all linked signals and answer with
   **nuance** — separate what authoritative sources confirm from what softer signals suggest, with
   dates and sources. Do not flatten a contested question into a single yes/no.
+- If `today >= stale_after`, label the concept stale and corroborate it before relying on it. Use
+  `generated.at` for v0.2 recency and fall back to legacy `timestamp` only when `generated` is absent.
+- Derive the advisory trust tier from `verified`: no verifier is unverified, non-human verifiers are
+  machine-confirmed, and any `human:` verifier is human-reviewed. Never treat a tier as access control.
+- Resolve claim footnotes through matching `sources[].id`; when `sources` is absent, a v0.2 consumer
+  may fall back to a legacy `# Citations` section.
+- For `type: Attested Computation`, distinguish recorded definition verification from per-run
+  attestation. Do not execute or alter its computation unless the user separately authorizes the
+  declared executor path; never present an unattested runtime value as attested.
 
-**Completion criterion:** no answer rests on a retired concept; any conflict touching the question
-is represented, not hidden.
+**Completion criterion:** no answer silently rests on a retired or stale concept; provenance and
+trust signals are interpreted by the declared profile; any conflict or attestation caveat touching
+the question is represented, not hidden.
 
 ## 4. Synthesize with citations
 
@@ -71,8 +82,9 @@ from.
 This is how queries **compound** — do not let a good answer evaporate into chat. If the answer is a
 **comparison, a multi-source synthesis, a discovered connection, or a strategic insight**, propose
 filing it as a new concept: tell the user what you'd add and where; on agreement, write it with the
-[concept template](../kb/templates/concept.md) (non-empty `type`, relative cross-links, `# Citations`
-to the concepts it draws on), update the section `index.md`, and append a
+[concept template](../kb/templates/concept.md). In v0.2, record the answering agent in `generated`,
+represent source concepts as structured `sources`, and use keyed footnotes; in v0.1 preserve the
+legacy citation profile. Update the section `index.md`, and append a
 [log](../kb/references/trust-model.md) entry. Follow the trust model — a new synthesis is a normal
 concept (append-only; refine later by superseding, not editing).
 

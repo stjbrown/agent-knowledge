@@ -6,7 +6,7 @@ description: >-
   a knowledge/ bundle, or drops content for processing. Reads the source once, extracts its signal,
   and integrates it across the bundle under the trust model so knowledge compounds instead of being
   re-derived per query.
-version: 0.2.0
+version: 0.3.0
 tags: [knowledge, okf, ingest, capture]
 ---
 
@@ -34,8 +34,12 @@ exist, pick the right one or ask). **Read its `spec/` first** — `spec/types.md
 Follow them; do not invent a parallel structure. If no bundle exists, stop and offer
 [kb-init](../kb-init/SKILL.md).
 
-**Completion criterion:** you can state this bundle's `type` values and where each kind of extracted
-thing will be routed.
+Read the bundle root and apply the [version profile](../kb/references/version-profile.md). Fix an
+honest producer actor for this run. A v0.2 write uses `generated`, structured `sources`, and keyed
+footnotes; a v0.1 write preserves `timestamp` and its legacy citation trail.
+
+**Completion criterion:** you can state the bundle version/profile, producer actor, `type` values,
+and where each kind of extracted thing will be routed.
 
 ## 2. Read and classify the source
 
@@ -122,6 +126,12 @@ Handle bytes according to custody:
 **Never invent a source.** If it is user-originated with no external origin, record that honestly.
 Every concept written in step 5 cites this Reference.
 
+For v0.2, give the Reference honest `generated` metadata. Each concept derived from it gets a
+structured `sources` entry whose `resource` points to the Reference concept; give that entry a
+stable `id` and use the same ID for any claim-level footnote. The Reference's own top-level
+`resource` names a stable underlying asset when one exists. Do not add a legacy `# Citations` list.
+For a v0.1 bundle, retain its `timestamp` and citation conventions instead.
+
 **Completion criterion:** the source is represented once with honest provenance and custody-safe
 handling; any mirrored bytes are an authorized copy, never a relocated project or external file.
 
@@ -131,11 +141,14 @@ Carry out each planned action, following the [trust model](../kb/references/trus
 mechanics of create / **supersede** / **conflict** / additive-event. Write new concepts from the
 [concept template](../kb/templates/concept.md); every concept cites the Reference and **cross-links
 both directions** (a person named in a deal links to their concept and back), with relative links.
+On every meaningful v0.2 content change, set `generated.by` to this run's actor and
+`generated.at` to the change time. Preserve `verified` only when it still verifies the changed
+content; never create verification from conversational approval.
 
 **Completion criterion:** every entity and dependent in the plan is accounted for: concepts have a
-non-empty documented `type` and provenance; planned schema and supersede/conflict actions follow the
-trust model; historical dependents remain historical; current dependents point at and accurately
-describe the current concept; no meaning was rewritten in place.
+non-empty documented `type` and version-correct provenance/production metadata; all keyed footnotes
+resolve to `sources[].id`; planned trust actions follow the trust model; historical dependents
+remain historical; current dependents are accurate; no meaning was rewritten in place.
 
 ## 6. Re-synthesize overviews
 

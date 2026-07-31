@@ -51,7 +51,7 @@ authoritative copy of shared meaning. So `kb` holds, once, what every action ski
 kb/
   SKILL.md              # teach the system + key terms; route to kb-<verb>
   reference/
-    SPEC.md             # OKF v0.1, vendored verbatim — the source of truth
+    SPEC.md             # OKF v0.2, vendored verbatim — the source of truth
     glossary.md         # bundle, concept, reference, progressive disclosure, compounding…
     trust-model.md      # append-only / supersede / conflicts_with rules
   templates/
@@ -60,8 +60,8 @@ kb/
 ```
 
 Action skills point here rather than restating the spec — avoiding the drift the OKF reference
-implementation hit when the spec was copied into multiple modules (PR #161). A spec bump to 0.2 is
-then a one-file edit.
+implementation hit when the spec was copied into multiple modules (PR #161). The v0.2 migration
+validated this seam: one vendored spec plus one disclosed version profile governs every action skill.
 
 ### Information hierarchy
 

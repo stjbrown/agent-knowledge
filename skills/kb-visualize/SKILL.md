@@ -2,7 +2,7 @@
 name: kb-visualize
 description: Render a knowledge bundle as an interactive graph — native UI where the host supports it, otherwise a self-contained HTML artifact.
 disable-model-invocation: true
-version: 0.2.0
+version: 0.3.0
 tags: [knowledge, okf, visualize, graph]
 ---
 
@@ -23,8 +23,9 @@ Claude Code, or whatever path your host exposes for the skill:
 node "<skill-dir>/scripts/graph.mjs" <bundle-dir>
 ```
 
-It prints JSON: `nodes` (each with `id`, `type`, `title`, `description`, `tags`, `resource`,
-`status`, `body`, `links`, `cited_by`), the distinct `types`, and `edges`. Backlinks (`cited_by`) and
+It prints JSON: `nodes` (including `id`, display metadata, `status`, `generated`, `verified`, derived
+`trust_tier`, `stale_after`, derived `is_stale`, structured `sources`, attestation metadata, `body`,
+`links`, and `cited_by`), the distinct `types`, and `edges`. Backlinks (`cited_by`) and
 edges are already computed from the cross-links in concept bodies. If the user scoped the request to
 one concept/area, filter the model to that node plus its neighbors.
 
@@ -56,7 +57,8 @@ Whichever form, the view must show (mirroring a conformant OKF viewer):
   each cross-link. A layout the user can switch (e.g. cose / concentric / breadth-first / grid) is a
   plus.
 - A **detail panel** for the selected node: its frontmatter (`description`, `resource` as a link,
-  `tags`) and its rendered markdown `body`, with internal concept links rewired to **navigate within
+  `tags`, lifecycle/freshness, provenance, trust tier, and Attested Computation contract when
+  present) and its rendered markdown `body`, with internal concept links rewired to **navigate within
   the view** (select that node) rather than following a file path.
 - A **"Cited by"** list per node, from `cited_by` (the reverse link graph).
 - A **search box** (matches title, id, tags) and a **type filter**.

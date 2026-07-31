@@ -1,7 +1,7 @@
 ---
 type: Concept
 title: OKF Spec Evolution (open PRs & proposals)
-description: Our reading of the open pull requests and proposals on GoogleCloudPlatform/knowledge-catalog — where OKF v0.1 is still in flux (link form, required frontmatter, an emerging trust/provenance axis) and what it means for our build.
+description: How OKF evolved from the v0.1 proposals into v0.2, which decisions shipped, and how the portable skills adopted them.
 tags: [okf, spec, evolution, design-input, analysis]
 timestamp: 2026-07-01
 ---
@@ -143,14 +143,17 @@ signals over a stored confidence score.
   added `provenance_trust_lifecycle.md`, `actor_convention.md`, `attested_computations.md`, and
   `changes_from_v01.md`, and updated both indexes. The bundle stays *authored* in v0.1
   (`okf_version: "0.1"`) — re-authoring its own frontmatter to v0.2 is a separate future exercise.
-* **Trust-model field names → lifecycle alignment started; full migration pending.** The skills now
-  map retirement to v0.2 `status: deprecated`, recognize structured `sources`, and keep
-  `supersedes`/`superseded_by` as explicit project extensions rather than OKF claims. Vendoring the
-  v0.2 spec and moving the default scaffold from v0.1 to v0.2 remain a deliberate future migration;
-  that work should also adopt [`generated`/`verified`](../spec/provenance_trust_lifecycle.md),
-  `stale_after`, and the [actor convention](../spec/actor_convention.md).
-* **Reserved/ignored files → widen the checker (pending build).** Add README/LICENSE/CONTRIBUTING
-  tolerance (per #58) alongside the existing `index.md`/`log.md` handling.
+* **Portable skills → v0.2 producer/consumer (done 2026-07-31).** The hub now vendors the
+  authoritative v0.2 spec; new scaffolds emit `okf_version: "0.2"`; writing skills use structured
+  `sources`, keyed footnotes, honest `generated` actors, lifecycle/freshness fields, and Attested
+  Computation rules. Query, lint, and visualization consume the new trust families while preserving
+  the §13 fallbacks for declared v0.1 bundles. `supersedes`/`superseded_by` remain explicit project
+  extensions rather than OKF claims. Migrating this repository's own v0.1-authored bundle remains a
+  separate dogfooding exercise.
+* **Reserved/ignored files → keep the checker strict.** v0.2 did not adopt #58's proposed
+  README/LICENSE/CONTRIBUTING exception: `index.md` and `log.md` remain the only reserved markdown
+  filenames. The checker therefore continues to treat any other `.md` file inside a bundle as a
+  concept requiring frontmatter and `type`.
 
 # Citations
 

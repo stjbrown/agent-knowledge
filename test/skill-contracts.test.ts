@@ -35,6 +35,35 @@ describe("kb-ingest behavioral contract", () => {
   });
 });
 
+describe("OKF v0.2 skill contract", () => {
+  it("vendors v0.2 and scaffolds v0.2 production metadata", () => {
+    const hub = skill("skills/kb/SKILL.md");
+    const spec = skill("skills/kb/references/SPEC.md");
+    const init = skill("skills/kb-init/SKILL.md");
+    const template = skill("skills/kb/templates/concept.md");
+    const indexTemplate = skill("skills/kb/templates/index.md");
+
+    expect(spec).toContain("**Version 0.2**");
+    expect(hub).toContain("OKF v0.2, vendored verbatim");
+    expect(init).toContain('okf_version: "0.2"');
+    expect(template).toContain("generated: { by: <producer>/<version>");
+    expect(template).toContain("resource: <url-or-bundle-path>");
+    expect(template).not.toContain("timestamp:");
+    expect(indexTemplate).toContain('okf_version: "0.2"');
+  });
+
+  it("makes every writing skill apply the shared version profile", () => {
+    for (const path of [
+      "skills/kb-init/SKILL.md",
+      "skills/kb-ingest/SKILL.md",
+      "skills/kb-document/SKILL.md",
+      "skills/kb-query/SKILL.md",
+    ]) {
+      expect(skill(path), path).toContain("version-profile.md");
+    }
+  });
+});
+
 describe("kb-visualize freshness contract", () => {
   it("renders and verifies the model extracted in the current run", () => {
     const visualize = skill("skills/kb-visualize/SKILL.md");

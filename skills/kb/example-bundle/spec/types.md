@@ -3,7 +3,7 @@ type: Spec Section
 title: Concept Types
 description: The type vocabulary this bundle uses.
 tags: [schema, meta]
-timestamp: 2026-01-01T00:00:00Z
+generated: { by: process:agent-knowledge-example, at: 2026-01-01T00:00:00Z }
 ---
 
 # Concept Types

@@ -7446,6 +7446,17 @@ function scalar(data, k, dflt) {
   if (v === void 0) return dflt;
   return typeof v === "string" ? v : dflt;
 }
+function record(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value) ? value : null;
+}
+function actorEvent(value) {
+  const event = record(value);
+  if (!event || typeof event["by"] !== "string") return null;
+  return {
+    by: event["by"],
+    at: typeof event["at"] === "string" ? event["at"] : ""
+  };
+}
 function resolve(srcRel, target) {
   const resolved = target.startsWith("/") ? target.replace(/^\/+/, "") : normalizePosix(`${dirname(srcRel) === "." ? "" : dirname(srcRel)}/${target}`.replace(/^\//, ""));
   return conceptId(resolved);
@@ -7473,8 +7484,32 @@ function extractGraph(bundle) {
       const rid = resolve(rel, tgt);
       if (ids.has(rid) && rid !== cid && !links.includes(rid)) links.push(rid);
     }
+    const rawSources = fm["sources"];
+    const sources = Array.isArray(rawSources) ? rawSources.map(record).filter((source) => source !== null) : [];
+    for (const source of sources) {
+      const resource = source["resource"];
+      if (typeof resource !== "string") continue;
+      const sourcePath = resource.replace(/#.*$/, "");
+      if (!sourcePath.endsWith(".md")) continue;
+      const rid = resolve(rel, sourcePath);
+      if (ids.has(rid) && rid !== cid && !links.includes(rid)) links.push(rid);
+    }
     const rawTags = fm["tags"];
     const tags = Array.isArray(rawTags) ? rawTags.filter((tag) => typeof tag === "string") : typeof rawTags === "string" ? [rawTags] : [];
+    const generated = actorEvent(fm["generated"]);
+    const rawVerified = fm["verified"];
+    const verified = (Array.isArray(rawVerified) ? rawVerified : rawVerified === void 0 ? [] : [rawVerified]).map(actorEvent).filter((event) => event !== null);
+    const trustTier = verified.some((event) => event.by.startsWith("human:")) ? "human-reviewed" : verified.length ? "machine-confirmed" : "unverified";
+    const staleAfter = scalar(fm, "stale_after", "");
+    const isStale = Boolean(staleAfter && (/* @__PURE__ */ new Date()).toISOString().slice(0, 10) >= staleAfter);
+    const isAttested = fm["type"] === "Attested Computation";
+    const attestedComputation = isAttested ? {
+      runtime: fm["runtime"] ?? null,
+      parameters: fm["parameters"] ?? [],
+      computation: fm["computation"] ?? null,
+      executor: fm["executor"] ?? null,
+      attester: fm["attester"] ?? null
+    } : null;
     nodes.set(cid, {
       id: cid,
       path: rel,
@@ -7483,7 +7518,15 @@ function extractGraph(bundle) {
       description: scalar(fm, "description", ""),
       tags,
       resource: scalar(fm, "resource", ""),
-      status: scalar(fm, "status", "active"),
+      status: scalar(fm, "status", "stable"),
+      generated,
+      verified,
+      trust_tier: trustTier,
+      last_changed: generated?.at || scalar(fm, "timestamp", ""),
+      stale_after: staleAfter,
+      is_stale: isStale,
+      sources,
+      attested_computation: attestedComputation,
       body: body.trim(),
       links,
       cited_by: []

@@ -36,8 +36,8 @@ version-controlled repository that contains the bundle**. That concept may be up
 
 1. its `sources` name the repository paths or symbols supporting the behavior;
 2. the repository diff or inspected current source establishes the change;
-3. the bundle root records `documented_revision` when available and marks whether uncommitted
-   repository evidence was included; and
+3. `spec/repository_state.md` records `documented_revision` when available and marks whether
+   uncommitted repository evidence was included; and
 4. `log.md` records what documentation changed and why.
 
 Git preserves the prior text and source revision, so creating a new concept for every implementation
@@ -53,7 +53,8 @@ concepts it supports (N:1) — never duplicate source material. Use `resource:` 
 stable canonical URI; otherwise describe its origin honestly in the Reference body.
 
 Living repository documentation uses the exception above: repository files remain in place and are
-named in `sources` plus `# Repository evidence`; do not create one Reference or copy per code file.
+named in structured `sources` plus `# Repository evidence`; do not create one Reference or copy per
+code file.
 Pasted text with no source: ask for one; if there truly is none, record it honestly as
 user-originated (e.g. `type: Note`, no `resource`).
 
@@ -88,7 +89,7 @@ plus git history, not from the content vouching for itself.
 
 ## Frontmatter keys this model uses
 
-Extension keys (all optional, tolerated by any consumer):
+Standard v0.2 fields plus this model's extension keys:
 
 ```yaml
 status: draft | stable | deprecated  # OKF v0.2 lifecycle; omit when unnecessary
@@ -98,8 +99,12 @@ conflicts_with: [<concept-id>, …]    # mutual, on both concepts
 sources:                              # OKF v0.2 provenance
   - id: <stable-source-id>
     resource: <url-or-bundle-path>
+generated: { by: <producer>/<version>, at: <ISO-8601-datetime> }
+verified: { by: <actual-verifier>, at: <ISO-8601-datetime> }
 ```
 
-OKF v0.2 defines `status` and `sources`; it does not define a stored confidence score or the
-supersession/conflict keys. Credibility is inferred from `sources` signals, while the extension keys
-above preserve this bundle's stronger history policy.
+OKF v0.2 defines `status`, `sources`, `generated`, and `verified`; every source entry requires
+`resource`, and verification is recorded only when it actually occurred. It does not define a stored
+confidence score or the supersession/conflict keys. Credibility is inferred from source signals,
+while the extension keys preserve this bundle's stronger history policy. Apply the complete
+[version profile](version-profile.md) when writing.

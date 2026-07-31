@@ -1,5 +1,5 @@
 ---
-okf_version: "0.1"
+okf_version: "0.2"
 ---
 
 # Example Knowledge Bundle
@@ -18,3 +18,8 @@ How this bundle is organized (its schema layer — read this first when maintain
 
 * [Customers](concepts/customers.md) - the people who place orders.
 * [Orders](concepts/orders.md) - what customers buy.
+
+## References
+
+* [Sample Sales Data](references/sample_sales_data.md) - synthetic source material used by the
+  example concepts.

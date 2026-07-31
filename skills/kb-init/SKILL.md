@@ -2,7 +2,7 @@
 name: kb-init
 description: Scaffold a new OKF knowledge bundle in this project — run when starting a wiki or adding a bundle under knowledge/.
 disable-model-invocation: true
-version: 0.2.0
+version: 0.3.0
 tags: [knowledge, okf, init, scaffold]
 ---
 
@@ -11,7 +11,8 @@ tags: [knowledge, okf, init, scaffold]
 Scaffold a conformant **bundle** per [kb](../kb/SKILL.md). Your unique work is the **schema layer**
 (step 2) and adapting the seed (step 3).
 
-Read [../kb/references/glossary.md](../kb/references/glossary.md) if the terms below are unfamiliar.
+Read [the version profile](../kb/references/version-profile.md) before writing. New bundles target
+OKF v0.2. Read [the glossary](../kb/references/glossary.md) if the terms below are unfamiliar.
 
 ## 1. Resolve location and bundle name
 
@@ -26,8 +27,11 @@ If the target directory already contains a bundle (a root `index.md`), stop and 
 overwrite. Offer [kb-document](../kb-document/SKILL.md) for repository documentation or
 [kb-ingest](../kb-ingest/SKILL.md) for captured sources.
 
-**Completion criterion:** the target path and bundle name are fixed, and confirmed not to collide
-with an existing bundle.
+Choose an honest producer actor for `generated.by`: the current agent/tool as
+`<producer>/<version>`, never `human:<id>` unless the human actually authored the content.
+
+**Completion criterion:** the target path, bundle name, and producer actor are fixed, and the target
+is confirmed not to collide with an existing bundle.
 
 ## 2. Understand the domain before scaffolding
 
@@ -76,23 +80,24 @@ read-before-write failure blindly or dismiss it as a false alarm.
 
 | Artifact | Action |
 |---|---|
-| `index.md` | Keep `okf_version: "0.1"` frontmatter; replace the body with this bundle's title and section list. |
+| `index.md` | Keep `okf_version: "0.2"` frontmatter; replace the body with this bundle's title and section list. |
 | `log.md` | Start fresh with a single dated `**Creation**` entry. |
-| `spec/types.md` | Keep `Spec Section` and `Reference`; replace only the example domain types with the provisional vocabulary from step 2. |
-| `spec/conventions.md` | Replace with folder taxonomy, naming, the applicable ingest/documentation routing and source-custody rule, and a trust-model pointer. |
+| `spec/types.md` | Keep `Spec Section` and `Reference`; replace the example domain types and set `generated` to the current producer/time. |
+| `spec/conventions.md` | Replace with folder taxonomy, routing, custody, and trust rules; set `generated` to the current producer/time. |
 | `concepts/*` | Remove example entities (`customers`, `orders`); leave `concepts/` empty or create domain starter folders. |
+| `references/*` | Remove the synthetic example source; leave `references/` empty until a real source is ingested. |
 | `knowledge/index.md` | If multi-bundle (step 1): create or update the catalog entry for this bundle. |
 
 Use [../kb/templates/](../kb/templates/) for any new concept/index/log files.
 
-**Completion criterion:** the bundle exists on disk; every row above is accounted for; `spec/types.md`
-and `spec/conventions.md` describe *this* project (not the example's orders/customers); multi-bundle
-catalog updated if applicable.
+**Completion criterion:** the bundle exists on disk as OKF v0.2; every row above is accounted for;
+all created concepts use `generated` rather than legacy `timestamp`; `spec/types.md` and
+`spec/conventions.md` describe *this* project; multi-bundle catalog updated if applicable.
 
 ## 4. Validate
 
 Run [kb-lint](../kb-lint/SKILL.md) if available; otherwise verify the bundle is conformant per
-[kb](../kb/SKILL.md) (SPEC §9 — the one hard rule).
+[kb](../kb/SKILL.md) (SPEC §11 — the one hard rule).
 
 **Completion criterion:** zero conformance errors.
 

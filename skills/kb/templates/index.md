@@ -3,7 +3,7 @@
   the bundle-root index.md MAY declare okf_version. Uncomment the block below ONLY for the root:
 
 ---
-okf_version: "0.1"
+okf_version: "0.2"
 ---
 -->
 

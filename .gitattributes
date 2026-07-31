@@ -1,0 +1,2 @@
+# Preserve the authoritative vendored specification byte-for-byte, including upstream whitespace.
+skills/kb/references/SPEC.md whitespace=-trailing-space

@@ -1,7 +1,7 @@
 # Agent Knowledge
 
 Agent Knowledge is a portable set of Agent Skills for building and maintaining project knowledge
-in plain Markdown using the [Open Knowledge Format (OKF)](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf).
+in plain Markdown using [Open Knowledge Format v0.2 (OKF)](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf).
 
 It turns project documents, decisions, notes, and conversations into a connected knowledge bundle
 that improves over time. Ask a question and get a cited answer. Add a source and the agent
@@ -13,6 +13,11 @@ configuration, and Git history while leaving those files in place.
 
 Everything remains plain Markdown: readable without special tooling, easy to diff and review, and
 portable across agents.
+
+New bundles target **OKF v0.2**, including structured provenance, producer identity, lifecycle and
+freshness signals, and Attested Computation contracts. Existing v0.1 bundles remain readable and
+maintainable through the specification's compatibility fallbacks; the skills never partially
+migrate a populated bundle without an explicit migration request.
 
 ## Install
 

@@ -20,7 +20,7 @@ model each tool provides.
 | | **okf-skills** | **openknowledge** | **openwiki** | **agent-knowledge + Janet** |
 |---|---|---|---|---|
 | Form factor | Portable skills / Claude plugin | Go CLI + agent guidance | TypeScript CLI | Portable skills + macOS agent CLI |
-| OKF target | v0.1-era author/validate flows | Version-selectable tooling | Explicitly v0.1 | v0.1 today; v0.2 migration planned |
+| OKF target | v0.1-era author/validate flows | Version-selectable tooling | Explicitly v0.1 | v0.2 producer/consumer; v0.1 compatibility |
 | Code-repository documentation | Yes | Partial | Strong Code mode | Strong `kb-document` flow |
 | General-source ingest | No dedicated ingest loop | No dedicated ingest loop | Personal mode connectors | General files, URLs, PDFs, notes, and repository sources |
 | Built-in connectors | No | No | Git repositories, Gmail, Notion, X, web search, Hacker News | Host/tool dependent; no first-party connector catalog |
@@ -55,8 +55,8 @@ The defensible distinction is now the integrity of the compiled knowledge:
 * Diagram validation and repair.
 
 Those are complementary to — not substitutes for — the trust model. The near-term product story
-should be **portable OKF v0.2 skills with stronger maintenance semantics**, with Janet as the polished
-local operator and GitHub Actions as the automated review loop.
+is now **portable OKF v0.2 skills with stronger maintenance semantics**, with Janet as the polished
+local operator and GitHub Actions as the next automated review loop.
 
 # Citations
 

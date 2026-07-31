@@ -1,5 +1,6 @@
 {
   "bundle": "knowledge",
+  "okf_version": "0.1",
   "concepts": 52,
   "files": 61,
   "errors": [],

@@ -6,7 +6,7 @@ description: >-
   lint for drift, or visualize connections; whenever a repo has a knowledge/ bundle that should
   inform the task; and when another kb-* skill needs the shared spec, glossary, templates, or trust
   model.
-version: 0.2.0
+version: 0.3.0
 tags: [knowledge, okf, bundle, hub]
 ---
 
@@ -27,7 +27,7 @@ skill that does.
 A bundle is **conformant** iff every non-reserved `.md` file has parseable YAML frontmatter with a
 non-empty `type`. Everything else is soft guidance — consumers MUST tolerate missing optional fields,
 unknown types, and broken links. Never reject a bundle over them. Full rules:
-[references/SPEC.md](references/SPEC.md) §9.
+[references/SPEC.md](references/SPEC.md) §11.
 
 The domain portion of `spec/types.md` is a living, producer-chosen vocabulary, not a validation
 enum. Keep the workflow conventions `Reference` and `Spec Section`; start the domain types small
@@ -54,7 +54,9 @@ explicit knowledge question.
 
 Every `kb-*` skill reads these rather than restating them, so the family stays consistent:
 
-- [references/SPEC.md](references/SPEC.md) — OKF v0.1, vendored verbatim.
+- [references/SPEC.md](references/SPEC.md) — OKF v0.2, vendored verbatim.
+- [references/version-profile.md](references/version-profile.md) — v0.2 production and v0.1
+  compatibility rules; every writing skill reads it before changing a bundle.
 - [references/glossary.md](references/glossary.md) — leading words and definitions.
 - [references/trust-model.md](references/trust-model.md) — the maintenance rules.
 - [templates/](templates/) — `concept.md`, `index.md`, `log.md` starters.

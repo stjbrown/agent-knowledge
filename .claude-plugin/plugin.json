@@ -1,7 +1,7 @@
 {
   "name": "agent-knowledge",
   "description": "Build, document, and maintain a portable knowledge base as an Open Knowledge Format (OKF) bundle. The kb hub plus kb-* action skills.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "skills": [
     "./skills/kb",
     "./skills/kb-init",
