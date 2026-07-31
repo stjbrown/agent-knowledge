@@ -6,7 +6,7 @@ description: >-
   knowledge/ bundle — and when any task would be informed by an existing bundle, consult it here
   before answering from scratch. Navigates by progressive disclosure and files valuable answers
   back so the bundle compounds.
-version: 0.3.0
+version: 0.3.1
 tags: [knowledge, okf, query, retrieval]
 ---
 

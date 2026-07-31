@@ -13,6 +13,31 @@ Read the bundle-root `index.md` before writing:
 Never rewrite untouched concepts merely to normalize their version. A deliberate migration is a
 separate, bundle-wide operation with validation before and after.
 
+## Bundle-wide migration preflight
+
+Before planning or performing any format-version or lifecycle migration, load `kb-lint` and run its
+bundled frontmatter-aware inventory:
+
+```
+node "<kb-lint-skill-dir>/scripts/conformance.mjs" <bundle-dir> --inventory --json
+```
+
+Treat that parsed inventory as the source of truth for **active metadata**. An absent observation
+means zero. Do not classify frontmatter with repository-wide grep or text search: prose, historical
+notes, and fenced YAML examples can contain field names and lifecycle values that are not active
+metadata. Text search may support a later prose review, but it must not override the parsed
+inventory.
+
+Account for every non-reserved concept and every observed top-level key before proposing the
+migration. Preserve unknown keys unless the target specification explicitly replaces them. Do not
+change the root `okf_version` until every concept has an explicit mapping and any inventory parse
+errors are resolved. After migration, rerun both the inventory and conformance modes; verify the
+target fields and lifecycle values, zero unintended legacy active fields, preserved extensions, and
+the expected concept count.
+
+**Completion criterion:** the plan cites the parsed preflight counts and affected paths; the finished
+migration cites matching postflight counts plus a clean conformance result.
+
 ## v0.2 producer profile
 
 For every new concept and every meaningful content change:

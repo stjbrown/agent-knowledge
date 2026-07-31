@@ -2,7 +2,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { checkConformance } from "../src/conformance.js";
+import { checkConformance, inventoryBundle } from "../src/conformance.js";
 import { extractGraph } from "../src/graph.js";
 
 const roots: string[] = [];
@@ -163,6 +163,64 @@ describe("OKF v0.1 compatibility", () => {
     expect(report.okf_version).toBe("0.1");
     expect(report.errors).toEqual([]);
     expect(report.warnings).toEqual([]);
+  });
+});
+
+describe("migration inventory", () => {
+  it("classifies only parsed frontmatter as active metadata", () => {
+    const bundle = freshBundle("0.1");
+    writeFileSync(
+      join(bundle, "legacy.md"),
+      `---
+type: Concept
+timestamp: 2026-01-01T00:00:00Z
+status: deprecated
+---
+
+# Legacy
+
+\`\`\`yaml
+generated: { by: example/model, at: 2026-01-01T00:00:00Z }
+sources: [{ resource: https://example.com }]
+resource: https://example.com/not-active
+status: superseded
+\`\`\`
+
+# Citations
+
+1. Example
+`,
+      "utf8",
+    );
+
+    const inventory = inventoryBundle(bundle);
+    expect(inventory.concepts).toBe(1);
+    expect(inventory.parsed_concepts).toBe(1);
+    expect(inventory.frontmatter_errors).toEqual([]);
+    expect(inventory.observations["frontmatter.timestamp"]?.count).toBe(1);
+    expect(inventory.observations["frontmatter.status=deprecated"]?.count).toBe(1);
+    expect(inventory.observations["body.# Citations"]?.count).toBe(1);
+    expect(inventory.observations["frontmatter.generated"]).toBeUndefined();
+    expect(inventory.observations["frontmatter.sources"]).toBeUndefined();
+    expect(inventory.observations["frontmatter.resource"]).toBeUndefined();
+    expect(inventory.observations["frontmatter.status=superseded"]).toBeUndefined();
+  });
+
+  it("locks the repository migration baseline against prose false positives", () => {
+    const inventory = inventoryBundle(resolve("knowledge"));
+    expect(inventory.concepts).toBe(52);
+    expect(inventory.parsed_concepts).toBe(52);
+    expect(inventory.frontmatter_errors).toEqual([]);
+    expect(inventory.observations["frontmatter.timestamp"]?.count).toBe(52);
+    expect(inventory.observations["frontmatter.resource"]?.count).toBe(15);
+    expect(inventory.observations["frontmatter.status=deprecated"]?.count).toBe(2);
+    expect(inventory.observations["frontmatter.supersedes"]?.count).toBe(2);
+    expect(inventory.observations["frontmatter.superseded_by"]?.count).toBe(2);
+    expect(inventory.observations["body.# Citations"]?.count).toBe(52);
+    expect(inventory.observations["frontmatter.generated"]).toBeUndefined();
+    expect(inventory.observations["frontmatter.sources"]).toBeUndefined();
+    expect(inventory.observations["frontmatter.status=superseded"]).toBeUndefined();
+    expect(inventory.observations["frontmatter.conflicts_with"]).toBeUndefined();
   });
 });
 

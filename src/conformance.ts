@@ -9,6 +9,7 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import {
+  FM_RE,
   RESERVED,
   collectMarkdown,
   frontmatter,
@@ -32,7 +33,32 @@ export interface ConformanceReport {
   warnings: string[];
 }
 
+export interface InventoryObservation {
+  count: number;
+  files: string[];
+}
+
+export interface BundleInventory {
+  bundle: string;
+  okf_version: string | null;
+  concepts: number;
+  parsed_concepts: number;
+  observations: Record<string, InventoryObservation>;
+  frontmatter_errors: string[];
+}
+
 type Data = Record<string, unknown>;
+
+const posixBasename = (rel: string): string => rel.split("/").pop() ?? rel;
+
+function readOkfVersion(bundle: string, md: string[]): string | null {
+  if (!md.includes("index.md")) return null;
+  const rootFm = frontmatter(readFileSync(join(bundle, "index.md"), "utf-8"));
+  if (rootFm === null) return null;
+  const parsed = parseYamlFrontmatter(rootFm);
+  const declared = parsed.data?.["okf_version"];
+  return nonEmptyString(declared) ? declared : null;
+}
 
 function isRecord(value: unknown): value is Data {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -211,17 +237,7 @@ export function checkConformance(bundle: string): ConformanceReport {
   const warnings: string[] = [];
   const md = collectMarkdown(bundle);
 
-  let okfVersion: string | null = null;
-  if (md.includes("index.md")) {
-    const rootFm = frontmatter(readFileSync(join(bundle, "index.md"), "utf-8"));
-    if (rootFm !== null) {
-      const parsed = parseYamlFrontmatter(rootFm);
-      const declared = parsed.data?.["okf_version"];
-      if (nonEmptyString(declared)) okfVersion = declared;
-    }
-  }
-
-  const posixBasename = (rel: string): string => rel.split("/").pop() ?? rel;
+  const okfVersion = readOkfVersion(bundle, md);
 
   for (const rel of [...md].sort()) {
     const text = readFileSync(join(bundle, rel), "utf-8");
@@ -315,6 +331,100 @@ export function checkConformance(bundle: string): ConformanceReport {
   };
 }
 
+/**
+ * Inventory active concept metadata without allowing body prose or fenced YAML
+ * examples to masquerade as frontmatter. Observation keys use these forms:
+ * `frontmatter.<key>`, `frontmatter.status=<value>`, and `body.# Citations`.
+ * A missing observation has a count of zero.
+ */
+export function inventoryBundle(bundle: string): BundleInventory {
+  const md = collectMarkdown(bundle);
+  const concepts = [...md]
+    .filter((rel) => !RESERVED.has(posixBasename(rel)))
+    .sort();
+  const observed = new Map<string, Set<string>>();
+  const frontmatterErrors: string[] = [];
+  let parsedConcepts = 0;
+
+  const add = (key: string, rel: string): void => {
+    const files = observed.get(key) ?? new Set<string>();
+    files.add(rel);
+    observed.set(key, files);
+  };
+
+  for (const rel of concepts) {
+    const text = readFileSync(join(bundle, rel), "utf-8");
+    const match = FM_RE.exec(text);
+    const fm = match?.[1] ?? null;
+    const body = match ? text.slice(match[0].length) : text;
+
+    if (/^#\s+Citations\s*$/m.test(body)) add("body.# Citations", rel);
+
+    if (fm === null) {
+      frontmatterErrors.push(`${rel}: concept has no parseable frontmatter`);
+      continue;
+    }
+    const parsed = parseYamlFrontmatter(fm);
+    if (parsed.errors.length > 0 || !parsed.data) {
+      const detail = parsed.errors[0] ? `: ${parsed.errors[0]}` : "";
+      frontmatterErrors.push(`${rel}: concept has no parseable frontmatter${detail}`);
+      continue;
+    }
+    parsedConcepts++;
+    for (const key of Object.keys(parsed.data).sort()) add(`frontmatter.${key}`, rel);
+    if (Object.prototype.hasOwnProperty.call(parsed.data, "status")) {
+      add(`frontmatter.status=${String(parsed.data["status"])}`, rel);
+    }
+  }
+
+  const observations: Record<string, InventoryObservation> = {};
+  for (const key of [...observed.keys()].sort()) {
+    const files = [...observed.get(key)!].sort();
+    observations[key] = { count: files.length, files };
+  }
+
+  return {
+    bundle,
+    okf_version: readOkfVersion(bundle, md),
+    concepts: concepts.length,
+    parsed_concepts: parsedConcepts,
+    observations,
+    frontmatter_errors: frontmatterErrors,
+  };
+}
+
+function observationCount(inventory: BundleInventory, key: string): number {
+  return inventory.observations[key]?.count ?? 0;
+}
+
+export function formatInventory(inventory: BundleInventory): string {
+  const lines = [
+    `${inventory.bundle}: ${inventory.concepts} concepts, ${inventory.parsed_concepts} parsed`,
+    `  okf_version: ${inventory.okf_version ?? "undeclared"}`,
+    "  Migration signals (active concept frontmatter only unless labeled body):",
+  ];
+  for (const key of [
+    "frontmatter.timestamp",
+    "frontmatter.generated",
+    "frontmatter.sources",
+    "frontmatter.resource",
+    "frontmatter.status=deprecated",
+    "frontmatter.status=superseded",
+    "frontmatter.supersedes",
+    "frontmatter.superseded_by",
+    "frontmatter.conflicts_with",
+    "body.# Citations",
+  ]) {
+    lines.push(`    ${key}: ${observationCount(inventory, key)}`);
+  }
+  lines.push("  All observed fields and headings (absent means zero):");
+  for (const [key, value] of Object.entries(inventory.observations)) {
+    lines.push(`    ${key}: ${value.count}`);
+  }
+  for (const error of inventory.frontmatter_errors) lines.push(`  ERROR  ${error}`);
+  return lines.join("\n");
+}
+
 export function formatReport(r: ConformanceReport): string {
   const lines = [`${r.bundle}: ${r.files} files, ${r.concepts} concepts`];
   for (const e of r.errors) lines.push(`  ERROR  ${e}`);
@@ -337,6 +447,15 @@ export function runCli(argv: string[]): number {
   if (!isDir) {
     process.stderr.write(`not a directory: ${bundle}\n`);
     return 2;
+  }
+  if (argv.includes("--inventory")) {
+    const inventory = inventoryBundle(bundle);
+    if (asJson) {
+      process.stdout.write(pythonJson(inventory) + "\n");
+    } else {
+      process.stdout.write(formatInventory(inventory) + "\n");
+    }
+    return inventory.frontmatter_errors.length ? 1 : 0;
   }
   const r = checkConformance(bundle);
   if (asJson) {

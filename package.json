@@ -1,6 +1,6 @@
 {
   "name": "@stjbrown/agent-knowledge-skills",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Portable Agent Skills for building, documenting, and maintaining OKF v0.2 knowledge bundles",
   "license": "MIT",
   "type": "module",

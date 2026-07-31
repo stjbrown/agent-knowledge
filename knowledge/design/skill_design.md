@@ -3,7 +3,7 @@ type: Concept
 title: Skill Design — the kb-* family
 description: The plan for agent-knowledge's skills — a kb hub (router + single source of truth) plus action skills (ingest, query, init, lint, visualize), designed with the writing-great-skills framework.
 tags: [design, skills, build-plan, decisions]
-timestamp: 2026-07-01
+timestamp: 2026-07-31
 ---
 
 # Skill Design — the `kb-*` family
@@ -83,6 +83,20 @@ update indexes → append [log](../spec/log_files.md) → move source to process
 tempts an early "done." Defense, in order: sharpen the completion criteria first (*"every extracted
 entity has a concept or is consciously skipped; source moved to processed; log appended"*); split the
 sequence only if the rush persists.
+
+### Deterministic seam — migration inventory
+
+Format migrations exposed a second predictable failure mode: two different models treated field
+names and lifecycle values found in prose or fenced examples as active YAML frontmatter. The skill
+now removes that judgment from the model. `kb-lint`'s bundled checker has an `--inventory` mode that
+parses only each concept's leading frontmatter, reports body `# Citations` separately, and returns
+counts plus exact paths for every observed top-level key and status value.
+
+The shared version profile requires this inventory before and after every bundle-wide format or
+lifecycle migration. Repository-wide grep is explicitly disallowed for classifying active metadata;
+it remains useful only for a later prose review. This is the writing-great-skills principle in its
+most useful form: put a deterministic boundary around the fact the model repeatedly gets wrong, then
+make the stochastic work begin from that evidence.
 
 ### Techniques to borrow for `kb-ingest` (from openwiki)
 

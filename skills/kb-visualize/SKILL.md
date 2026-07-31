@@ -2,7 +2,7 @@
 name: kb-visualize
 description: Render a knowledge bundle as an interactive graph — native UI where the host supports it, otherwise a self-contained HTML artifact.
 disable-model-invocation: true
-version: 0.3.0
+version: 0.3.1
 tags: [knowledge, okf, visualize, graph]
 ---
 

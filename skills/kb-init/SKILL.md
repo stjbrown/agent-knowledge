@@ -2,7 +2,7 @@
 name: kb-init
 description: Scaffold a new OKF knowledge bundle in this project — run when starting a wiki or adding a bundle under knowledge/.
 disable-model-invocation: true
-version: 0.3.0
+version: 0.3.1
 tags: [knowledge, okf, init, scaffold]
 ---
 

@@ -7443,6 +7443,15 @@ var ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 var LINK_RE = /\]\(([^)#\s]+\.md)(#[^)]*)?\)/g;
 var FOOTNOTE_RE = /\[\^([A-Za-z0-9_-]+)\]/g;
 var ACTOR_RE = /^(?:human:[^\s:]+|process:[^\s:]+|[^\s/:]+\/[^\s/]+)$/;
+var posixBasename = (rel) => rel.split("/").pop() ?? rel;
+function readOkfVersion(bundle, md) {
+  if (!md.includes("index.md")) return null;
+  const rootFm = frontmatter(readFileSync(join2(bundle, "index.md"), "utf-8"));
+  if (rootFm === null) return null;
+  const parsed = parseYamlFrontmatter(rootFm);
+  const declared = parsed.data?.["okf_version"];
+  return nonEmptyString(declared) ? declared : null;
+}
 function isRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -7592,16 +7601,7 @@ function checkConformance(bundle) {
   const errors = [];
   const warnings = [];
   const md = collectMarkdown(bundle);
-  let okfVersion = null;
-  if (md.includes("index.md")) {
-    const rootFm = frontmatter(readFileSync(join2(bundle, "index.md"), "utf-8"));
-    if (rootFm !== null) {
-      const parsed = parseYamlFrontmatter(rootFm);
-      const declared = parsed.data?.["okf_version"];
-      if (nonEmptyString(declared)) okfVersion = declared;
-    }
-  }
-  const posixBasename = (rel) => rel.split("/").pop() ?? rel;
+  const okfVersion = readOkfVersion(bundle, md);
   for (const rel of [...md].sort()) {
     const text = readFileSync(join2(bundle, rel), "utf-8");
     const base = posixBasename(rel);
@@ -7668,6 +7668,83 @@ function checkConformance(bundle) {
     warnings
   };
 }
+function inventoryBundle(bundle) {
+  const md = collectMarkdown(bundle);
+  const concepts = [...md].filter((rel) => !RESERVED.has(posixBasename(rel))).sort();
+  const observed = /* @__PURE__ */ new Map();
+  const frontmatterErrors = [];
+  let parsedConcepts = 0;
+  const add = (key, rel) => {
+    const files = observed.get(key) ?? /* @__PURE__ */ new Set();
+    files.add(rel);
+    observed.set(key, files);
+  };
+  for (const rel of concepts) {
+    const text = readFileSync(join2(bundle, rel), "utf-8");
+    const match = FM_RE.exec(text);
+    const fm = match?.[1] ?? null;
+    const body = match ? text.slice(match[0].length) : text;
+    if (/^#\s+Citations\s*$/m.test(body)) add("body.# Citations", rel);
+    if (fm === null) {
+      frontmatterErrors.push(`${rel}: concept has no parseable frontmatter`);
+      continue;
+    }
+    const parsed = parseYamlFrontmatter(fm);
+    if (parsed.errors.length > 0 || !parsed.data) {
+      const detail = parsed.errors[0] ? `: ${parsed.errors[0]}` : "";
+      frontmatterErrors.push(`${rel}: concept has no parseable frontmatter${detail}`);
+      continue;
+    }
+    parsedConcepts++;
+    for (const key of Object.keys(parsed.data).sort()) add(`frontmatter.${key}`, rel);
+    if (Object.prototype.hasOwnProperty.call(parsed.data, "status")) {
+      add(`frontmatter.status=${String(parsed.data["status"])}`, rel);
+    }
+  }
+  const observations = {};
+  for (const key of [...observed.keys()].sort()) {
+    const files = [...observed.get(key)].sort();
+    observations[key] = { count: files.length, files };
+  }
+  return {
+    bundle,
+    okf_version: readOkfVersion(bundle, md),
+    concepts: concepts.length,
+    parsed_concepts: parsedConcepts,
+    observations,
+    frontmatter_errors: frontmatterErrors
+  };
+}
+function observationCount(inventory, key) {
+  return inventory.observations[key]?.count ?? 0;
+}
+function formatInventory(inventory) {
+  const lines = [
+    `${inventory.bundle}: ${inventory.concepts} concepts, ${inventory.parsed_concepts} parsed`,
+    `  okf_version: ${inventory.okf_version ?? "undeclared"}`,
+    "  Migration signals (active concept frontmatter only unless labeled body):"
+  ];
+  for (const key of [
+    "frontmatter.timestamp",
+    "frontmatter.generated",
+    "frontmatter.sources",
+    "frontmatter.resource",
+    "frontmatter.status=deprecated",
+    "frontmatter.status=superseded",
+    "frontmatter.supersedes",
+    "frontmatter.superseded_by",
+    "frontmatter.conflicts_with",
+    "body.# Citations"
+  ]) {
+    lines.push(`    ${key}: ${observationCount(inventory, key)}`);
+  }
+  lines.push("  All observed fields and headings (absent means zero):");
+  for (const [key, value] of Object.entries(inventory.observations)) {
+    lines.push(`    ${key}: ${value.count}`);
+  }
+  for (const error of inventory.frontmatter_errors) lines.push(`  ERROR  ${error}`);
+  return lines.join("\n");
+}
 function formatReport(r) {
   const lines = [`${r.bundle}: ${r.files} files, ${r.concepts} concepts`];
   for (const e of r.errors) lines.push(`  ERROR  ${e}`);
@@ -7690,6 +7767,15 @@ function runCli(argv) {
     process.stderr.write(`not a directory: ${bundle}
 `);
     return 2;
+  }
+  if (argv.includes("--inventory")) {
+    const inventory = inventoryBundle(bundle);
+    if (asJson) {
+      process.stdout.write(pythonJson(inventory) + "\n");
+    } else {
+      process.stdout.write(formatInventory(inventory) + "\n");
+    }
+    return inventory.frontmatter_errors.length ? 1 : 0;
   }
   const r = checkConformance(bundle);
   if (asJson) {

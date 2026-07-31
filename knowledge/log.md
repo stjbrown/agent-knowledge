@@ -2,6 +2,18 @@
 
 ## 2026-07-31
 
+**Update** — Added a deterministic migration preflight after Luna and Sonnet independently confused
+historical prose and fenced YAML examples with active metadata. The bundled `kb-lint` checker now
+supports `--inventory [--json]`, parsing only leading concept frontmatter while reporting body
+`# Citations` separately; it emits exact counts and paths for every observed top-level key and status
+value. The shared version profile now requires that inventory before and after bundle-wide format or
+lifecycle migrations, forbids repository-wide grep as the classifier for active metadata, and makes
+concept/key accounting, extension preservation, postflight counts, and conformance explicit
+completion criteria. Regression fixtures reproduce the false-positive pattern, and the repository
+baseline locks the correct v0.1 inventory (52 timestamps and citation headings, 15 resources, two
+deprecated statuses, and zero active generated/sources/superseded fields). Released as skills
+package `0.3.1`.
+
 **Update** — Migrated the distributed `kb-*` skill family to an OKF v0.2 producer/consumer profile:
 vendored the authoritative v0.2 spec, made new scaffolds emit v0.2, replaced legacy producer
 `timestamp`/`# Citations` guidance with `generated`/structured `sources` and keyed footnotes, added

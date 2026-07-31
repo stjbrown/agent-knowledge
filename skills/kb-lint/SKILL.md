@@ -2,7 +2,7 @@
 name: kb-lint
 description: Health-check a knowledge bundle for conformance and drift; optionally auto-fix safe issues.
 disable-model-invocation: true
-version: 0.3.0
+version: 0.3.1
 tags: [knowledge, okf, lint, conformance]
 ---
 
@@ -14,6 +14,19 @@ scripted) and a **drift audit** (fuzzy, judgment). Run both; report findings by 
 `fix`, repair what is safe.
 
 ## 1. Conformance (deterministic)
+
+For a bundle-wide format or lifecycle migration, first inventory active metadata with the same
+frontmatter-aware checker:
+
+```
+node "<skill-dir>/scripts/conformance.mjs" <bundle-dir> --inventory --json
+```
+
+The inventory parses only each concept's leading YAML frontmatter and reports body `# Citations`
+separately. Its `observations` include counts and exact paths for every active top-level key and
+status value; an absent observation means zero. Do not use repository-wide grep to classify active
+metadata because prose and fenced examples can contain inactive field names and lifecycle values.
+Resolve every reported frontmatter error before planning from the counts.
 
 Run the bundled checker against the target bundle (default `knowledge/`). It is a zero-dependency
 Node script (`node >=18`); `<skill-dir>` is this skill's directory — `${CLAUDE_SKILL_DIR}` under

@@ -62,6 +62,17 @@ describe("OKF v0.2 skill contract", () => {
       expect(skill(path), path).toContain("version-profile.md");
     }
   });
+
+  it("requires parsed metadata inventory for bundle-wide migrations", () => {
+    const profile = skill("skills/kb/references/version-profile.md");
+    const lint = skill("skills/kb-lint/SKILL.md");
+
+    expect(profile).toContain("--inventory --json");
+    expect(profile).toContain("Do not classify frontmatter with repository-wide grep");
+    expect(profile).toContain("every observed top-level key");
+    expect(lint).toContain("frontmatter-aware checker");
+    expect(lint).toContain("an absent observation means zero");
+  });
 });
 
 describe("kb-visualize freshness contract", () => {

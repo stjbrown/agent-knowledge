@@ -6,7 +6,7 @@ description: >-
   lint for drift, or visualize connections; whenever a repo has a knowledge/ bundle that should
   inform the task; and when another kb-* skill needs the shared spec, glossary, templates, or trust
   model.
-version: 0.3.0
+version: 0.3.1
 tags: [knowledge, okf, bundle, hub]
 ---
 
