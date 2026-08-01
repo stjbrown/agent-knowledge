@@ -188,7 +188,10 @@ status: superseded
 
 # Citations
 
-1. Example
+1. [Linked](https://example.com/linked)
+2. Site — <https://example.com/site>
+3. Private record
+[^extra]: [Extra](https://example.com/extra)
 `,
       "utf8",
     );
@@ -200,6 +203,21 @@ status: superseded
     expect(inventory.observations["frontmatter.timestamp"]?.count).toBe(1);
     expect(inventory.observations["frontmatter.status=deprecated"]?.count).toBe(1);
     expect(inventory.observations["body.# Citations"]?.count).toBe(1);
+    expect(inventory.legacy_citations).toEqual({
+      sections: 1,
+      numbered_items: 3,
+      footnote_definitions: 1,
+      source_records: 4,
+      markdown_link_items: 1,
+      angle_url_items: 1,
+      scope_descriptor_items: 1,
+      footnote_files: ["legacy.md"],
+    });
+    expect(inventory.structured_sources).toEqual({
+      concepts: 0,
+      entries: 0,
+      entries_with_resource: 0,
+    });
     expect(inventory.observations["frontmatter.generated"]).toBeUndefined();
     expect(inventory.observations["frontmatter.sources"]).toBeUndefined();
     expect(inventory.observations["frontmatter.resource"]).toBeUndefined();
@@ -217,10 +235,50 @@ status: superseded
     expect(inventory.observations["frontmatter.supersedes"]?.count).toBe(2);
     expect(inventory.observations["frontmatter.superseded_by"]?.count).toBe(2);
     expect(inventory.observations["body.# Citations"]?.count).toBe(52);
+    expect(inventory.legacy_citations).toEqual({
+      sections: 52,
+      numbered_items: 71,
+      footnote_definitions: 1,
+      source_records: 72,
+      markdown_link_items: 45,
+      angle_url_items: 20,
+      scope_descriptor_items: 6,
+      footnote_files: ["spec/log_files.md"],
+    });
+    expect(inventory.structured_sources).toEqual({
+      concepts: 0,
+      entries: 0,
+      entries_with_resource: 0,
+    });
     expect(inventory.observations["frontmatter.generated"]).toBeUndefined();
     expect(inventory.observations["frontmatter.sources"]).toBeUndefined();
     expect(inventory.observations["frontmatter.status=superseded"]).toBeUndefined();
     expect(inventory.observations["frontmatter.conflicts_with"]).toBeUndefined();
+  });
+
+  it("counts structured source entries for postflight preservation checks", () => {
+    const bundle = freshBundle();
+    writeFileSync(
+      join(bundle, "current.md"),
+      `---
+type: Concept
+sources:
+  - resource: https://example.com/one
+  - resource: Private evidence scope
+---
+
+# Current
+`,
+      "utf8",
+    );
+
+    const inventory = inventoryBundle(bundle);
+    expect(inventory.structured_sources).toEqual({
+      concepts: 1,
+      entries: 2,
+      entries_with_resource: 2,
+    });
+    expect(inventory.legacy_citations.source_records).toBe(0);
   });
 });
 

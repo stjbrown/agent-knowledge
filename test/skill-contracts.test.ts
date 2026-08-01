@@ -70,8 +70,16 @@ describe("OKF v0.2 skill contract", () => {
     expect(profile).toContain("--inventory --json");
     expect(profile).toContain("Do not classify frontmatter with repository-wide grep");
     expect(profile).toContain("every observed top-level key");
+    expect(profile).toContain("Never turn a date-only `timestamp` into a datetime");
+    expect(profile).toContain("Otherwise retain\nthe legacy `timestamp`, omit `generated`");
+    expect(profile).toContain("Numbered items **plus** separately defined\n  footnote sources");
+    expect(profile).toContain("A missing URL is not itself a provenance gap");
+    expect(profile).toContain("Never generate\n  positional IDs such as `source-1`");
+    expect(profile).toContain("`structured_sources.entries` equals the preflight");
     expect(lint).toContain("frontmatter-aware checker");
-    expect(lint).toContain("an absent observation means zero");
+    expect(lint).toContain("An absent observation means zero");
+    expect(lint).toContain("`legacy_citations` counts citation sections");
+    expect(lint).toContain("`structured_sources` counts the");
   });
 });
 

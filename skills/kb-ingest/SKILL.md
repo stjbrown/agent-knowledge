@@ -6,7 +6,7 @@ description: >-
   a knowledge/ bundle, or drops content for processing. Reads the source once, extracts its signal,
   and integrates it across the bundle under the trust model so knowledge compounds instead of being
   re-derived per query.
-version: 0.3.1
+version: 0.3.2
 tags: [knowledge, okf, ingest, capture]
 ---
 

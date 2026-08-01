@@ -2,7 +2,7 @@
 name: kb-lint
 description: Health-check a knowledge bundle for conformance and drift; optionally auto-fix safe issues.
 disable-model-invocation: true
-version: 0.3.1
+version: 0.3.2
 tags: [knowledge, okf, lint, conformance]
 ---
 
@@ -24,9 +24,12 @@ node "<skill-dir>/scripts/conformance.mjs" <bundle-dir> --inventory --json
 
 The inventory parses only each concept's leading YAML frontmatter and reports body `# Citations`
 separately. Its `observations` include counts and exact paths for every active top-level key and
-status value; an absent observation means zero. Do not use repository-wide grep to classify active
-metadata because prose and fenced examples can contain inactive field names and lifecycle values.
-Resolve every reported frontmatter error before planning from the counts.
+status value; `legacy_citations` counts citation sections, numbered items, separately defined
+footnote sources, total source records, and common citation shapes; `structured_sources` counts the
+postflight concepts, entries, and entries carrying `resource`. An absent observation means zero. Do
+not use repository-wide grep to classify active metadata because prose and fenced examples can contain
+inactive field names and lifecycle values. Resolve every reported frontmatter error before planning
+from the counts.
 
 Run the bundled checker against the target bundle (default `knowledge/`). It is a zero-dependency
 Node script (`node >=18`); `<skill-dir>` is this skill's directory — `${CLAUDE_SKILL_DIR}` under

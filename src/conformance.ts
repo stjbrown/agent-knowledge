@@ -43,8 +43,27 @@ export interface BundleInventory {
   okf_version: string | null;
   concepts: number;
   parsed_concepts: number;
+  legacy_citations: LegacyCitationInventory;
+  structured_sources: StructuredSourceInventory;
   observations: Record<string, InventoryObservation>;
   frontmatter_errors: string[];
+}
+
+export interface LegacyCitationInventory {
+  sections: number;
+  numbered_items: number;
+  footnote_definitions: number;
+  source_records: number;
+  markdown_link_items: number;
+  angle_url_items: number;
+  scope_descriptor_items: number;
+  footnote_files: string[];
+}
+
+export interface StructuredSourceInventory {
+  concepts: number;
+  entries: number;
+  entries_with_resource: number;
 }
 
 type Data = Record<string, unknown>;
@@ -345,6 +364,21 @@ export function inventoryBundle(bundle: string): BundleInventory {
   const observed = new Map<string, Set<string>>();
   const frontmatterErrors: string[] = [];
   let parsedConcepts = 0;
+  const legacyCitations: LegacyCitationInventory = {
+    sections: 0,
+    numbered_items: 0,
+    footnote_definitions: 0,
+    source_records: 0,
+    markdown_link_items: 0,
+    angle_url_items: 0,
+    scope_descriptor_items: 0,
+    footnote_files: [],
+  };
+  const structuredSources: StructuredSourceInventory = {
+    concepts: 0,
+    entries: 0,
+    entries_with_resource: 0,
+  };
 
   const add = (key: string, rel: string): void => {
     const files = observed.get(key) ?? new Set<string>();
@@ -358,7 +392,28 @@ export function inventoryBundle(bundle: string): BundleInventory {
     const fm = match?.[1] ?? null;
     const body = match ? text.slice(match[0].length) : text;
 
-    if (/^#\s+Citations\s*$/m.test(body)) add("body.# Citations", rel);
+    const citationsHeading = /^#\s+Citations\s*$/m.exec(body);
+    if (citationsHeading) {
+      add("body.# Citations", rel);
+      legacyCitations.sections++;
+      const section = body.slice(citationsHeading.index + citationsHeading[0].length);
+      const numbered = [...section.matchAll(/^\d+\.\s+(.+)$/gm)];
+      const footnotes = [...section.matchAll(/^\[\^([A-Za-z0-9_-]+)\]:\s+(.+)$/gm)];
+      legacyCitations.numbered_items += numbered.length;
+      legacyCitations.footnote_definitions += footnotes.length;
+      legacyCitations.source_records += numbered.length + footnotes.length;
+      if (footnotes.length) legacyCitations.footnote_files.push(rel);
+      for (const item of numbered) {
+        const text = item[1]!;
+        if (/\[[^\]]+\]\([^)]+\)/.test(text)) {
+          legacyCitations.markdown_link_items++;
+        } else if (/<(?:https?:\/\/|mailto:)[^>]+>/.test(text)) {
+          legacyCitations.angle_url_items++;
+        } else {
+          legacyCitations.scope_descriptor_items++;
+        }
+      }
+    }
 
     if (fm === null) {
       frontmatterErrors.push(`${rel}: concept has no parseable frontmatter`);
@@ -371,6 +426,14 @@ export function inventoryBundle(bundle: string): BundleInventory {
       continue;
     }
     parsedConcepts++;
+    const sources = parsed.data["sources"];
+    if (Array.isArray(sources)) {
+      structuredSources.concepts++;
+      structuredSources.entries += sources.length;
+      structuredSources.entries_with_resource += sources.filter(
+        (source) => isRecord(source) && nonEmptyString(source["resource"]),
+      ).length;
+    }
     for (const key of Object.keys(parsed.data).sort()) add(`frontmatter.${key}`, rel);
     if (Object.prototype.hasOwnProperty.call(parsed.data, "status")) {
       add(`frontmatter.status=${String(parsed.data["status"])}`, rel);
@@ -388,6 +451,8 @@ export function inventoryBundle(bundle: string): BundleInventory {
     okf_version: readOkfVersion(bundle, md),
     concepts: concepts.length,
     parsed_concepts: parsedConcepts,
+    legacy_citations: legacyCitations,
+    structured_sources: structuredSources,
     observations,
     frontmatter_errors: frontmatterErrors,
   };
@@ -401,6 +466,11 @@ export function formatInventory(inventory: BundleInventory): string {
   const lines = [
     `${inventory.bundle}: ${inventory.concepts} concepts, ${inventory.parsed_concepts} parsed`,
     `  okf_version: ${inventory.okf_version ?? "undeclared"}`,
+    `  legacy citation records: ${inventory.legacy_citations.source_records} ` +
+      `(${inventory.legacy_citations.numbered_items} numbered + ` +
+      `${inventory.legacy_citations.footnote_definitions} footnote definitions)`,
+    `  structured source entries: ${inventory.structured_sources.entries} ` +
+      `across ${inventory.structured_sources.concepts} concepts`,
     "  Migration signals (active concept frontmatter only unless labeled body):",
   ];
   for (const key of [

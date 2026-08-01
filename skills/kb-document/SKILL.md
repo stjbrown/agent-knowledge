@@ -5,7 +5,7 @@ description: >-
   document this repo, codebase, architecture, developer workflows, or operational behavior; create
   repository knowledge; or bring existing repository documentation up to date after code changes.
   Treats the repository as live, read-only evidence rather than source material to copy or retire.
-version: 0.3.1
+version: 0.3.2
 tags: [knowledge, okf, documentation, repository]
 ---
 

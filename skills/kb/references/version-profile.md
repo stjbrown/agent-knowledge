@@ -38,6 +38,34 @@ the expected concept count.
 **Completion criterion:** the plan cites the parsed preflight counts and affected paths; the finished
 migration cites matching postflight counts plus a clean conformance result.
 
+## v0.1 → v0.2 migration rules
+
+Treat legacy time as **evidence, not precision**. Never turn a date-only `timestamp` into a datetime
+by appending midnight or a timezone: `2026-07-01T00:00:00Z` invents facts. Emit `generated` only when
+evidence establishes both a truthful producer and the exact datetime of the last meaningful content
+change. A Git timestamp qualifies only after its diff shows that meaningful change. Otherwise retain
+the legacy `timestamp`, omit `generated`, and report that compatibility fallback as an unresolved
+precision gap; v0.2 consumers explicitly support it.
+
+Convert legacy citation trails losslessly before removing `# Citations`:
+
+- Use the inventory's `legacy_citations.source_records` as the preflight total and
+  `structured_sources.entries` as the postflight total. Numbered items **plus** separately defined
+  footnote sources are source records; do not silently drop or deduplicate either.
+- A source `resource` may be a URL, a bundle path, or the complete meaningful citation text as the
+  v0.2 scope descriptor. A missing URL is not itself a provenance gap.
+- Preserve record order, link targets, visible labels, and descriptive qualifiers. Parse Markdown
+  links wherever they occur in an entry and angle-bracket URLs explicitly; abort on a record that
+  cannot be represented without loss.
+- `sources[].id` is optional for document-level provenance. Retain an existing footnote label when a
+  body claim uses it; otherwise omit `id` or derive a semantic, deterministic key. Never generate
+  positional IDs such as `source-1`.
+
+**Completion criterion:** every legacy source record has one lossless `sources` representation,
+`structured_sources.entries` equals the preflight `legacy_citations.source_records`, every structured
+entry has `resource`, and no generated metadata contains inferred authorship or invented time
+precision.
+
 ## v0.2 producer profile
 
 For every new concept and every meaningful content change:
